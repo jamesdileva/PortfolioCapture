@@ -1,5 +1,9 @@
 import { app, BrowserWindow } from "electron";
 import * as path from "path";
+import { createDatabase, runMigrations, closeDatabase } from "../../../packages/database/index.js";
+import { ProjectRepository, SessionRepository, AssetRepository, SettingsRepository } from "../../../packages/database/repositories/index.js";
+import { ProjectService, SessionService, AssetService, SettingsService } from "./services/index.js";
+import { registerProjectHandlers, registerSessionHandlers, registerAssetHandlers, registerSettingsHandlers } from "./ipc/index.js";
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -36,7 +40,31 @@ function createWindow(): void {
   });
 }
 
+function initializeServices() {
+  const dbPath = path.join(app.getPath("userData"), "database.sqlite");
+  const db = createDatabase(dbPath);
+  runMigrations(db);
+
+  const projectRepo = new ProjectRepository(db);
+  const sessionRepo = new SessionRepository(db);
+  const assetRepo = new AssetRepository(db);
+  const settingsRepo = new SettingsRepository(db);
+
+  const projectService = new ProjectService(projectRepo);
+  const sessionService = new SessionService(sessionRepo);
+  const assetService = new AssetService(assetRepo);
+  const settingsService = new SettingsService(settingsRepo);
+
+  registerProjectHandlers(projectService);
+  registerSessionHandlers(sessionService);
+  registerAssetHandlers(assetService);
+  registerSettingsHandlers(settingsService);
+
+  return { db, projectService, sessionService, assetService, settingsService };
+}
+
 app.whenReady().then(() => {
+  initializeServices();
   createWindow();
 
   app.on("activate", () => {

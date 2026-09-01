@@ -4,3 +4,9 @@ dist/
 *.log
 .env
 .env.local
+
+# Compiled TypeScript output
+packages/**/*.js
+packages/**/*.js.map
+packages/**/*.d.ts
+packages/**/*.d.ts.map
