@@ -106,3 +106,52 @@
 
 **Notes:**
 - `import type` was erased at compile time so bug was benign, but would break with value imports or strict module resolution
+
+---
+
+### 2026-08-31 — Sprint 0.3: IPC Architecture
+
+**Agent:** agent-a
+**Status:** Complete
+**Objectives:**
+- Create service layer wrapping repositories
+- Register ipcMain.handle() for all channels
+- Wire DB + services in main process
+- Update preload with all namespaces and typed API
+- Type renderer against shared domain types
+
+**Verification:**
+- `npm run test` — 50 tests pass (7 test files, 19 new)
+- `npm run build:renderer` — Vite build succeeds (26 modules, 144KB)
+- `npm run build:electron` — TypeScript compiles clean (ESNext modules)
+- Preload bridge exposes all 5 namespaces: projects, sessions, assets, settings
+- IPC handlers registered for all channels
+- main.ts wires DB → repos → services → IPC handlers
+- Renderer `global.d.ts` typed against `packages/shared/types`
+
+**Files created:**
+- `apps/desktop/electron/services/project-service.ts`
+- `apps/desktop/electron/services/session-service.ts`
+- `apps/desktop/electron/services/asset-service.ts`
+- `apps/desktop/electron/services/settings-service.ts`
+- `apps/desktop/electron/services/index.ts`
+- `apps/desktop/electron/ipc/projects.ts`
+- `apps/desktop/electron/ipc/sessions.ts`
+- `apps/desktop/electron/ipc/assets.ts`
+- `apps/desktop/electron/ipc/settings.ts`
+- `apps/desktop/electron/ipc/index.ts`
+- `tests/unit/services.test.ts` — 19 tests (project/session/asset/settings service)
+
+**Files modified:**
+- `apps/desktop/electron/main.ts` — DB init, service wiring, IPC registration
+- `apps/desktop/electron/preload.ts` — all 5 namespaces, typed parameters
+- `apps/desktop/electron/tsconfig.json` — ESNext modules for monorepo imports
+- `apps/desktop/renderer/src/types/global.d.ts` — typed against shared domain types
+- `.gitignore` — excludes compiled package artifacts
+
+**Notes:**
+- Electron tsconfig changed from CommonJS to ESNext modules to support importing from `packages/` (monorepo structure)
+- (1) suffix files deleted (Windows download duplicates)
+- Service layer is thin wrappers — business logic to be added in later sprints
+- Zod validation deferred to later sprint
+- IPC event system (webContents.send) deferred to Sprint 1.4
