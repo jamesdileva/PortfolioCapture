@@ -2,7 +2,7 @@ import { app, BrowserWindow } from "electron";
 import * as path from "path";
 import { createDatabase, runMigrations, closeDatabase } from "../../../packages/database/index.js";
 import { ProjectRepository, SessionRepository, AssetRepository, SettingsRepository } from "../../../packages/database/repositories/index.js";
-import { ProjectService, SessionService, AssetService, SettingsService } from "./services/index.js";
+import { ProjectService, SessionService, AssetService, SettingsService, ProcessMonitor } from "./services/index.js";
 import { registerProjectHandlers, registerSessionHandlers, registerAssetHandlers, registerSettingsHandlers } from "./ipc/index.js";
 
 let mainWindow: BrowserWindow | null = null;
@@ -60,7 +60,36 @@ function initializeServices() {
   registerAssetHandlers(assetService);
   registerSettingsHandlers(settingsService);
 
-  return { db, projectService, sessionService, assetService, settingsService };
+  const processMonitor = new ProcessMonitor();
+
+  const projects = projectService.list();
+  processMonitor.setProjects(
+    projects.map((p) => ({ id: p.id, executablePath: p.executablePath, name: p.name }))
+  );
+
+  processMonitor.onProcessStarted((proc) => {
+    const matchedProject = processMonitor.matchProject(proc);
+    if (matchedProject) {
+      mainWindow?.webContents.send("portfolio:process-started", {
+        process: proc,
+        project: matchedProject,
+      });
+    }
+  });
+
+  processMonitor.onProcessStopped((proc) => {
+    const matchedProject = processMonitor.matchProject(proc);
+    if (matchedProject) {
+      mainWindow?.webContents.send("portfolio:process-stopped", {
+        process: proc,
+        project: matchedProject,
+      });
+    }
+  });
+
+  processMonitor.start().catch(() => {});
+
+  return { db, projectService, sessionService, assetService, settingsService, processMonitor };
 }
 
 app.whenReady().then(() => {

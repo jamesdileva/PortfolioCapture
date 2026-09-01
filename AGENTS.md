@@ -219,3 +219,39 @@
 - Deleted stale `.js` files in `packages/database/repositories/` (artifacts from earlier build)
 - Dark theme inline styles used for minimal UI — no CSS framework needed for MVP
 - React state manages view switching (list/add/edit) — no router needed yet
+
+---
+
+### 2026-08-31 — Sprint 1.2: Process Detection
+
+**Agent:** agent-a
+**Status:** Complete
+**Objectives:**
+- Process polling (configurable interval)
+- Executable path resolution (Windows via PowerShell, Unix via ps)
+- Process start detection (compare snapshots)
+- Process exit detection (compare snapshots)
+- Project matching (exact path first, then filename fallback, case-insensitive)
+- Injectable execFn for testability
+
+**Verification:**
+- `npm run test` — 69 tests pass (8 test files, 18 new)
+- `npm run build:renderer` — Vite build succeeds (28 modules, 150KB)
+- `npm run build:electron` — TypeScript compiles clean
+- `npx tsc --noEmit` — No type errors
+- ProcessMonitor: start/stop lifecycle, polling, callbacks, project matching all verified
+
+**Files created:**
+- `apps/desktop/electron/services/process-monitor.ts` — ProcessMonitor class
+- `tests/unit/process-monitor.test.ts` — 18 tests
+
+**Files modified:**
+- `packages/shared/types/index.ts` — added DetectedProcess and ProcessMonitorConfig types
+- `apps/desktop/electron/services/index.ts` — exported ProcessMonitor
+- `apps/desktop/electron/main.ts` — wired ProcessMonitor with project list, IPC event forwarding
+
+**Notes:**
+- ProcessMonitor uses callback-based exec (not promisify) to avoid TS type issues
+- Matching prioritizes exact executable path, then filename fallback
+- IPC events: `portfolio:process-started`, `portfolio:process-stopped` sent to renderer
+- Polling defaults to 1 second; configurable via ProcessMonitorConfig

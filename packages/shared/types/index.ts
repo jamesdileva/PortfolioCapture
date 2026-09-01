@@ -97,3 +97,13 @@ export interface CreateAssetInput {
   height?: number;
   fileSizeBytes?: number;
 }
+
+export interface DetectedProcess {
+  pid: number;
+  name: string;
+  executablePath: string | null;
+}
+
+export interface ProcessMonitorConfig {
+  pollIntervalMs: number;
+}
