@@ -83,3 +83,26 @@
 **Notes:**
 - `npm run lint` has pre-existing errors (root tsconfig references without `composite: true`) — Sprint 0.1 artifact
 - `better-sqlite3` used prebuilt binaries — no compilation needed
+
+---
+
+### 2026-08-31 — Sprint 0.2 Post-fix: Import Path Correction
+
+**Agent:** agent-a
+**Status:** Complete
+**Triggered by:** agent-b review #7
+
+**Actions taken:**
+- Fixed import path in all 4 repository files: `../shared/types/index.js` → `../../shared/types/index.js`
+  - `project-repository.ts`
+  - `session-repository.ts`
+  - `asset-repository.ts`
+  - `settings-repository.ts`
+- Removed empty `packages/database/schema/` directory (artifact from Sprint 0.1)
+
+**Verification:**
+- `npm run test` — 31 tests pass (6 test files)
+- Commit: `5c68994`
+
+**Notes:**
+- `import type` was erased at compile time so bug was benign, but would break with value imports or strict module resolution
