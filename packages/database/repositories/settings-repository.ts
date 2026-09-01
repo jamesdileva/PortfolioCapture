@@ -1,5 +1,5 @@
 import Database from "better-sqlite3";
-import type { Settings } from "../shared/types/index.js";
+import type { Settings } from "../../shared/types/index.js";
 
 export class SettingsRepository {
   constructor(private db: Database.Database) {}

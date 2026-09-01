@@ -1,6 +1,6 @@
 import Database from "better-sqlite3";
 import { randomUUID } from "crypto";
-import type { MediaAsset, AssetType, CreateAssetInput } from "../shared/types/index.js";
+import type { MediaAsset, AssetType, CreateAssetInput } from "../../shared/types/index.js";
 
 export class AssetRepository {
   constructor(private db: Database.Database) {}

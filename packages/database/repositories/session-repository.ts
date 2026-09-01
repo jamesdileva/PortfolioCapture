@@ -5,7 +5,7 @@ import type {
   SessionStatus,
   SessionTrigger,
   CreateSessionInput,
-} from "../shared/types/index.js";
+} from "../../shared/types/index.js";
 
 export class SessionRepository {
   constructor(private db: Database.Database) {}
