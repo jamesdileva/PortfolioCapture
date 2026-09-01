@@ -155,3 +155,20 @@
 - Service layer is thin wrappers — business logic to be added in later sprints
 - Zod validation deferred to later sprint
 - IPC event system (webContents.send) deferred to Sprint 1.4
+
+---
+
+### 2026-08-31 — File Restoration
+
+**Agent:** agent-a
+**Status:** Complete
+**Triggered by:** human TASK #14
+
+**Actions taken:**
+- Restored `architecture(1).md`, `implementation-guide(1).md`, `roadmap(1).md` from commit `cce4695`
+- Files were accidentally deleted during Sprint 0.3 (commit `1e4e4b1`)
+
+**Verification:**
+- `npm run test` — 50 tests pass (7 test files)
+- All 3 doc files restored with full content
+- Commit: `825e4b3`

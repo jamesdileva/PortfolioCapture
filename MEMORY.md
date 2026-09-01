@@ -8,6 +8,7 @@ Sprint 0.3 complete. Next: Sprint 1.1 (Project Management UI).
 - Sprint 0.2: SQLite Foundation — 31 tests pass, all repositories functional
 - Sprint 0.2 Post-fix: Import paths corrected (5c68994)
 - Sprint 0.3: IPC Architecture — 50 tests pass, service layer, handlers, typed preload
+- File Restoration: Restored architecture, implementation-guide, roadmap from cce4695 (825e4b3)
 
 ## Open Threads
 - `npm run dev` doesn't pass VITE_DEV_SERVER_URL to electron — fix needed before dev workflow
