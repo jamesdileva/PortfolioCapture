@@ -1,0 +1,16 @@
+appId: com.portfolio-auto-recorder.app
+productName: Portfolio Auto Recorder
+directories:
+  output: dist
+files:
+  - apps/desktop/electron/dist/**/*
+  - apps/desktop/renderer/dist/**/*
+  - "!**/*.ts"
+  - "!**/*.tsx"
+win:
+  target:
+    - nsis
+  icon: assets/icon.ico
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
