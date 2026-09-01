@@ -53,8 +53,8 @@ describe("ProjectService", () => {
     expect(service.getById(project.id)).toBeNull();
   });
 
-  it("returns false when deleting nonexistent project", () => {
-    expect(service.delete("nonexistent")).toBe(false);
+  it("throws when deleting nonexistent project", () => {
+    expect(() => service.delete("nonexistent")).toThrow("Project nonexistent not found");
   });
 });
 
@@ -83,6 +83,16 @@ describe("SessionService", () => {
 
     const sessions = service.listByProject(project.id);
     expect(sessions).toHaveLength(2);
+  });
+
+  it("lists all sessions", () => {
+    const p1 = projectService.create({ name: "A", path: "/a" });
+    const p2 = projectService.create({ name: "B", path: "/b" });
+    service.create({ projectId: p1.id, trigger: "manual" });
+    service.create({ projectId: p2.id, trigger: "process_launch" });
+
+    const all = service.listAll();
+    expect(all).toHaveLength(2);
   });
 
   it("updates session status", () => {

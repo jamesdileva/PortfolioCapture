@@ -172,3 +172,50 @@
 - `npm run test` — 50 tests pass (7 test files)
 - All 3 doc files restored with full content
 - Commit: `825e4b3`
+
+---
+
+### 2026-08-31 — Sprint 1.1: Project Management UI
+
+**Agent:** agent-a
+**Status:** Complete
+**Objectives:**
+- Project list view with edit/delete actions
+- Add/edit project form (name, path, executable, launch command, auto-record, enabled)
+- Delete confirmation modal
+- Form validation (required fields, error display)
+- Error handling on all service methods (gap from Sprint 0.3)
+- SessionRepository.listAll() for recording library (gap #2 from Sprint 0.3)
+
+**Verification:**
+- `npm run test` — 51 tests pass (7 test files, 1 new)
+- `npm run build:renderer` — Vite build succeeds (28 modules, 150KB)
+- `npm run build:electron` — TypeScript compiles clean
+- `npm run build` — Full build succeeds
+- Renderer: ProjectList, ProjectForm components render, IPC calls wired
+- Services: input validation + existence checks throw on invalid input
+- SessionRepository: listAll() returns all sessions across projects
+
+**Files created:**
+- `apps/desktop/renderer/src/components/ProjectList.tsx`
+- `apps/desktop/renderer/src/components/ProjectForm.tsx`
+
+**Files modified:**
+- `apps/desktop/renderer/src/App.tsx` — Project management state, CRUD operations, delete confirmation
+- `apps/desktop/electron/services/project-service.ts` — input validation + existence checks
+- `apps/desktop/electron/services/session-service.ts` — input validation + listAll()
+- `apps/desktop/electron/services/asset-service.ts` — input validation + existence checks
+- `apps/desktop/electron/services/settings-service.ts` — input validation
+- `apps/desktop/electron/ipc/sessions.ts` — sessions:list with no projectId returns all sessions
+- `packages/database/repositories/session-repository.ts` — added listAll() method
+- `tests/unit/services.test.ts` — 20 tests (1 new: listAll, 1 updated: delete throws on nonexistent)
+
+**Gaps closed from Sprint 0.3 review:**
+- #1: Input validation now present on all service methods
+- #2: sessions:list with no projectId now returns all sessions via listAll()
+- #3: Services now throw errors for invalid input and missing entities
+
+**Notes:**
+- Deleted stale `.js` files in `packages/database/repositories/` (artifacts from earlier build)
+- Dark theme inline styles used for minimal UI — no CSS framework needed for MVP
+- React state manages view switching (list/add/edit) — no router needed yet

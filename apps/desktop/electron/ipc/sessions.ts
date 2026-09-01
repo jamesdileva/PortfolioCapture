@@ -6,7 +6,7 @@ export function registerSessionHandlers(sessionService: SessionService): void {
     if (projectId) {
       return sessionService.listByProject(projectId);
     }
-    return [];
+    return sessionService.listAll();
   });
 
   ipcMain.handle("sessions:create", (_event, input) => {

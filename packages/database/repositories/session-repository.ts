@@ -57,6 +57,13 @@ export class SessionRepository {
     return rows.map((row) => this.rowToSession(row));
   }
 
+  listAll(): RecordingSession[] {
+    const rows = this.db
+      .prepare("SELECT * FROM sessions ORDER BY started_at DESC")
+      .all() as Record<string, unknown>[];
+    return rows.map((row) => this.rowToSession(row));
+  }
+
   updateStatus(id: string, status: SessionStatus): RecordingSession | null {
     const existing = this.getById(id);
     if (!existing) return null;

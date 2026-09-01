@@ -5,10 +5,12 @@ export class SettingsService {
   constructor(private repo: SettingsRepository) {}
 
   get(key: string): string | null {
+    if (!key) throw new Error("Setting key is required");
     return this.repo.get(key);
   }
 
   set(key: string, value: string): void {
+    if (!key) throw new Error("Setting key is required");
     this.repo.set(key, value);
   }
 
@@ -17,6 +19,7 @@ export class SettingsService {
   }
 
   delete(key: string): boolean {
+    if (!key) throw new Error("Setting key is required");
     return this.repo.delete(key);
   }
 }
