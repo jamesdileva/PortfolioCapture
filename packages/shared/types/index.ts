@@ -107,3 +107,32 @@ export interface DetectedProcess {
 export interface ProcessMonitorConfig {
   pollIntervalMs: number;
 }
+
+export type AudioMode = "none" | "system" | "microphone" | "both";
+
+export interface CaptureOptions {
+  outputPath: string;
+  fps: number;
+  width: number;
+  height: number;
+  audio: AudioMode;
+  displayId?: string;
+}
+
+export interface CaptureSession {
+  sessionId: string;
+  startedAt: string;
+}
+
+export interface CaptureResult {
+  outputPath: string;
+  durationMs: number;
+  fileSizeBytes: number;
+  width: number;
+  height: number;
+}
+
+export interface CaptureProvider {
+  start(options: CaptureOptions): Promise<CaptureSession>;
+  stop(sessionId: string): Promise<CaptureResult>;
+}
