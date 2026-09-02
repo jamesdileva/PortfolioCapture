@@ -1,16 +1,26 @@
 import { useState, useEffect, useCallback } from "react";
-import type { Project, CreateProjectInput, UpdateProjectInput } from "../../../packages/shared/types/index.js";
+import type { Project, RecordingSession, CreateProjectInput, UpdateProjectInput } from "../../../packages/shared/types/index.js";
 import { ProjectList } from "./components/ProjectList";
 import { ProjectForm } from "./components/ProjectForm";
+import { SessionList } from "./components/SessionList";
+import { SessionDetail } from "./components/SessionDetail";
 
-type View = "list" | "add" | "edit";
+type Tab = "projects" | "recordings";
+type ProjectView = "list" | "add" | "edit";
 
 export function App() {
+  const [tab, setTab] = useState<Tab>("projects");
+
   const [projects, setProjects] = useState<Project[]>([]);
-  const [view, setView] = useState<View>("list");
+  const [projectView, setProjectView] = useState<ProjectView>("list");
   const [editing, setEditing] = useState<Project | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loadingProjects, setLoadingProjects] = useState(true);
   const [deleteConfirm, setDeleteConfirm] = useState<Project | null>(null);
+
+  const [sessions, setSessions] = useState<RecordingSession[]>([]);
+  const [loadingSessions, setLoadingSessions] = useState(true);
+  const [selectedSession, setSelectedSession] = useState<RecordingSession | null>(null);
+  const [deleteSessionConfirm, setDeleteSessionConfirm] = useState<RecordingSession | null>(null);
 
   const loadProjects = useCallback(async () => {
     try {
@@ -19,13 +29,25 @@ export function App() {
     } catch (err) {
       console.error("Failed to load projects:", err);
     } finally {
-      setLoading(false);
+      setLoadingProjects(false);
+    }
+  }, []);
+
+  const loadSessions = useCallback(async () => {
+    try {
+      const list = await window.portfolio.sessions.list();
+      setSessions(list);
+    } catch (err) {
+      console.error("Failed to load sessions:", err);
+    } finally {
+      setLoadingSessions(false);
     }
   }, []);
 
   useEffect(() => {
     loadProjects();
-  }, [loadProjects]);
+    loadSessions();
+  }, [loadProjects, loadSessions]);
 
   const handleSave = async (input: CreateProjectInput | (UpdateProjectInput & { id: string })) => {
     if ("id" in input) {
@@ -35,13 +57,13 @@ export function App() {
       await window.portfolio.projects.create(input);
     }
     await loadProjects();
-    setView("list");
+    setProjectView("list");
     setEditing(null);
   };
 
   const handleEdit = (project: Project) => {
     setEditing(project);
-    setView("edit");
+    setProjectView("edit");
   };
 
   const handleDelete = async (project: Project) => {
@@ -52,21 +74,31 @@ export function App() {
 
   const handleAdd = () => {
     setEditing(null);
-    setView("add");
+    setProjectView("add");
   };
 
   const handleCancel = () => {
-    setView("list");
+    setProjectView("list");
     setEditing(null);
   };
 
-  if (loading) {
-    return (
-      <div style={container}>
-        <p style={{ color: "#888" }}>Loading projects...</p>
-      </div>
-    );
-  }
+  const handleSessionClick = (session: RecordingSession) => {
+    setSelectedSession(session);
+  };
+
+  const handleDeleteSession = async (session: RecordingSession) => {
+    await window.portfolio.sessions.delete(session.id);
+    setDeleteSessionConfirm(null);
+    setSelectedSession(null);
+    await loadSessions();
+  };
+
+  const handleBackToList = () => {
+    setSelectedSession(null);
+    loadSessions();
+  };
+
+  const loading = tab === "projects" ? loadingProjects : loadingSessions;
 
   return (
     <div style={container}>
@@ -74,37 +106,97 @@ export function App() {
         Portfolio Auto Recorder
       </h1>
 
-      {view === "list" && (
+      <div style={{ display: "flex", gap: "0", marginBottom: "1rem" }}>
+        <TabBtn active={tab === "projects"} onClick={() => { setTab("projects"); setSelectedSession(null); }}>Projects</TabBtn>
+        <TabBtn active={tab === "recordings"} onClick={() => { setTab("recordings"); setSelectedSession(null); }}>Recordings</TabBtn>
+      </div>
+
+      {loading ? (
+        <p style={{ color: "#888" }}>Loading...</p>
+      ) : tab === "projects" ? (
         <>
-          <ProjectList
-            projects={projects}
-            onEdit={handleEdit}
-            onDelete={(p) => setDeleteConfirm(p)}
-            onAdd={handleAdd}
-          />
-          {deleteConfirm && (
+          {projectView === "list" && (
+            <>
+              <ProjectList
+                projects={projects}
+                onEdit={handleEdit}
+                onDelete={(p) => setDeleteConfirm(p)}
+                onAdd={handleAdd}
+              />
+              {deleteConfirm && (
+                <div style={overlay}>
+                  <div style={modal}>
+                    <p>Delete project <strong>{deleteConfirm.name}</strong>?</p>
+                    <p style={{ color: "#aaa", fontSize: "0.85em" }}>This cannot be undone.</p>
+                    <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
+                      <button onClick={() => handleDelete(deleteConfirm)} style={{ ...btnStyle, borderColor: "#a33", color: "#f88" }}>Delete</button>
+                      <button onClick={() => setDeleteConfirm(null)} style={btnStyle}>Cancel</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+          {(projectView === "add" || projectView === "edit") && (
+            <ProjectForm
+              project={editing}
+              onSave={handleSave}
+              onCancel={handleCancel}
+            />
+          )}
+        </>
+      ) : (
+        <>
+          {selectedSession ? (
+            <SessionDetail
+              session={selectedSession}
+              project={projects.find((p) => p.id === selectedSession.projectId)}
+              onBack={handleBackToList}
+              onDelete={(s) => setDeleteSessionConfirm(s)}
+            />
+          ) : (
+            <SessionList
+              sessions={sessions}
+              projects={projects}
+              onSessionClick={handleSessionClick}
+            />
+          )}
+          {deleteSessionConfirm && (
             <div style={overlay}>
               <div style={modal}>
-                <p>Delete project <strong>{deleteConfirm.name}</strong>?</p>
-                <p style={{ color: "#aaa", fontSize: "0.85em" }}>This cannot be undone.</p>
+                <p>Delete this recording?</p>
+                <p style={{ color: "#aaa", fontSize: "0.85em" }}>This will remove the session record. Raw files may remain on disk.</p>
                 <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
-                  <button onClick={() => handleDelete(deleteConfirm)} style={{ ...btnStyle, borderColor: "#a33", color: "#f88" }}>Delete</button>
-                  <button onClick={() => setDeleteConfirm(null)} style={btnStyle}>Cancel</button>
+                  <button onClick={() => handleDeleteSession(deleteSessionConfirm)} style={{ ...btnStyle, borderColor: "#a33", color: "#f88" }}>Delete</button>
+                  <button onClick={() => setDeleteSessionConfirm(null)} style={btnStyle}>Cancel</button>
                 </div>
               </div>
             </div>
           )}
         </>
       )}
-
-      {(view === "add" || view === "edit") && (
-        <ProjectForm
-          project={editing}
-          onSave={handleSave}
-          onCancel={handleCancel}
-        />
-      )}
     </div>
+  );
+}
+
+function TabBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        padding: "0.4rem 1rem",
+        border: "1px solid #333",
+        borderBottom: active ? "1px solid #0a0a0a" : "1px solid #333",
+        borderRadius: "6px 6px 0 0",
+        background: active ? "#1a1a1a" : "#111",
+        color: active ? "#eee" : "#888",
+        cursor: "pointer",
+        fontSize: "0.9em",
+        fontWeight: active ? 600 : 400,
+      }}
+    >
+      {children}
+    </button>
   );
 }
 
