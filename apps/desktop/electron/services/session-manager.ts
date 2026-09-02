@@ -79,7 +79,6 @@ export class SessionManager {
     };
 
     try {
-      this.sessionService.updateStatus(session.id, "recording");
       const captureSession = await this.captureProvider.start(captureOptions);
 
       this.activeByProject.set(projectId, {
@@ -88,6 +87,7 @@ export class SessionManager {
         projectId,
       });
 
+      this.sessionService.updateStatus(session.id, "recording");
       return this.sessionService.getById(session.id)!;
     } catch (err) {
       this.sessionService.updateStatus(session.id, "failed");
@@ -102,18 +102,19 @@ export class SessionManager {
       return null;
     }
 
-    this.activeByProject.delete(projectId);
-
     this.sessionService.updateStatus(active.session.id, "finalizing");
 
     try {
       const result = await this.captureProvider.stop(active.captureSessionId);
+
+      this.activeByProject.delete(projectId);
 
       this.sessionService.updateRawVideoPath(active.session.id, result.outputPath);
       this.sessionService.updateStatus(active.session.id, "complete");
 
       return this.sessionService.getById(active.session.id)!;
     } catch {
+      this.activeByProject.delete(projectId);
       this.sessionService.updateStatus(active.session.id, "complete");
       return this.sessionService.getById(active.session.id)!;
     }

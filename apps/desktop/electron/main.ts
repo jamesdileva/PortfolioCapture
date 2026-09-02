@@ -57,7 +57,8 @@ function initializeServices() {
   const settingsService = new SettingsService(settingsRepo);
 
   const captureProvider = new FfmpegCaptureProvider();
-  const sessionManager = new SessionManager(sessionService, captureProvider, projectService);
+  const outputRoot = path.join(app.getPath("userData"), "recordings");
+  const sessionManager = new SessionManager(sessionService, captureProvider, projectService, { outputRoot });
 
   registerProjectHandlers(projectService);
   registerSessionHandlers(sessionService, sessionManager);
