@@ -11,6 +11,8 @@ contextBridge.exposeInMainWorld("portfolio", {
     delete: (id: string) => ipcRenderer.invoke("projects:delete", id),
   },
   sessions: {
+    start: (projectId: string) => ipcRenderer.invoke("sessions:start", projectId),
+    stop: (projectId: string) => ipcRenderer.invoke("sessions:stop", projectId),
     list: (projectId?: string) => ipcRenderer.invoke("sessions:list", projectId),
     get: (id: string) => ipcRenderer.invoke("sessions:get", id),
     create: (input: { projectId: string; trigger: string }) =>

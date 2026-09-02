@@ -317,3 +317,62 @@
 **Notes:**
 - Timeout test takes ~11s (10s polling timeout + overhead) — expected and correct
 - Empty catch blocks in `stop()` are defensible: SIGKILL may fail on dead process, statSync may fail on missing file
+
+---
+
+### 2026-09-01 — Docs Restoration
+
+**Agent:** agent-a
+**Status:** Complete
+**Triggered by:** human TASK #33, agent-b review #38
+
+**Actions taken:**
+- Restored `architecture.md`, `roadmap.md`, `implementation-guide.md` from cce4695 under clean filenames (no (1) suffix)
+- Removed stale (1) suffix copies
+
+**Files created:**
+- `architecture.md` — 1206 lines
+- `implementation-guide.md` — 980 lines
+- `roadmap.md` — 1475 lines
+
+**Commits:** `929447d` (restore), `6e1f6f2` (cleanup)
+
+---
+
+### 2026-09-01 — Sprint 1.4: Session Manager
+
+**Agent:** agent-a
+**Status:** Complete
+
+**Objectives:**
+- Wire ProcessMonitor → SessionManager → CaptureProvider
+- Implement automatic start/stop on process launch/exit
+- Session state machine: starting → recording → finalizing → complete | failed
+- Failure handling: capture start fail → session failed; capture stop fail → still complete (defensive)
+- One active session per project enforced
+
+**Verification:**
+- `npm run test` — 99 tests pass (10 test files, 14 new)
+- `npm run build` — Vite (28 modules, 150KB) + TypeScript compile clean
+- State transitions: starting → recording → finalizing → complete verified
+- Failure paths: capture start fail → status failed; capture stop fail → still complete
+- Rapid start/stop cycles produce no orphan sessions (3 cycles, 3 complete sessions)
+- onProcessStarted/onProcessStopped integration with SessionManager
+
+**Files created:**
+- `apps/desktop/electron/services/session-manager.ts` — SessionManager class
+- `tests/unit/session-manager.test.ts` — 14 tests
+
+**Files modified:**
+- `apps/desktop/electron/services/index.ts` — exported SessionManager
+- `apps/desktop/electron/main.ts` — wired SessionManager, replaced raw ProcessMonitor callbacks with session-aware handlers
+- `apps/desktop/electron/ipc/sessions.ts` — added sessions:start, sessions:stop handlers
+- `apps/desktop/electron/preload.ts` — added start/stop to sessions namespace
+- `apps/desktop/renderer/src/types/global.d.ts` — added start/stop to PortfolioSessionsAPI
+
+**Notes:**
+- SessionManager owns per-project active session map (Map<projectId, ActiveSession>)
+- Capture output path: `data/recordings/{projectId}/{sessionId}/raw.mp4`
+- onProcessStarted silently swallows errors (project not enabled, already recording)
+- IPC events renamed from portfolio:process-started/stopped to portfolio:session-started/stopped
+- Manual trigger available via sessions:start IPC for user-initiated recordings

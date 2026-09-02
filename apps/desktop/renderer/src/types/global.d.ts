@@ -22,6 +22,8 @@ interface PortfolioProjectsAPI {
 }
 
 interface PortfolioSessionsAPI {
+  start: (projectId: string) => Promise<RecordingSession>;
+  stop: (projectId: string) => Promise<RecordingSession | null>;
   list: (projectId?: string) => Promise<RecordingSession[]>;
   get: (id: string) => Promise<RecordingSession | null>;
   create: (input: CreateSessionInput) => Promise<RecordingSession>;

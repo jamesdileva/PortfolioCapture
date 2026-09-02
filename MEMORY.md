@@ -1,7 +1,7 @@
 # MEMORY.md — Agent Working Memory
 
 ## Current Goal
-Sprint 1.3 complete (542fd92). Next: Sprint 1.4 (Session Manager).
+Sprint 1.4 complete (pending commit). Next: Sprint 1.5 (FFmpeg Processing).
 
 ## Completed
 - Sprint 0.1: Repository Foundation (cce4695)
@@ -13,6 +13,8 @@ Sprint 1.3 complete (542fd92). Next: Sprint 1.4 (Session Manager).
 - Sprint 1.2: Process Detection — 69 tests pass, ProcessMonitor with polling, start/stop detection, project matching
 - Sprint 1.3: Recording Provider — 84 tests pass, FfmpegCaptureProvider with start/stop, spawnFn injection, gdigrab+dshow
 - Sprint 1.3 Post-fix: Review issues addressed — 85 tests pass, statSync timeout, dead code removed
+- Docs Restoration: Restored architecture.md, roadmap.md, implementation-guide.md under clean filenames (929447d, 6e1f6f2)
+- Sprint 1.4: Session Manager — 99 tests pass, wire ProcessMonitor→SessionManager→CaptureProvider, auto start/stop, state machine
 
 ## Open Threads
 - `npm run dev` doesn't pass VITE_DEV_SERVER_URL to electron — fix needed before dev workflow

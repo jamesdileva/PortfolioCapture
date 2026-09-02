@@ -1,7 +1,16 @@
 import { ipcMain } from "electron";
 import type { SessionService } from "../services/session-service.js";
+import type { SessionManager } from "../services/session-manager.js";
 
-export function registerSessionHandlers(sessionService: SessionService): void {
+export function registerSessionHandlers(sessionService: SessionService, sessionManager: SessionManager): void {
+  ipcMain.handle("sessions:start", async (_event, projectId: string) => {
+    return sessionManager.startSession(projectId, "manual");
+  });
+
+  ipcMain.handle("sessions:stop", async (_event, projectId: string) => {
+    return sessionManager.stopSession(projectId);
+  });
+
   ipcMain.handle("sessions:list", (_event, projectId?: string) => {
     if (projectId) {
       return sessionService.listByProject(projectId);

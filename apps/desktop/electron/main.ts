@@ -2,7 +2,8 @@ import { app, BrowserWindow } from "electron";
 import * as path from "path";
 import { createDatabase, runMigrations, closeDatabase } from "../../../packages/database/index.js";
 import { ProjectRepository, SessionRepository, AssetRepository, SettingsRepository } from "../../../packages/database/repositories/index.js";
-import { ProjectService, SessionService, AssetService, SettingsService, ProcessMonitor } from "./services/index.js";
+import { ProjectService, SessionService, AssetService, SettingsService, ProcessMonitor, FfmpegCaptureProvider } from "./services/index.js";
+import { SessionManager } from "./services/session-manager.js";
 import { registerProjectHandlers, registerSessionHandlers, registerAssetHandlers, registerSettingsHandlers } from "./ipc/index.js";
 
 let mainWindow: BrowserWindow | null = null;
@@ -55,8 +56,11 @@ function initializeServices() {
   const assetService = new AssetService(assetRepo);
   const settingsService = new SettingsService(settingsRepo);
 
+  const captureProvider = new FfmpegCaptureProvider();
+  const sessionManager = new SessionManager(sessionService, captureProvider, projectService);
+
   registerProjectHandlers(projectService);
-  registerSessionHandlers(sessionService);
+  registerSessionHandlers(sessionService, sessionManager);
   registerAssetHandlers(assetService);
   registerSettingsHandlers(settingsService);
 
@@ -67,20 +71,24 @@ function initializeServices() {
     projects.map((p) => ({ id: p.id, executablePath: p.executablePath, name: p.name }))
   );
 
-  processMonitor.onProcessStarted((proc) => {
+  processMonitor.onProcessStarted(async (proc) => {
     const matchedProject = processMonitor.matchProject(proc);
     if (matchedProject) {
-      mainWindow?.webContents.send("portfolio:process-started", {
+      await sessionManager.onProcessStarted(matchedProject);
+      const activeSession = sessionManager.getActiveSessionForProject(matchedProject.id);
+      mainWindow?.webContents.send("portfolio:session-started", {
         process: proc,
         project: matchedProject,
+        sessionId: activeSession?.session.id,
       });
     }
   });
 
-  processMonitor.onProcessStopped((proc) => {
+  processMonitor.onProcessStopped(async (proc) => {
     const matchedProject = processMonitor.matchProject(proc);
     if (matchedProject) {
-      mainWindow?.webContents.send("portfolio:process-stopped", {
+      await sessionManager.onProcessStopped(matchedProject);
+      mainWindow?.webContents.send("portfolio:session-stopped", {
         process: proc,
         project: matchedProject,
       });
@@ -89,7 +97,7 @@ function initializeServices() {
 
   processMonitor.start().catch(() => {});
 
-  return { db, projectService, sessionService, assetService, settingsService, processMonitor };
+  return { db, projectService, sessionService, assetService, settingsService, processMonitor, sessionManager };
 }
 
 app.whenReady().then(() => {
