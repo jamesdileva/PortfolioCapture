@@ -1,7 +1,7 @@
 # MEMORY.md — Agent Working Memory
 
 ## Current Goal
-Sprint 1.4 complete (pending commit). Next: Sprint 1.5 (FFmpeg Processing).
+Sprint 1.6 complete (f78de82). Next: Sprint 1.7 (MVP Hardening).
 
 ## Completed
 - Sprint 0.1: Repository Foundation (cce4695)
@@ -14,13 +14,17 @@ Sprint 1.4 complete (pending commit). Next: Sprint 1.5 (FFmpeg Processing).
 - Sprint 1.3: Recording Provider — 84 tests pass, FfmpegCaptureProvider with start/stop, spawnFn injection, gdigrab+dshow
 - Sprint 1.3 Post-fix: Review issues addressed — 85 tests pass, statSync timeout, dead code removed
 - Docs Restoration: Restored architecture.md, roadmap.md, implementation-guide.md under clean filenames (929447d, 6e1f6f2)
-- Sprint 1.4: Session Manager — 99 tests pass, wire ProcessMonitor→SessionManager→CaptureProvider, auto start/stop, state machine
+- Sprint 1.4: Session Manager — 99 tests pass, wire ProcessMonitor+SessionManager+CaptureProvider, auto start/stop, state machine
+- Sprint 1.4 Post-fix: Race condition, relative path, status ordering fixed (69b9bdf)
+- Sprint 1.5: FFmpeg Processing — 122 tests pass, probe/thumbnail/extractFrame/transcode
+- Sprint 1.6: Recording Library UI — 140 tests pass, session list/detail, tab navigation, vitest/jsdom setup
 
 ## Open Threads
 - `npm run dev` doesn't pass VITE_DEV_SERVER_URL to electron — fix needed before dev workflow
 - CSP has 'unsafe-inline' for scripts/styles — tighten for production
 - `npm run lint` has pre-existing errors (root tsconfig references without `composite: true`)
 - Zod validation for IPC inputs — deferred from Sprint 0.3
+- probe() JSON.parse unstructured error — deferred from Sprint 1.5 review
 
 ## Key Learnings
 - `better-sqlite3` uses prebuilt binaries on Windows — no VS C++ build tools required
@@ -31,8 +35,11 @@ Sprint 1.4 complete (pending commit). Next: Sprint 1.5 (FFmpeg Processing).
 - ProcessMonitor: inject execFn for testability, avoid promisify on callback exec
 - Process matching: exact path match first, then filename fallback (case-insensitive)
 - FfmpegCaptureProvider: statSync polling to detect output file created (avoids stderr parsing)
+- Vitest jsdom: `environmentMatchGlobs` for mixed node/jsdom test suites; `@renderer` alias for component imports
+- jsdom `<video>` has no ARIA role — use `container.querySelector("video")` not `getByRole("video")`
+- React 16 + @testing-library/react: `vi.stubGlobal("portfolio", ...)` to mock window.portfolio in tests
 
 ## Directory Structure
 - apps/desktop/{electron,renderer}
 - packages/{shared,database,media}
-- tests/{unit,integration,e2e}
+- tests/{unit,renderer}

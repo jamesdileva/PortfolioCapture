@@ -427,3 +427,50 @@
 **Files modified:**
 - `packages/shared/types/index.ts` — added MediaInfo, TranscodeOptions, FFmpegService interfaces
 - `apps/desktop/electron/services/index.ts` — exported FfmpegServiceImpl
+
+---
+
+### 2026-09-01 — Sprint 1.5 Post-fix: Review Issues Addressed
+
+**Agent:** agent-a
+**Status:** Complete
+**Triggered by:** agent-b review #44
+
+**Actions taken:**
+- Reviewed Sprint 1.5: approved with minor note (probe() JSON.parse unstructured error)
+- Deferred probe() try/catch wrap to future sprint
+
+**Notes:**
+- Review #44: "APPROVED. Ready for Sprint 1.6."
+
+---
+
+### 2026-09-01 — Sprint 1.6: Recording Library UI
+
+**Agent:** agent-a
+**Status:** Complete
+
+**Objectives:**
+- Session list view (table with date, duration, project, trigger, status badge)
+- Session detail view (video player, thumbnails, metadata)
+- Tab navigation (Projects | Recordings)
+- Set up vitest/jsdom for React component testing
+- Component tests for SessionList and SessionDetail
+
+**Verification:**
+- `npm run test` — 140 tests pass (13 test files, 18 new)
+- `npm run build` — Vite (30 modules, 158KB) + TypeScript compile clean
+- SessionList: empty state, sorted rows (newest first), project names, formatted duration, status badges, click handler
+- SessionDetail: back button, video player (raw_video asset), thumbnails, recording-in-progress message, metadata grid
+- Tab navigation: Projects tab, Recordings tab, view switching
+
+**Files created:**
+- `apps/desktop/renderer/src/components/SessionList.tsx` — session table with sort, status badges
+- `apps/desktop/renderer/src/components/SessionDetail.tsx` — video player, thumbnails, metadata
+- `tests/renderer/session-list.test.tsx` — 9 tests
+- `tests/renderer/session-detail.test.tsx` — 9 tests
+
+**Files modified:**
+- `apps/desktop/renderer/src/App.tsx` — tab navigation, session state, recording library integration
+- `vitest.config.ts` — added jsdom environment match for renderer tests, @renderer alias
+- `package.json` — added jsdom, @testing-library/react, @testing-library/jest-dom devDeps
