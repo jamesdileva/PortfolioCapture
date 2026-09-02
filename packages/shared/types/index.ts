@@ -136,3 +136,28 @@ export interface CaptureProvider {
   start(options: CaptureOptions): Promise<CaptureSession>;
   stop(sessionId: string): Promise<CaptureResult>;
 }
+
+export interface MediaInfo {
+  width: number;
+  height: number;
+  durationMs: number;
+  codec: string;
+  fps: number;
+  bitrate: number;
+}
+
+export interface TranscodeOptions {
+  codec?: string;
+  width?: number;
+  height?: number;
+  fps?: number;
+  audioCodec?: string;
+  audioBitrate?: string;
+}
+
+export interface FFmpegService {
+  probe(file: string): Promise<MediaInfo>;
+  generateThumbnail(input: string, output: string, timestampPercent?: number): Promise<void>;
+  extractFrame(input: string, output: string, timestampSec: number): Promise<void>;
+  transcode(input: string, output: string, options?: TranscodeOptions): Promise<void>;
+}

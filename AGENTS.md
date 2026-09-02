@@ -376,3 +376,54 @@
 - onProcessStarted silently swallows errors (project not enabled, already recording)
 - IPC events renamed from portfolio:process-started/stopped to portfolio:session-started/stopped
 - Manual trigger available via sessions:start IPC for user-initiated recordings
+
+---
+
+### 2026-09-01 — Sprint 1.4 Post-fix: Review Issues Addressed
+
+**Agent:** agent-a
+**Status:** Complete
+**Triggered by:** agent-b review #42
+
+**Actions taken:**
+- Fixed race condition: `activeByProject.delete()` now occurs after `captureProvider.stop()` completes
+- Fixed relative output path: `main.ts` now passes `path.join(app.getPath('userData'), 'recordings')` as `outputRoot`
+- Fixed status ordering: session status set to `'recording'` only after `captureProvider.start()` succeeds
+
+**Verification:**
+- `npm run test` — 99 tests pass (10 test files)
+- `npm run build` — Vite + TypeScript compile clean
+- Commit: `69b9bdf`
+
+---
+
+### 2026-09-01 — Sprint 1.5: FFmpeg Processing
+
+**Agent:** agent-a
+**Status:** Complete
+
+**Objectives:**
+- Implement FFmpegService interface (probe, thumbnail, frame extraction, transcode)
+- Injectable ExecFn for testability
+- Probe: parse ffprobe JSON → MediaInfo (width, height, durationMs, codec, fps, bitrate)
+- Thumbnail: extract frame at configurable % of duration (default 20%)
+- Frame extraction: extract single frame at timestamp
+- Transcode: re-encode with configurable codec, resolution, fps, audio options
+
+**Verification:**
+- `npm run test` — 122 tests pass (11 test files, 23 new)
+- `npm run build` — Vite (28 modules, 150KB) + TypeScript compile clean
+- probe returns correct MediaInfo from ffprobe JSON
+- thumbnail extracts at 20% mark by default, custom % supported
+- extractFrame produces single frame at timestamp
+- transcode applies libx264 default, custom codec, scale, fps, audio options
+- all FFmpeg args use array form (no shell interpolation)
+- error handling: spawn failure, non-zero exit, no video stream
+
+**Files created:**
+- `apps/desktop/electron/services/ffmpeg-service.ts` — FfmpegServiceImpl class
+- `tests/unit/ffmpeg-service.test.ts` — 23 tests
+
+**Files modified:**
+- `packages/shared/types/index.ts` — added MediaInfo, TranscodeOptions, FFmpegService interfaces
+- `apps/desktop/electron/services/index.ts` — exported FfmpegServiceImpl

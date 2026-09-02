@@ -4,4 +4,5 @@ export { AssetService } from "./asset-service.js";
 export { SettingsService } from "./settings-service.js";
 export { ProcessMonitor } from "./process-monitor.js";
 export { FfmpegCaptureProvider } from "./capture-provider.js";
+export { FfmpegServiceImpl } from "./ffmpeg-service.js";
 export { SessionManager } from "./session-manager.js";
