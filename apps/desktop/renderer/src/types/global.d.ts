@@ -49,6 +49,7 @@ interface PortfolioSettingsAPI {
 }
 
 interface PortfolioAPI {
+  on: (channel: string, callback: (...args: unknown[]) => void) => () => void;
   projects: PortfolioProjectsAPI;
   sessions: PortfolioSessionsAPI;
   assets: PortfolioAssetsAPI;

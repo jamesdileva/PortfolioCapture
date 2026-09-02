@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import type { Project, RecordingSession, CreateProjectInput, UpdateProjectInput } from "../../../packages/shared/types/index.js";
 import { ProjectList } from "./components/ProjectList";
 import { ProjectForm } from "./components/ProjectForm";
@@ -97,6 +97,58 @@ export function App() {
     setSelectedSession(null);
     loadSessions();
   };
+
+  const [activeProjectIds, setActiveProjectIds] = useState<Set<string>>(new Set());
+  const lastActivityRef = useRef(0);
+
+  useEffect(() => {
+    const unsub1 = window.portfolio.on("portfolio:session-started", (data: unknown) => {
+      const d = data as { project?: { id: string } };
+      if (d?.project?.id) {
+        setActiveProjectIds((prev) => new Set(prev).add(d.project!.id));
+      }
+    });
+    const unsub2 = window.portfolio.on("portfolio:session-stopped", (data: unknown) => {
+      const d = data as { project?: { id: string } };
+      if (d?.project?.id) {
+        setActiveProjectIds((prev) => {
+          const next = new Set(prev);
+          next.delete(d.project!.id);
+          return next;
+        });
+      }
+    });
+
+    return () => {
+      unsub1();
+      unsub2();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (activeProjectIds.size === 0) return;
+
+    const THROTTLE_MS = 1000;
+    const report = () => {
+      const now = Date.now();
+      if (now - lastActivityRef.current < THROTTLE_MS) return;
+      lastActivityRef.current = now;
+      for (const pid of activeProjectIds) {
+        window.portfolio.sessions.recordActivity(pid);
+      }
+    };
+
+    const events = ["mousemove", "mousedown", "keydown", "wheel"] as const;
+    for (const event of events) {
+      document.addEventListener(event, report, { passive: true });
+    }
+
+    return () => {
+      for (const event of events) {
+        document.removeEventListener(event, report);
+      }
+    };
+  }, [activeProjectIds]);
 
   const loading = tab === "projects" ? loadingProjects : loadingSessions;
 

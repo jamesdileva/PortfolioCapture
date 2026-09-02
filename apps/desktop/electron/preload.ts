@@ -1,6 +1,13 @@
 import { contextBridge, ipcRenderer } from "electron";
 
 contextBridge.exposeInMainWorld("portfolio", {
+  on: (channel: string, callback: (...args: unknown[]) => void) => {
+    const subscription = (_event: unknown, ...args: unknown[]) => callback(...args);
+    ipcRenderer.on(channel, subscription);
+    return () => {
+      ipcRenderer.removeListener(channel, subscription);
+    };
+  },
   projects: {
     list: () => ipcRenderer.invoke("projects:list"),
     get: (id: string) => ipcRenderer.invoke("projects:get", id),
