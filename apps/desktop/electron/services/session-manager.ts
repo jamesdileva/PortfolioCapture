@@ -8,10 +8,15 @@ import type {
   CaptureResult,
   AudioMode,
   ScreenshotExtractor,
+  IdleSegment,
 } from "../../../../packages/shared/types/index.js";
 import type { SessionService } from "./session-service.js";
 import type { ProjectService } from "./project-service.js";
 import type { AssetService } from "./asset-service.js";
+import type { SettingsService } from "./settings-service.js";
+import type { IdleDetectorImpl } from "./idle-detector.js";
+
+export type IdleDetectorFactory = () => IdleDetectorImpl;
 
 interface SessionManagerConfig {
   outputRoot: string;
@@ -33,6 +38,7 @@ interface ActiveSession {
   session: RecordingSession;
   captureSessionId: string;
   projectId: string;
+  idleDetector?: IdleDetectorImpl;
 }
 
 export class SessionManager {
@@ -43,6 +49,8 @@ export class SessionManager {
   private projectService: ProjectService;
   private screenshotExtractor?: ScreenshotExtractor;
   private assetService?: AssetService;
+  private idleDetectorFactory?: IdleDetectorFactory;
+  private settingsService?: SettingsService;
 
   constructor(
     sessionService: SessionService,
@@ -51,6 +59,8 @@ export class SessionManager {
     config?: Partial<SessionManagerConfig>,
     screenshotExtractor?: ScreenshotExtractor,
     assetService?: AssetService,
+    idleDetectorFactory?: IdleDetectorFactory,
+    settingsService?: SettingsService,
   ) {
     this.config = { ...DEFAULT_CONFIG, ...config };
     this.sessionService = sessionService;
@@ -58,6 +68,8 @@ export class SessionManager {
     this.projectService = projectService;
     this.screenshotExtractor = screenshotExtractor;
     this.assetService = assetService;
+    this.idleDetectorFactory = idleDetectorFactory;
+    this.settingsService = settingsService;
   }
 
   async startSession(projectId: string, trigger: SessionTrigger): Promise<RecordingSession> {
@@ -95,6 +107,13 @@ export class SessionManager {
         projectId,
       });
 
+      const active = this.activeByProject.get(projectId)!;
+      if (this.idleDetectorFactory) {
+        const detector = this.idleDetectorFactory();
+        detector.start();
+        active.idleDetector = detector;
+      }
+
       this.sessionService.updateStatus(session.id, "recording");
       return this.sessionService.getById(session.id)!;
     } catch (err) {
@@ -112,12 +131,22 @@ export class SessionManager {
 
     this.sessionService.updateStatus(active.session.id, "finalizing");
 
+    let timeline: IdleSegment[] = [];
+    if (active.idleDetector) {
+      active.idleDetector.stop();
+      timeline = active.idleDetector.getTimeline();
+    }
+
     try {
       const result = await this.captureProvider.stop(active.captureSessionId);
 
       this.activeByProject.delete(projectId);
 
       this.sessionService.updateRawVideoPath(active.session.id, result.outputPath);
+
+      if (timeline.length > 0) {
+        this.settingsService?.set(`timeline:${active.session.id}`, JSON.stringify(timeline));
+      }
 
       await this.extractScreenshots(active.session.id, active.projectId, result.outputPath);
 
@@ -126,6 +155,9 @@ export class SessionManager {
       return this.sessionService.getById(active.session.id)!;
     } catch {
       this.activeByProject.delete(projectId);
+      if (timeline.length > 0) {
+        this.settingsService?.set(`timeline:${active.session.id}`, JSON.stringify(timeline));
+      }
       this.sessionService.updateStatus(active.session.id, "complete");
       return this.sessionService.getById(active.session.id)!;
     }
@@ -149,6 +181,21 @@ export class SessionManager {
 
   getActiveProjectIds(): string[] {
     return [...this.activeByProject.keys()];
+  }
+
+  recordActivity(projectId: string): void {
+    const active = this.activeByProject.get(projectId);
+    if (active?.idleDetector) {
+      active.idleDetector.recordActivity();
+    }
+  }
+
+  getTimelineForProject(projectId: string): IdleSegment[] {
+    const active = this.activeByProject.get(projectId);
+    if (active?.idleDetector) {
+      return active.idleDetector.getTimeline();
+    }
+    return [];
   }
 
   private async extractScreenshots(

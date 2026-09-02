@@ -37,4 +37,8 @@ export function registerSessionHandlers(sessionService: SessionService, sessionM
   ipcMain.handle("sessions:delete", (_event, id: string) => {
     return sessionService.delete(id);
   });
+
+  ipcMain.handle("sessions:recordActivity", (_event, projectId: string) => {
+    sessionManager.recordActivity(projectId);
+  });
 }

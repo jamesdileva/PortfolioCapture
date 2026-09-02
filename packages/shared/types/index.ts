@@ -180,3 +180,24 @@ export interface ExtractedScreenshot {
 export interface ScreenshotExtractor {
   extract(inputVideo: string, outputDir: string, config?: Partial<ScreenshotExtractorConfig>): Promise<ExtractedScreenshot[]>;
 }
+
+export interface IdleSegment {
+  startMs: number;
+  endMs: number;
+  idle: boolean;
+}
+
+export interface IdleDetectorConfig {
+  idleTimeoutMs: number;
+  pollIntervalMs: number;
+}
+
+export interface IdleDetector {
+  start(): void;
+  stop(): void;
+  recordActivity(): void;
+  isIdle(): boolean;
+  getTimeline(): IdleSegment[];
+  onIdle(callback: () => void): void;
+  onActive(callback: () => void): void;
+}

@@ -22,6 +22,7 @@ contextBridge.exposeInMainWorld("portfolio", {
     updateRawVideoPath: (id: string, rawVideoPath: string) =>
       ipcRenderer.invoke("sessions:updateRawVideoPath", id, rawVideoPath),
     delete: (id: string) => ipcRenderer.invoke("sessions:delete", id),
+    recordActivity: (projectId: string) => ipcRenderer.invoke("sessions:recordActivity", projectId),
   },
   assets: {
     listByProject: (projectId: string) => ipcRenderer.invoke("assets:listByProject", projectId),

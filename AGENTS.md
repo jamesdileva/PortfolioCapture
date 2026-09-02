@@ -518,3 +518,53 @@
 - ScreenshotExtractor and AssetService are optional in SessionManager constructor (backward compatible with existing tests)
 - Duplicate detection uses file byte sampling (first 1024 bytes) as similarity proxy — sufficient for MVP
 - Screenshot extraction is best-effort: errors are caught and do not fail the session
+
+---
+
+### 2026-09-01 — Sprint 2.2: Idle Detection
+
+**Agent:** agent-a
+**Status:** Complete
+
+**Objectives:**
+- IdleDetector class with configurable timeout
+- Active → idle → active transitions
+- Timeline recording with segment tracking
+- Integration with SessionManager
+- Timeline persistence via SettingsService
+- IPC handler for activity events
+
+**Verification:**
+- `npm run test` — 173 tests pass (15 test files, 23 new)
+- `npm run build` — Vite (30 modules, 158KB) + TypeScript compile clean
+- IdleDetector: start/stop lifecycle, idle detection after timeout, activity resets timer
+- Transitions: active → idle splits segment at actual idle start time (lastActivityAt + idleTimeoutMs)
+- Idle → active: idle segment finalized, new active segment starts
+- Callbacks: onIdle fires once per idle period, onActive fires on resume
+- Timeline: finalized segments + in-progress segment (when running), no duplicates after stop
+- SessionManager: IdleDetector created per session, started on recording, stopped on session end
+- Timeline stored as JSON in settings table (`timeline:{sessionId}` key)
+- `sessions:recordActivity` IPC handler + preload method
+
+**Files created:**
+- `apps/desktop/electron/services/idle-detector.ts` — IdleDetectorImpl class
+- `tests/unit/idle-detector.test.ts` — 17 tests
+
+**Files modified:**
+- `packages/shared/types/index.ts` — added IdleSegment, IdleDetectorConfig, IdleDetector interfaces
+- `apps/desktop/electron/services/index.ts` — exported IdleDetectorImpl
+- `apps/desktop/electron/services/session-manager.ts` — added idleDetectorFactory, settingsService, recordActivity(), getTimelineForProject(), timeline persistence
+- `apps/desktop/electron/ipc/sessions.ts` — added sessions:recordActivity handler
+- `apps/desktop/electron/preload.ts` — added recordActivity to sessions namespace
+- `apps/desktop/renderer/src/types/global.d.ts` — added recordActivity to PortfolioSessionsAPI
+- `apps/desktop/electron/main.ts` — wired IdleDetectorImpl factory + settingsService into SessionManager
+- `tests/unit/session-manager.test.ts` — added 6 idle detection integration tests
+
+**Notes:**
+- IdleDetectorImpl uses injectable NowFn for deterministic testing
+- `check()` is public for testability; also called from `getTimeline()` and `stop()`
+- Idle start time computed as `lastActivityAt + idleTimeoutMs` (accurate split point)
+- `getTimeline()` calls `check()` to ensure state is current before returning
+- `stop()` calls `check()` before finalizing to capture any pending idle transition
+- SettingsService used for timeline storage (key: `timeline:{sessionId}`, value: JSON array)
+- Default idle timeout: 15 seconds (configurable via IdleDetectorConfig)

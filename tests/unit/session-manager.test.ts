@@ -3,9 +3,12 @@ import { createTestDatabase } from "../helpers/database.js";
 import type Database from "better-sqlite3";
 import { ProjectRepository } from "../../packages/database/repositories/project-repository.js";
 import { SessionRepository } from "../../packages/database/repositories/session-repository.js";
+import { SettingsRepository } from "../../packages/database/repositories/settings-repository.js";
 import { ProjectService } from "../../apps/desktop/electron/services/project-service.js";
 import { SessionService } from "../../apps/desktop/electron/services/session-service.js";
+import { SettingsService } from "../../apps/desktop/electron/services/settings-service.js";
 import { SessionManager } from "../../apps/desktop/electron/services/session-manager.js";
+import { IdleDetectorImpl } from "../../apps/desktop/electron/services/idle-detector.js";
 import type { CaptureProvider, CaptureSession, CaptureResult } from "../../packages/shared/types/index.js";
 
 function createMockCaptureProvider(): CaptureProvider & { stopResult: CaptureResult; shouldFailStart: boolean; shouldFailStop: boolean } {
@@ -175,5 +178,103 @@ describe("SessionManager", () => {
 
   it("getActiveSessionForProject returns undefined when none active", () => {
     expect(manager.getActiveSessionForProject("nonexistent")).toBeUndefined();
+  });
+
+  describe("idle detection integration", () => {
+    let settingsService: SettingsService;
+
+    beforeEach(() => {
+      settingsService = new SettingsService(new SettingsRepository(db));
+    });
+
+    function createManagerWithIdle() {
+      let time = 0;
+      const mockNow = vi.fn(() => time);
+      const advance = (ms: number) => { time += ms; };
+
+      const mgr = new SessionManager(
+        sessionService,
+        captureProvider,
+        projectService,
+        { outputRoot: "data/recordings" },
+        undefined,
+        undefined,
+        () => new IdleDetectorImpl({ idleTimeoutMs: 15_000, pollIntervalMs: 1000 }, mockNow),
+        settingsService,
+      );
+      return { mgr, advance, mockNow };
+    }
+
+    it("creates and starts idle detector on session start", async () => {
+      const { mgr, advance } = createManagerWithIdle();
+      const project = projectService.create({ name: "Test", path: "/test", executablePath: "/test/app.exe" });
+
+      await mgr.startSession(project.id, "manual");
+      advance(500);
+
+      const timeline = mgr.getTimelineForProject(project.id);
+      expect(timeline.length).toBeGreaterThanOrEqual(1);
+      expect(timeline[0].idle).toBe(false);
+
+      await mgr.stopSession(project.id);
+    });
+
+    it("records activity on idle detector", async () => {
+      const { mgr, advance } = createManagerWithIdle();
+      const project = projectService.create({ name: "Test", path: "/test", executablePath: "/test/app.exe" });
+
+      await mgr.startSession(project.id, "manual");
+      advance(500);
+      mgr.recordActivity(project.id);
+      advance(200);
+      mgr.recordActivity(project.id);
+
+      const timeline = mgr.getTimelineForProject(project.id);
+      expect(timeline.length).toBeGreaterThanOrEqual(1);
+
+      await mgr.stopSession(project.id);
+    });
+
+    it("stores timeline in settings on stop", async () => {
+      const { mgr, advance } = createManagerWithIdle();
+      const project = projectService.create({ name: "Test", path: "/test", executablePath: "/test/app.exe" });
+
+      await mgr.startSession(project.id, "manual");
+      advance(500);
+      const completed = await mgr.stopSession(project.id);
+
+      const stored = settingsService.get(`timeline:${completed!.id}`);
+      expect(stored).not.toBeNull();
+      const timeline = JSON.parse(stored!);
+      expect(Array.isArray(timeline)).toBe(true);
+      expect(timeline.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it("stores idle segment in timeline after idle timeout", async () => {
+      const { mgr, advance } = createManagerWithIdle();
+      const project = projectService.create({ name: "Test", path: "/test", executablePath: "/test/app.exe" });
+
+      await mgr.startSession(project.id, "manual");
+      advance(20_000);
+      const completed = await mgr.stopSession(project.id);
+
+      const stored = settingsService.get(`timeline:${completed!.id}`);
+      const timeline = JSON.parse(stored!);
+      const idleSegments = timeline.filter((s: { idle: boolean }) => s.idle);
+      expect(idleSegments.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it("no idle detector when factory not provided", async () => {
+      const project = projectService.create({ name: "Test", path: "/test", executablePath: "/test/app.exe" });
+      await manager.startSession(project.id, "manual");
+
+      expect(manager.getTimelineForProject(project.id)).toEqual([]);
+
+      await manager.stopSession(project.id);
+    });
+
+    it("recordActivity is no-op for nonexistent project", () => {
+      manager.recordActivity("nonexistent");
+    });
   });
 });

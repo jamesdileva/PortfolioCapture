@@ -30,6 +30,7 @@ interface PortfolioSessionsAPI {
   updateStatus: (id: string, status: SessionStatus) => Promise<RecordingSession | null>;
   updateRawVideoPath: (id: string, rawVideoPath: string) => Promise<RecordingSession | null>;
   delete: (id: string) => Promise<boolean>;
+  recordActivity: (projectId: string) => Promise<void>;
 }
 
 interface PortfolioAssetsAPI {
