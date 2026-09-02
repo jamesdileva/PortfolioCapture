@@ -6,3 +6,4 @@ export { ProcessMonitor } from "./process-monitor.js";
 export { FfmpegCaptureProvider } from "./capture-provider.js";
 export { FfmpegServiceImpl } from "./ffmpeg-service.js";
 export { SessionManager } from "./session-manager.js";
+export { FfmpegScreenshotExtractor } from "./screenshot-extractor.js";

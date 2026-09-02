@@ -474,3 +474,47 @@
 - `apps/desktop/renderer/src/App.tsx` — tab navigation, session state, recording library integration
 - `vitest.config.ts` — added jsdom environment match for renderer tests, @renderer alias
 - `package.json` — added jsdom, @testing-library/react, @testing-library/jest-dom devDeps
+
+---
+
+### 2026-09-01 — Sprint 2.1: Screenshot Extraction
+
+**Agent:** agent-a
+**Status:** Complete
+
+**Objectives:**
+- Automatic screenshot extraction from recorded videos
+- Duplicate frame suppression (file-similarity detection)
+- Configurable skip-first-seconds, min/max screenshots, interval
+- Screenshot distribution across session duration
+- Wire into SessionManager post-processing
+- Unit tests for ScreenshotExtractor
+
+**Verification:**
+- `npm run test` — 150 tests pass (14 test files, 10 new)
+- `npm run build` — Vite (30 modules, 158KB) + TypeScript compile clean
+- extract(): probes video, generates candidate timestamps, extracts frames, deduplicates, distributes
+- skipFirstSeconds respected (no frames before threshold)
+- maxScreenshots limit enforced
+- Short videos (< skipFirstSeconds) return empty array
+- Failed frame extractions skipped gracefully
+- Configurable similarity threshold for duplicate detection
+- Screenshots spread across session duration
+- Each screenshot has sequential PNG naming (shot-001.png)
+- SessionManager: screenshots extracted after recording stops, MediaAsset records created
+- ScreenshotExtractor/AssetService optional (backward compatible without them)
+
+**Files created:**
+- `apps/desktop/electron/services/screenshot-extractor.ts` — FfmpegScreenshotExtractor class
+- `tests/unit/screenshot-extractor.test.ts` — 10 tests
+
+**Files modified:**
+- `packages/shared/types/index.ts` — added ScreenshotExtractorConfig, ExtractedScreenshot, ScreenshotExtractor interfaces
+- `apps/desktop/electron/services/index.ts` — exported FfmpegScreenshotExtractor
+- `apps/desktop/electron/services/session-manager.ts` — added screenshotExtractor/assetService optional deps, extractScreenshots post-processing
+- `apps/desktop/electron/main.ts` — wired FfmpegServiceImpl + FfmpegScreenshotExtractor into SessionManager
+
+**Notes:**
+- ScreenshotExtractor and AssetService are optional in SessionManager constructor (backward compatible with existing tests)
+- Duplicate detection uses file byte sampling (first 1024 bytes) as similarity proxy — sufficient for MVP
+- Screenshot extraction is best-effort: errors are caught and do not fail the session

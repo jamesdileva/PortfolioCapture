@@ -2,7 +2,7 @@ import { app, BrowserWindow } from "electron";
 import * as path from "path";
 import { createDatabase, runMigrations, closeDatabase } from "../../../packages/database/index.js";
 import { ProjectRepository, SessionRepository, AssetRepository, SettingsRepository } from "../../../packages/database/repositories/index.js";
-import { ProjectService, SessionService, AssetService, SettingsService, ProcessMonitor, FfmpegCaptureProvider } from "./services/index.js";
+import { ProjectService, SessionService, AssetService, SettingsService, ProcessMonitor, FfmpegCaptureProvider, FfmpegServiceImpl, FfmpegScreenshotExtractor } from "./services/index.js";
 import { SessionManager } from "./services/session-manager.js";
 import { registerProjectHandlers, registerSessionHandlers, registerAssetHandlers, registerSettingsHandlers } from "./ipc/index.js";
 
@@ -58,7 +58,18 @@ function initializeServices() {
 
   const captureProvider = new FfmpegCaptureProvider();
   const outputRoot = path.join(app.getPath("userData"), "recordings");
-  const sessionManager = new SessionManager(sessionService, captureProvider, projectService, { outputRoot });
+
+  const ffmpegService = new FfmpegServiceImpl();
+  const screenshotExtractor = new FfmpegScreenshotExtractor(ffmpegService);
+
+  const sessionManager = new SessionManager(
+    sessionService,
+    captureProvider,
+    projectService,
+    { outputRoot },
+    screenshotExtractor,
+    assetService,
+  );
 
   registerProjectHandlers(projectService);
   registerSessionHandlers(sessionService, sessionManager);

@@ -7,9 +7,11 @@ import type {
   CaptureOptions,
   CaptureResult,
   AudioMode,
+  ScreenshotExtractor,
 } from "../../../../packages/shared/types/index.js";
 import type { SessionService } from "./session-service.js";
 import type { ProjectService } from "./project-service.js";
+import type { AssetService } from "./asset-service.js";
 
 interface SessionManagerConfig {
   outputRoot: string;
@@ -39,17 +41,23 @@ export class SessionManager {
   private sessionService: SessionService;
   private captureProvider: CaptureProvider;
   private projectService: ProjectService;
+  private screenshotExtractor?: ScreenshotExtractor;
+  private assetService?: AssetService;
 
   constructor(
     sessionService: SessionService,
     captureProvider: CaptureProvider,
     projectService: ProjectService,
-    config?: Partial<SessionManagerConfig>
+    config?: Partial<SessionManagerConfig>,
+    screenshotExtractor?: ScreenshotExtractor,
+    assetService?: AssetService,
   ) {
     this.config = { ...DEFAULT_CONFIG, ...config };
     this.sessionService = sessionService;
     this.captureProvider = captureProvider;
     this.projectService = projectService;
+    this.screenshotExtractor = screenshotExtractor;
+    this.assetService = assetService;
   }
 
   async startSession(projectId: string, trigger: SessionTrigger): Promise<RecordingSession> {
@@ -110,6 +118,9 @@ export class SessionManager {
       this.activeByProject.delete(projectId);
 
       this.sessionService.updateRawVideoPath(active.session.id, result.outputPath);
+
+      await this.extractScreenshots(active.session.id, active.projectId, result.outputPath);
+
       this.sessionService.updateStatus(active.session.id, "complete");
 
       return this.sessionService.getById(active.session.id)!;
@@ -138,5 +149,42 @@ export class SessionManager {
 
   getActiveProjectIds(): string[] {
     return [...this.activeByProject.keys()];
+  }
+
+  private async extractScreenshots(
+    sessionId: string,
+    projectId: string,
+    rawVideoPath: string,
+  ): Promise<void> {
+    if (!this.screenshotExtractor || !this.assetService) {
+      return;
+    }
+
+    try {
+      const screenshotsDir = join(
+        this.config.outputRoot,
+        projectId,
+        sessionId,
+        "screenshots",
+      );
+
+      const screenshots = await this.screenshotExtractor.extract(
+        rawVideoPath,
+        screenshotsDir,
+      );
+
+      for (const shot of screenshots) {
+        this.assetService.create({
+          sessionId,
+          projectId,
+          type: "screenshot",
+          path: shot.path,
+          width: shot.width,
+          height: shot.height,
+        });
+      }
+    } catch {
+      // Screenshot extraction is best-effort; don't fail the session
+    }
   }
 }

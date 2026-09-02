@@ -161,3 +161,22 @@ export interface FFmpegService {
   extractFrame(input: string, output: string, timestampSec: number): Promise<void>;
   transcode(input: string, output: string, options?: TranscodeOptions): Promise<void>;
 }
+
+export interface ScreenshotExtractorConfig {
+  minScreenshots: number;
+  maxScreenshots: number;
+  skipFirstSeconds: number;
+  similarityThreshold: number;
+  intervalSeconds: number;
+}
+
+export interface ExtractedScreenshot {
+  path: string;
+  timestampMs: number;
+  width: number;
+  height: number;
+}
+
+export interface ScreenshotExtractor {
+  extract(inputVideo: string, outputDir: string, config?: Partial<ScreenshotExtractorConfig>): Promise<ExtractedScreenshot[]>;
+}
