@@ -1,7 +1,7 @@
 # MEMORY.md — Agent Working Memory
 
 ## Current Goal
-Sprint 1.2 complete. Next: Sprint 1.3 (Recording Provider).
+Sprint 1.3 complete (542fd92). Next: Sprint 1.4 (Session Manager).
 
 ## Completed
 - Sprint 0.1: Repository Foundation (cce4695)
@@ -11,6 +11,8 @@ Sprint 1.2 complete. Next: Sprint 1.3 (Recording Provider).
 - File Restoration: Restored architecture, implementation-guide, roadmap from cce4695 (825e4b3)
 - Sprint 1.1: Project Management UI — 51 tests pass, CRUD UI, error handling, listAll
 - Sprint 1.2: Process Detection — 69 tests pass, ProcessMonitor with polling, start/stop detection, project matching
+- Sprint 1.3: Recording Provider — 84 tests pass, FfmpegCaptureProvider with start/stop, spawnFn injection, gdigrab+dshow
+- Sprint 1.3 Post-fix: Review issues addressed — 85 tests pass, statSync timeout, dead code removed
 
 ## Open Threads
 - `npm run dev` doesn't pass VITE_DEV_SERVER_URL to electron — fix needed before dev workflow
@@ -26,6 +28,7 @@ Sprint 1.2 complete. Next: Sprint 1.3 (Recording Provider).
 - Service layer pattern: Repository → Service → IPC handler → Preload bridge → Renderer
 - ProcessMonitor: inject execFn for testability, avoid promisify on callback exec
 - Process matching: exact path match first, then filename fallback (case-insensitive)
+- FfmpegCaptureProvider: statSync polling to detect output file created (avoids stderr parsing)
 
 ## Directory Structure
 - apps/desktop/{electron,renderer}

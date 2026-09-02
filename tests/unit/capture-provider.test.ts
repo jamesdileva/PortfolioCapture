@@ -26,11 +26,8 @@ function defaultOptions(overrides: Partial<CaptureOptions> = {}): CaptureOptions
   };
 }
 
-let mockStatSync: ReturnType<typeof vi.fn>;
-
 beforeEach(() => {
   vi.clearAllMocks();
-  mockStatSync = vi.fn();
 });
 
 afterEach(() => {
@@ -157,6 +154,23 @@ describe("FfmpegCaptureProvider", () => {
 
       await expect(startPromise).rejects.toThrow("FFmpeg failed to start: ENOENT");
     });
+
+    it("rejects when output file not created within timeout", async () => {
+      const mockProc = createMockProcess();
+      const spawnFn = vi.fn(() => mockProc);
+      const provider = new FfmpegCaptureProvider("ffmpeg", spawnFn);
+
+      vi.mock("fs", () => ({
+        statSync: vi.fn(() => { throw new Error("ENOENT"); }),
+      }));
+
+      const { statSync } = await import("fs");
+      vi.mocked(statSync).mockImplementation(() => { throw new Error("ENOENT"); });
+
+      const startPromise = provider.start(defaultOptions());
+
+      await expect(startPromise).rejects.toThrow("FFmpeg output file not created within timeout");
+    }, 15000);
 
     it("rejects when FFmpeg produces no streams", async () => {
       const mockProc = createMockProcess();

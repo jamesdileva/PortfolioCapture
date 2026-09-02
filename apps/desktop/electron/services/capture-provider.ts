@@ -68,8 +68,18 @@ export class FfmpegCaptureProvider implements CaptureProvider {
         }
       });
 
+      let retries = 0;
+      const maxRetries = 100;
+
       const checkReady = () => {
         if (resolved) return;
+        if (retries >= maxRetries) {
+          resolved = true;
+          process.kill();
+          reject(new Error("FFmpeg output file not created within timeout"));
+          return;
+        }
+        retries++;
         try {
           const info = statSync(options.outputPath);
           if (info.size > 0) {
@@ -120,7 +130,9 @@ export class FfmpegCaptureProvider implements CaptureProvider {
     try {
       const info = statSync(capture.options.outputPath);
       fileSizeBytes = info.size;
-    } catch {}
+    } catch {
+      fileSizeBytes = 0;
+    }
 
     return {
       outputPath: capture.options.outputPath,

@@ -255,3 +255,65 @@
 - Matching prioritizes exact executable path, then filename fallback
 - IPC events: `portfolio:process-started`, `portfolio:process-stopped` sent to renderer
 - Polling defaults to 1 second; configurable via ProcessMonitorConfig
+
+---
+
+### 2026-08-31 — Sprint 1.3: Recording Provider
+
+**Agent:** agent-a
+**Status:** Complete
+**Objectives:**
+- Implement capture abstraction (CaptureProvider interface)
+- FfmpegCaptureProvider: start/stop FFmpeg, track active sessions
+- Windows gdigrab + dshow audio capture
+- Configurable FPS, resolution, audio mode, display selection
+- Injectable SpawnFn for testability
+
+**Verification:**
+- `npm run test` — 84 tests pass (9 test files, 15 new)
+- `npm run build` — Vite + TypeScript compile clean
+- FfmpegCaptureProvider: start returns CaptureSession, stop returns CaptureResult
+- Args building: gdigrab, libx264 ultrafast, yuv420p, scale filter, -an for no audio
+- Error handling: spawn failure, no streams, nonexistent session stop
+- Session tracking: active session IDs, cleanup on stop
+
+**Files created:**
+- `apps/desktop/electron/services/capture-provider.ts` — FfmpegCaptureProvider class
+- `tests/unit/capture-provider.test.ts` — 15 tests
+
+**Files modified:**
+- `packages/shared/types/index.ts` — added AudioMode, CaptureOptions, CaptureSession, CaptureResult, CaptureProvider
+- `apps/desktop/electron/services/index.ts` — exported FfmpegCaptureProvider
+
+**Notes:**
+- Windows-specific: gdigrab for video, dshow virtual-audio-capturer for system audio
+- Uses statSync polling to detect FFmpeg has started writing output (avoids stderr parsing)
+- SIGINT for clean stop, SIGKILL fallback after 3s timeout
+- Commit: `542fd92`
+
+---
+
+### 2026-08-31 — Sprint 1.3 Post-fix: Review Issues Addressed
+
+**Agent:** agent-a
+**Status:** Complete
+**Triggered by:** agent-b review #29
+
+**Actions taken:**
+- Removed dead `mockStatSync` variable from `capture-provider.test.ts`
+- Added timeout (10s / 100 retries) to `start()` statSync polling — rejects if output file not created
+- Added explicit `fileSizeBytes = 0` assignment in catch block of `stop()` (defensive clarity)
+- Added new test: "rejects when output file not created within timeout" (16s timeout)
+- Cleaned up duplicate `(1)` suffix doc files from workspace root
+
+**Verification:**
+- `npm run test` — 85 tests pass (9 test files, 1 new)
+- `npm run build` — Vite + TypeScript compile clean
+
+**Files modified:**
+- `apps/desktop/electron/services/capture-provider.ts` — timeout on checkReady, explicit catch assignment
+- `tests/unit/capture-provider.test.ts` — removed dead mockStatSync, added timeout test
+
+**Notes:**
+- Timeout test takes ~11s (10s polling timeout + overhead) — expected and correct
+- Empty catch blocks in `stop()` are defensible: SIGKILL may fail on dead process, statSync may fail on missing file
