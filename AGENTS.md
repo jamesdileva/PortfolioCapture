@@ -684,3 +684,49 @@
 - Type collision resolved: `trimmed_video` and `demo_video` are now distinct asset types
 - `generateDemo` no longer fragile-coupled to SmartTrimmer's default output filename
 - `trimVideo` returns path only when smartTrimmer is available and timeline is non-empty
+
+---
+
+### 2026-09-02 — Sprint 2.5: Export Bundle
+
+**Agent:** agent-a
+**Status:** Complete
+**Objectives:**
+- ExportServiceImpl: export project bundle (demo.mp4, screenshots/, metadata.json, README.md)
+- ExportBundleConfig and ExportBundleResult types
+- IPC handler: export:project
+- Preload bridge: portfolio.export.project()
+- Typed renderer API: PortfolioExportAPI
+- 11 unit tests covering all paths
+
+**Verification:**
+- `npm run test` — 214 tests pass (18 test files, 11 new)
+- `npm run build:electron` — TypeScript compile clean
+- ExportServiceImpl: throws on empty projectId, throws on nonexistent project
+- Creates export directory with metadata.json and README.md
+- Copies demo_video asset to demo.mp4
+- Copies screenshot assets to screenshots/ directory
+- Uses latest complete session assets (not all sessions)
+- Sanitizes project name for directory (illegal chars → underscore)
+- Re-export overwrites cleanly
+- Metadata includes project name, path, session count, exportedAt
+
+**Files created:**
+- `apps/desktop/electron/services/export-service.ts` — ExportServiceImpl class
+- `apps/desktop/electron/ipc/exports.ts` — IPC handler for export:project
+- `tests/unit/export-service.test.ts` — 11 tests
+
+**Files modified:**
+- `packages/shared/types/index.ts` — added ExportBundleConfig, ExportBundleResult, ExportService interfaces
+- `apps/desktop/electron/services/index.ts` — exported ExportServiceImpl
+- `apps/desktop/electron/main.ts` — wired ExportServiceImpl with project/session/asset services
+- `apps/desktop/electron/preload.ts` — added export namespace with project method
+- `apps/desktop/renderer/src/types/global.d.ts` — added PortfolioExportAPI interface
+- `apps/desktop/electron/ipc/index.ts` — exported registerExportHandlers
+
+**Notes:**
+- Fixed TS2552: added missing `ExportService` import in export-service.ts
+- Removed unused `readdirSync` and `statSync` imports
+- Only exports latest session's demo+screenshots (not trimmed_video — roadmap spec)
+- No UI component triggers export yet — IPC bridge ready for Sprint 2.6+ integration
+- Commit: `976db34`
