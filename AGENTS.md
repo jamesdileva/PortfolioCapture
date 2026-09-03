@@ -769,3 +769,39 @@
 - `projectStatus` defaults to `'active'` in DB and type
 - Comma-separated input in ProjectForm parsed to string arrays on save
 - Commit: `e98f804`
+
+---
+
+### 2026-09-02 — Sprint 2.7: Portfolio Dashboard
+
+**Agent:** agent-a
+**Status:** Complete
+
+**Objectives:**
+- Dashboard component with project cards (capture count, last activity)
+- Recent demos section with video thumbnails
+- Recent screenshots section
+- Stat summary cards (projects, active, total captures)
+- Navigation: click project → edit view, click session → recordings tab
+- Dashboard as default landing tab
+
+**Verification:**
+- `npm run test` — 231 tests pass (19 test files, 12 new)
+- `npm run build` — Vite (31 modules, 165KB) + TypeScript compile clean
+- Dashboard renders stat cards, project grid, demo/screenshot galleries
+- Asset loading from IPC (listByProject per project)
+- Empty states: no projects, no demos, no screenshots
+- Click handlers: project card → edit view, session click → recordings tab
+
+**Files created:**
+- `apps/desktop/renderer/src/components/Dashboard.tsx` — Dashboard component with stat cards, project grid, recent demos/screenshots
+- `tests/renderer/dashboard.test.tsx` — 12 tests
+
+**Files modified:**
+- `apps/desktop/renderer/src/App.tsx` — added "dashboard" tab, Dashboard as default view, navigation callbacks
+
+**Notes:**
+- Dashboard fetches assets per project (listByProject) to populate demos/screenshots
+- `onProjectClick` navigates to Projects tab with project in edit mode
+- `onSessionClick` navigates to Recordings tab with session selected
+- Commit: `92bb09f`
