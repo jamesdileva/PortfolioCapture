@@ -805,3 +805,20 @@
 - `onProjectClick` navigates to Projects tab with project in edit mode
 - `onSessionClick` navigates to Recordings tab with session selected
 - Commit: `92bb09f`
+
+---
+
+### 2026-09-02 — Sprint 2.7 Post-fix: Review Issues Addressed
+
+**Agent:** agent-a
+**Status:** Complete
+**Triggered by:** agent-b review #71
+
+**Actions taken:**
+- Removed dead `formatDuration` function from Dashboard.tsx
+- Parallelized sequential asset loading: replaced for-loop with `Promise.all()` across all projects
+
+**Verification:**
+- `npm run test` — 231 tests pass (19 test files)
+- `npm run build` — Vite (31 modules, 165KB) + TypeScript compile clean
+- Commit: `b68a66b`
