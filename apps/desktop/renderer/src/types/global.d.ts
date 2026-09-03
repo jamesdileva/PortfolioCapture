@@ -11,6 +11,7 @@ import type {
   CreateAssetInput,
   AssetType,
   SessionStatus,
+  ExportBundleResult,
 } from "../../../../packages/shared/types/index.js";
 
 interface PortfolioProjectsAPI {
@@ -48,12 +49,17 @@ interface PortfolioSettingsAPI {
   delete: (key: string) => Promise<boolean>;
 }
 
+interface PortfolioExportAPI {
+  project: (projectId: string) => Promise<ExportBundleResult>;
+}
+
 interface PortfolioAPI {
   on: (channel: string, callback: (...args: unknown[]) => void) => () => void;
   projects: PortfolioProjectsAPI;
   sessions: PortfolioSessionsAPI;
   assets: PortfolioAssetsAPI;
   settings: PortfolioSettingsAPI;
+  export: PortfolioExportAPI;
 }
 
 declare global {

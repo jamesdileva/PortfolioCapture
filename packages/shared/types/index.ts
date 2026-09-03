@@ -242,3 +242,19 @@ export interface DemoResult {
 export interface DemoGenerator {
   generate(trimmedVideo: string, outputDir: string, config?: Partial<DemoGeneratorConfig>): Promise<DemoResult>;
 }
+
+export interface ExportBundleConfig {
+  outputDir: string;
+}
+
+export interface ExportBundleResult {
+  exportPath: string;
+  demoIncluded: boolean;
+  screenshotCount: number;
+  metadataIncluded: boolean;
+  readmeIncluded: boolean;
+}
+
+export interface ExportService {
+  exportProject(projectId: string, config?: Partial<ExportBundleConfig>): Promise<ExportBundleResult>;
+}

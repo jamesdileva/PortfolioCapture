@@ -45,4 +45,7 @@ contextBridge.exposeInMainWorld("portfolio", {
     set: (key: string, value: string) => ipcRenderer.invoke("settings:set", key, value),
     delete: (key: string) => ipcRenderer.invoke("settings:delete", key),
   },
+  export: {
+    project: (projectId: string) => ipcRenderer.invoke("export:project", projectId),
+  },
 });
