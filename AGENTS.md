@@ -609,3 +609,47 @@
 - Cleanup of temp segment files in finally block (best-effort)
 - Smart trimming is best-effort: errors caught and do not fail the session
 - Commit: `dfecb1e`
+
+---
+
+### 2026-09-02 — Sprint 2.4: Demo Generation
+
+**Agent:** agent-a
+**Status:** Complete
+
+**Objectives:**
+- DemoGenerator interface and DemoGeneratorImpl
+- Segment distribution: extract evenly from trimmed video when duration exceeds target
+- Short videos copied directly (no unnecessary re-encoding)
+- Optional intro/outro prepend/append with existence check
+- Configurable target/min/max duration (default 30–90s)
+- SessionManager integration: generateDemo after trimVideo
+- 13 unit tests covering all paths
+
+**Verification:**
+- `npm run test` — 203 tests pass (17 test files, 13 new)
+- `npm run build` — Vite (30 modules, 159KB) + TypeScript compile clean
+- Short video (< maxDurationMs) → copied directly, segmentCount=1
+- Long video (> maxDurationMs) → 5 distributed segments extracted and concatenated
+- Intro/outro: prepended/appended when path exists, skipped when missing
+- Probe failures propagated, ffmpeg errors propagated
+- Temp segments cleaned up after generation
+- Custom output filename respected
+- SessionManager: generateDemo runs after trimVideo in session finalization
+
+**Files created:**
+- `apps/desktop/electron/services/demo-generator.ts` — DemoGeneratorImpl class
+- `tests/unit/demo-generator.test.ts` — 13 tests
+
+**Files modified:**
+- `packages/shared/types/index.ts` — added DemoGeneratorConfig, DemoResult, DemoGenerator interfaces
+- `apps/desktop/electron/services/index.ts` — exported DemoGeneratorImpl
+- `apps/desktop/electron/services/session-manager.ts` — added demoGenerator optional dep, generateDemo() post-processing
+- `apps/desktop/electron/main.ts` — wired DemoGeneratorImpl into SessionManager
+
+**Notes:**
+- DemoGenerator is optional in SessionManager constructor (backward compatible with existing tests)
+- Uses ffmpeg concat demuxer with libx264 re-encode for segment assembly
+- Distributed segment extraction: divides trimmed video into 5 equal strides
+- Demo generation is best-effort: errors caught and do not fail the session
+- Commit: `6d60709`
