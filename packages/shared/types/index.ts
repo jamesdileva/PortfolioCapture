@@ -201,3 +201,22 @@ export interface IdleDetector {
   onIdle(callback: () => void): void;
   onActive(callback: () => void): void;
 }
+
+export interface SmartTrimmerConfig {
+  minIdleDurationMs: number;
+  mergeGapMs: number;
+  outputFilename: string;
+}
+
+export interface TrimResult {
+  outputPath: string;
+  durationBeforeMs: number;
+  durationAfterMs: number;
+  removedMs: number;
+  removedPercent: number;
+  segmentsRemoved: number;
+}
+
+export interface SmartTrimmer {
+  trim(inputVideo: string, outputDir: string, timeline: IdleSegment[], config?: Partial<SmartTrimmerConfig>): Promise<TrimResult>;
+}

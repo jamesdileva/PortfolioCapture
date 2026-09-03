@@ -9,6 +9,7 @@ import type {
   AudioMode,
   ScreenshotExtractor,
   IdleSegment,
+  SmartTrimmer,
 } from "../../../../packages/shared/types/index.js";
 import type { SessionService } from "./session-service.js";
 import type { ProjectService } from "./project-service.js";
@@ -51,6 +52,7 @@ export class SessionManager {
   private assetService?: AssetService;
   private idleDetectorFactory?: IdleDetectorFactory;
   private settingsService?: SettingsService;
+  private smartTrimmer?: SmartTrimmer;
 
   constructor(
     sessionService: SessionService,
@@ -61,6 +63,7 @@ export class SessionManager {
     assetService?: AssetService,
     idleDetectorFactory?: IdleDetectorFactory,
     settingsService?: SettingsService,
+    smartTrimmer?: SmartTrimmer,
   ) {
     this.config = { ...DEFAULT_CONFIG, ...config };
     this.sessionService = sessionService;
@@ -70,6 +73,7 @@ export class SessionManager {
     this.assetService = assetService;
     this.idleDetectorFactory = idleDetectorFactory;
     this.settingsService = settingsService;
+    this.smartTrimmer = smartTrimmer;
   }
 
   async startSession(projectId: string, trigger: SessionTrigger): Promise<RecordingSession> {
@@ -149,6 +153,8 @@ export class SessionManager {
       }
 
       await this.extractScreenshots(active.session.id, active.projectId, result.outputPath);
+
+      await this.trimVideo(active.session.id, active.projectId, result.outputPath, timeline);
 
       this.sessionService.updateStatus(active.session.id, "complete");
 
@@ -232,6 +238,32 @@ export class SessionManager {
       }
     } catch {
       // Screenshot extraction is best-effort; don't fail the session
+    }
+  }
+
+  private async trimVideo(
+    sessionId: string,
+    projectId: string,
+    rawVideoPath: string,
+    timeline: IdleSegment[],
+  ): Promise<void> {
+    if (!this.smartTrimmer || !this.assetService || timeline.length === 0) {
+      return;
+    }
+
+    try {
+      const sessionDir = join(this.config.outputRoot, projectId, sessionId);
+      const result = await this.smartTrimmer.trim(rawVideoPath, sessionDir, timeline);
+
+      this.assetService.create({
+        sessionId,
+        projectId,
+        type: "demo_video",
+        path: result.outputPath,
+        durationMs: result.durationAfterMs,
+      });
+    } catch {
+      // Smart trimming is best-effort; don't fail the session
     }
   }
 }
