@@ -275,3 +275,34 @@ export interface ExportBundleResult {
 export interface ExportService {
   exportProject(projectId: string, config?: Partial<ExportBundleConfig>): Promise<ExportBundleResult>;
 }
+
+export interface HighlightScoreSignals {
+  interactionDensity: number;
+  visualChange: number;
+  windowChange: number;
+  manualMarker: boolean;
+}
+
+export interface HighlightScoreConfig {
+  interactionWeight: number;
+  visualWeight: number;
+  windowWeight: number;
+  markerWeight: number;
+  markerBoost: number;
+}
+
+export interface HighlightScoreResult {
+  score: number;
+  breakdown: {
+    interaction: number;
+    visual: number;
+    window: number;
+    marker: number;
+  };
+  timestampMs: number;
+}
+
+export interface HighlightScorer {
+  score(signals: HighlightScoreSignals, timestampMs: number, config?: Partial<HighlightScoreConfig>): HighlightScoreResult;
+  scoreAll(segments: Array<{ signals: HighlightScoreSignals; timestampMs: number }>, config?: Partial<HighlightScoreConfig>): HighlightScoreResult[];
+}
