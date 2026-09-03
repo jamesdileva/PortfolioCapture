@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { EventEmitter } from "events";
 import { DemoGeneratorImpl, type ExecFn } from "../../apps/desktop/electron/services/demo-generator.js";
 import type { FFmpegService, MediaInfo } from "../../packages/shared/types/index.js";
-import { mkdirSync, rmSync, writeFileSync, existsSync } from "fs";
+import { mkdirSync, rmSync, writeFileSync, existsSync, readdirSync } from "fs";
 import { join } from "path";
 
 function createMockProcess(stdout = "", stderr = "", exitCode = 0): ReturnType<ExecFn> & { _emitter: EventEmitter } {
@@ -235,7 +235,7 @@ describe("DemoGeneratorImpl", () => {
 
       await generator.generate(trimmedPath, INPUT_DIR);
 
-      const dirs = require("fs").readdirSync(INPUT_DIR);
+      const dirs = readdirSync(INPUT_DIR);
       const tempDirs = dirs.filter((d: string) => d.startsWith("_demo_"));
       expect(tempDirs.length).toBe(0);
     });

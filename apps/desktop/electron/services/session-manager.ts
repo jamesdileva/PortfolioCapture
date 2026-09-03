@@ -158,9 +158,9 @@ export class SessionManager {
 
       await this.extractScreenshots(active.session.id, active.projectId, result.outputPath);
 
-      await this.trimVideo(active.session.id, active.projectId, result.outputPath, timeline);
+      const trimmedVideoPath = await this.trimVideo(active.session.id, active.projectId, result.outputPath, timeline);
 
-      await this.generateDemo(active.session.id, active.projectId);
+      await this.generateDemo(active.session.id, active.projectId, trimmedVideoPath);
 
       this.sessionService.updateStatus(active.session.id, "complete");
 
@@ -252,9 +252,9 @@ export class SessionManager {
     projectId: string,
     rawVideoPath: string,
     timeline: IdleSegment[],
-  ): Promise<void> {
+  ): Promise<string | null> {
     if (!this.smartTrimmer || !this.assetService || timeline.length === 0) {
-      return;
+      return null;
     }
 
     try {
@@ -264,29 +264,31 @@ export class SessionManager {
       this.assetService.create({
         sessionId,
         projectId,
-        type: "demo_video",
+        type: "trimmed_video",
         path: result.outputPath,
         durationMs: result.durationAfterMs,
       });
+
+      return result.outputPath;
     } catch {
       // Smart trimming is best-effort; don't fail the session
+      return null;
     }
   }
 
   private async generateDemo(
     sessionId: string,
     projectId: string,
+    trimmedVideoPath: string | null,
   ): Promise<void> {
-    if (!this.demoGenerator || !this.assetService) {
+    if (!this.demoGenerator || !this.assetService || !trimmedVideoPath) {
       return;
     }
 
     try {
-      const sessionDir = join(this.config.outputRoot, projectId, sessionId);
-      const trimmedPath = join(sessionDir, "trimmed.mp4");
-      const processedDir = join(sessionDir, "processed");
+      const processedDir = join(this.config.outputRoot, projectId, sessionId, "processed");
 
-      const result = await this.demoGenerator.generate(trimmedPath, processedDir);
+      const result = await this.demoGenerator.generate(trimmedVideoPath, processedDir);
 
       this.assetService.create({
         sessionId,

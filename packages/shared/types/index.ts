@@ -16,6 +16,7 @@ export type SessionTrigger =
 
 export type AssetType =
   | "raw_video"
+  | "trimmed_video"
   | "demo_video"
   | "highlight"
   | "screenshot"
