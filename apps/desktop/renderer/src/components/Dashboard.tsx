@@ -19,13 +19,6 @@ interface DashboardData {
   recentScreenshots: { asset: MediaAsset; projectName: string }[];
 }
 
-function formatDuration(ms: number): string {
-  const totalSec = Math.floor(ms / 1000);
-  const min = Math.floor(totalSec / 60);
-  const sec = totalSec % 60;
-  return `${min}:${String(sec).padStart(2, "0")}`;
-}
-
 function formatDate(iso: string): string {
   const d = new Date(iso);
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
@@ -53,22 +46,28 @@ export function Dashboard({ projects, sessions, onProjectClick, onSessionClick }
     let cancelled = false;
     const load = async () => {
       try {
+        const projectMap = new Map(projects.map((p) => [p.id, p.name]));
         const allDemos: { asset: MediaAsset; projectName: string }[] = [];
         const allScreenshots: { asset: MediaAsset; projectName: string }[] = [];
-        const projectMap = new Map(projects.map((p) => [p.id, p.name]));
 
-        for (const project of projects) {
-          try {
-            const assets = await window.portfolio.assets.listByProject(project.id);
-            for (const a of assets) {
-              if (a.type === "demo_video") {
-                allDemos.push({ asset: a, projectName: projectMap.get(project.id) ?? "Unknown" });
-              } else if (a.type === "screenshot") {
-                allScreenshots.push({ asset: a, projectName: projectMap.get(project.id) ?? "Unknown" });
-              }
+        const results = await Promise.all(
+          projects.map(async (project) => {
+            try {
+              return await window.portfolio.assets.listByProject(project.id);
+            } catch {
+              return [];
             }
-          } catch {
-            // skip failed project
+          })
+        );
+
+        for (let i = 0; i < projects.length; i++) {
+          const projectName = projectMap.get(projects[i].id) ?? "Unknown";
+          for (const a of results[i]) {
+            if (a.type === "demo_video") {
+              allDemos.push({ asset: a, projectName });
+            } else if (a.type === "screenshot") {
+              allScreenshots.push({ asset: a, projectName });
+            }
           }
         }
 
