@@ -10,6 +10,7 @@ import type {
   ScreenshotExtractor,
   IdleSegment,
   SmartTrimmer,
+  DemoGenerator,
 } from "../../../../packages/shared/types/index.js";
 import type { SessionService } from "./session-service.js";
 import type { ProjectService } from "./project-service.js";
@@ -53,6 +54,7 @@ export class SessionManager {
   private idleDetectorFactory?: IdleDetectorFactory;
   private settingsService?: SettingsService;
   private smartTrimmer?: SmartTrimmer;
+  private demoGenerator?: DemoGenerator;
 
   constructor(
     sessionService: SessionService,
@@ -64,6 +66,7 @@ export class SessionManager {
     idleDetectorFactory?: IdleDetectorFactory,
     settingsService?: SettingsService,
     smartTrimmer?: SmartTrimmer,
+    demoGenerator?: DemoGenerator,
   ) {
     this.config = { ...DEFAULT_CONFIG, ...config };
     this.sessionService = sessionService;
@@ -74,6 +77,7 @@ export class SessionManager {
     this.idleDetectorFactory = idleDetectorFactory;
     this.settingsService = settingsService;
     this.smartTrimmer = smartTrimmer;
+    this.demoGenerator = demoGenerator;
   }
 
   async startSession(projectId: string, trigger: SessionTrigger): Promise<RecordingSession> {
@@ -155,6 +159,8 @@ export class SessionManager {
       await this.extractScreenshots(active.session.id, active.projectId, result.outputPath);
 
       await this.trimVideo(active.session.id, active.projectId, result.outputPath, timeline);
+
+      await this.generateDemo(active.session.id, active.projectId);
 
       this.sessionService.updateStatus(active.session.id, "complete");
 
@@ -264,6 +270,33 @@ export class SessionManager {
       });
     } catch {
       // Smart trimming is best-effort; don't fail the session
+    }
+  }
+
+  private async generateDemo(
+    sessionId: string,
+    projectId: string,
+  ): Promise<void> {
+    if (!this.demoGenerator || !this.assetService) {
+      return;
+    }
+
+    try {
+      const sessionDir = join(this.config.outputRoot, projectId, sessionId);
+      const trimmedPath = join(sessionDir, "trimmed.mp4");
+      const processedDir = join(sessionDir, "processed");
+
+      const result = await this.demoGenerator.generate(trimmedPath, processedDir);
+
+      this.assetService.create({
+        sessionId,
+        projectId,
+        type: "demo_video",
+        path: result.outputPath,
+        durationMs: result.durationMs,
+      });
+    } catch {
+      // Demo generation is best-effort; don't fail the session
     }
   }
 }

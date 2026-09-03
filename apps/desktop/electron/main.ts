@@ -2,7 +2,7 @@ import { app, BrowserWindow } from "electron";
 import * as path from "path";
 import { createDatabase, runMigrations, closeDatabase } from "../../../packages/database/index.js";
 import { ProjectRepository, SessionRepository, AssetRepository, SettingsRepository } from "../../../packages/database/repositories/index.js";
-import { ProjectService, SessionService, AssetService, SettingsService, ProcessMonitor, FfmpegCaptureProvider, FfmpegServiceImpl, FfmpegScreenshotExtractor, IdleDetectorImpl, SmartTrimmerImpl } from "./services/index.js";
+import { ProjectService, SessionService, AssetService, SettingsService, ProcessMonitor, FfmpegCaptureProvider, FfmpegServiceImpl, FfmpegScreenshotExtractor, IdleDetectorImpl, SmartTrimmerImpl, DemoGeneratorImpl } from "./services/index.js";
 import { SessionManager } from "./services/session-manager.js";
 import { registerProjectHandlers, registerSessionHandlers, registerAssetHandlers, registerSettingsHandlers } from "./ipc/index.js";
 
@@ -62,6 +62,7 @@ function initializeServices() {
   const ffmpegService = new FfmpegServiceImpl();
   const screenshotExtractor = new FfmpegScreenshotExtractor(ffmpegService);
   const smartTrimmer = new SmartTrimmerImpl(ffmpegService);
+  const demoGenerator = new DemoGeneratorImpl(ffmpegService);
 
   const sessionManager = new SessionManager(
     sessionService,
@@ -73,6 +74,7 @@ function initializeServices() {
     () => new IdleDetectorImpl(),
     settingsService,
     smartTrimmer,
+    demoGenerator,
   );
 
   registerProjectHandlers(projectService);

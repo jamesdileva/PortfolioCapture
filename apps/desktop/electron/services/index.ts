@@ -9,3 +9,4 @@ export { SessionManager } from "./session-manager.js";
 export { FfmpegScreenshotExtractor } from "./screenshot-extractor.js";
 export { IdleDetectorImpl } from "./idle-detector.js";
 export { SmartTrimmerImpl } from "./smart-trimmer.js";
+export { DemoGeneratorImpl } from "./demo-generator.js";

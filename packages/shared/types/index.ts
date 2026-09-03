@@ -220,3 +220,24 @@ export interface TrimResult {
 export interface SmartTrimmer {
   trim(inputVideo: string, outputDir: string, timeline: IdleSegment[], config?: Partial<SmartTrimmerConfig>): Promise<TrimResult>;
 }
+
+export interface DemoGeneratorConfig {
+  targetDurationMs: number;
+  minDurationMs: number;
+  maxDurationMs: number;
+  introPath: string | null;
+  outroPath: string | null;
+  outputFilename: string;
+}
+
+export interface DemoResult {
+  outputPath: string;
+  durationMs: number;
+  segmentCount: number;
+  hasIntro: boolean;
+  hasOutro: boolean;
+}
+
+export interface DemoGenerator {
+  generate(trimmedVideo: string, outputDir: string, config?: Partial<DemoGeneratorConfig>): Promise<DemoResult>;
+}
