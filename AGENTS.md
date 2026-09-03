@@ -856,3 +856,39 @@
 - Architecture formula: `highlight_score = interaction_density * 0.35 + visual_change * 0.30 + window_change * 0.20 + marker * 0.15`
 - Import path: `../../../../packages/shared/types/index.js` (monorepo structure)
 - Commit: `a1e4a8c`
+
+---
+
+### 2026-09-02 — Sprint 3.2: Scene Detection
+
+**Agent:** agent-a
+**Status:** Complete
+**Objectives:**
+- Detect major screen transitions via ffmpeg scene filter
+- Configurable threshold and minimum scene gap
+- Merge close scenes to avoid duplicates
+- Injectable ExecFn for testability
+
+**Verification:**
+- `npm run test` — 263 tests pass (21 test files, 13 new)
+- `npm run build` — Vite (31 modules, 165KB) + TypeScript compile clean
+- detect(): parses pts_time from ffmpeg stderr, returns Scene[]
+- detect(): custom threshold passed to select filter
+- detect(): mergeCloseScenes deduplicates within minSceneGapMs
+- detect(): keeps first scene when scores equal during merge
+- detect(): handles empty output, fractional timestamps
+- Error handling: spawn failure, non-zero exit code
+
+**Files created:**
+- `apps/desktop/electron/services/scene-detector.ts` — SceneDetectorImpl class
+- `tests/unit/scene-detector.test.ts` — 13 tests
+
+**Files modified:**
+- `packages/shared/types/index.ts` — added Scene, SceneDetectorConfig, SceneDetector interfaces
+- `apps/desktop/electron/services/index.ts` — exported SceneDetectorImpl
+
+**Notes:**
+- Uses ffmpeg `select='gt(scene,THRESHOLD)',showinfo` filter to detect scene changes
+- All detected scenes get score=1.0 (passed threshold); score-based ranking deferred
+- Merge logic: skip scenes within minSceneGapMs, keep first when scores equal
+- Commit: `b629b7c`
