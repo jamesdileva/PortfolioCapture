@@ -568,3 +568,44 @@
 - `stop()` calls `check()` before finalizing to capture any pending idle transition
 - SettingsService used for timeline storage (key: `timeline:{sessionId}`, value: JSON array)
 - Default idle timeout: 15 seconds (configurable via IdleDetectorConfig)
+
+---
+
+### 2026-09-02 — Sprint 2.3: Smart Trimming
+
+**Agent:** agent-a
+**Status:** Complete
+
+**Objectives:**
+- SmartTrimmer: timeline-based idle segment removal
+- Probe video duration, compute active segments by filtering/merging idle
+- Extract active segments via ffmpeg, concatenate into trimmed output
+- Merge close idle segments (mergeGapMs) to avoid micro-cuts
+- Configurable minIdleDurationMs threshold
+- SessionManager integration: trimVideo post-processing after screenshots
+- TrimResult stats: durationBefore/After, removed time/percent, segment count
+
+**Verification:**
+- `npm run test` — 190 tests pass (16 test files, 17 new)
+- `npm run build` — Vite (30 modules, 159KB) + TypeScript compile clean
+- trim(): throws on all-idle / no-idle, extracts+concatenates, custom config, error propagation
+- computeActiveSegments(): full coverage of idle filtering, merging, start/end trimming
+- SessionManager integration: trimVideo called after extractScreenshots in finalization
+- segmentsRemoved counts original idle segments meeting threshold
+
+**Files created:**
+- `apps/desktop/electron/services/smart-trimmer.ts` — SmartTrimmerImpl class
+- `tests/unit/smart-trimmer.test.ts` — 17 tests
+
+**Files modified:**
+- `packages/shared/types/index.ts` — added SmartTrimmerConfig, TrimResult, SmartTrimmer interfaces
+- `apps/desktop/electron/services/index.ts` — exported SmartTrimmerImpl
+- `apps/desktop/electron/services/session-manager.ts` — added smartTrimmer optional dep, trimVideo() post-processing
+- `apps/desktop/electron/main.ts` — wired SmartTrimmerImpl into SessionManager
+
+**Notes:**
+- SmartTrimmer is optional in SessionManager constructor (backward compatible with existing tests)
+- Uses ffmpeg concat demuxer with mpegts intermediate format for lossless segment joining
+- Cleanup of temp segment files in finally block (best-effort)
+- Smart trimming is best-effort: errors caught and do not fail the session
+- Commit: `dfecb1e`
