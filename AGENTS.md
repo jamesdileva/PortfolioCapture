@@ -730,3 +730,42 @@
 - Only exports latest session's demo+screenshots (not trimmed_video — roadmap spec)
 - No UI component triggers export yet — IPC bridge ready for Sprint 2.6+ integration
 - Commit: `976db34`
+
+---
+
+### 2026-09-02 — Sprint 2.6: Project Metadata
+
+**Agent:** agent-a
+**Status:** Complete
+
+**Objectives:**
+- Add description, features, tech stack, GitHub URL, project status fields to projects
+- DB migration for new columns
+- Repository CRUD for metadata fields
+- Export bundle includes metadata in metadata.json and README.md
+- ProjectForm UI with new fields
+
+**Verification:**
+- `npm run test` — 219 tests pass (18 test files, 5 new)
+- `npm run build` — Vite (30 modules, 160KB) + TypeScript compile clean
+- ProjectRepository: create with all metadata, defaults when omitted, update metadata, empty arrays, null fields
+- ExportService: metadata.json includes description, features, techStack, githubUrl, projectStatus
+- ExportService: README.md includes description, tech stack, features list, GitHub URL
+- ProjectForm: description textarea, comma-separated features/techStack inputs, GitHub URL input, status dropdown
+- Features and techStack stored as JSON arrays in DB, parsed back to string[] in repository
+
+**Files created:**
+- `packages/database/migrations/002_project_metadata.sql` — ALTER TABLE adding 5 columns
+
+**Files modified:**
+- `packages/shared/types/index.ts` — added ProjectStatus type, new fields on Project/CreateProjectInput/UpdateProjectInput
+- `packages/database/repositories/project-repository.ts` — create/update/rowToProject with metadata, parseJsonArray helper
+- `apps/desktop/electron/services/export-service.ts` — metadata.json and README.md include new fields
+- `apps/desktop/renderer/src/components/ProjectForm.tsx` — new form fields for metadata
+- `tests/unit/project-repository.test.ts` — 5 new metadata CRUD tests
+
+**Notes:**
+- `features` and `techStack` stored as JSON text in SQLite, deserialized via `parseJsonArray()` helper
+- `projectStatus` defaults to `'active'` in DB and type
+- Comma-separated input in ProjectForm parsed to string arrays on save
+- Commit: `e98f804`
