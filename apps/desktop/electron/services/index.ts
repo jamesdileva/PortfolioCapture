@@ -12,3 +12,4 @@ export { SmartTrimmerImpl } from "./smart-trimmer.js";
 export { DemoGeneratorImpl } from "./demo-generator.js";
 export { ExportServiceImpl } from "./export-service.js";
 export { HighlightScorerImpl } from "./highlight-scorer.js";
+export { SceneDetectorImpl } from "./scene-detector.js";

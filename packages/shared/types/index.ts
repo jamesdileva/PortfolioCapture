@@ -306,3 +306,17 @@ export interface HighlightScorer {
   score(signals: HighlightScoreSignals, timestampMs: number, config?: Partial<HighlightScoreConfig>): HighlightScoreResult;
   scoreAll(segments: Array<{ signals: HighlightScoreSignals; timestampMs: number }>, config?: Partial<HighlightScoreConfig>): HighlightScoreResult[];
 }
+
+export interface Scene {
+  timestampMs: number;
+  score: number;
+}
+
+export interface SceneDetectorConfig {
+  threshold: number;
+  minSceneGapMs: number;
+}
+
+export interface SceneDetector {
+  detect(inputVideo: string, config?: Partial<SceneDetectorConfig>): Promise<Scene[]>;
+}
