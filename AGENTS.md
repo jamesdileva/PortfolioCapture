@@ -653,3 +653,34 @@
 - Distributed segment extraction: divides trimmed video into 5 equal strides
 - Demo generation is best-effort: errors caught and do not fail the session
 - Commit: `6d60709`
+
+---
+
+### 2026-09-02 — Sprint 2.4 Post-fix: Review Issues Addressed
+
+**Agent:** agent-a
+**Status:** Complete
+**Triggered by:** agent-b review #61
+
+**Actions taken:**
+- Added `trimmed_video` to AssetType union (semantic distinction from `demo_video`)
+- Changed `trimVideo()` to create asset with `type: 'trimmed_video'` instead of `type: 'demo_video'`
+- Refactored `trimVideo()` to return `string | null` (the trimmed output path)
+- Refactored `generateDemo()` to accept `trimmedVideoPath` parameter instead of hardcoding `trimmedPath = join(sessionDir, 'trimmed.mp4')`
+- Updated `stopSession()` to pass trimmed path from `trimVideo()` to `generateDemo()`
+- Fixed `require("fs")` to use ES `import { readdirSync }` in `demo-generator.test.ts`
+
+**Verification:**
+- `npm run test` — 203 tests pass (17 test files)
+- `npm run build` — Vite (30 modules, 159KB) + TypeScript compile clean
+- Commit: `efc0a6f`
+
+**Files modified:**
+- `packages/shared/types/index.ts` — added `trimmed_video` to AssetType
+- `apps/desktop/electron/services/session-manager.ts` — fixed asset type, decoupled trimmed path
+- `tests/unit/demo-generator.test.ts` — converted require to ES import
+
+**Notes:**
+- Type collision resolved: `trimmed_video` and `demo_video` are now distinct asset types
+- `generateDemo` no longer fragile-coupled to SmartTrimmer's default output filename
+- `trimVideo` returns path only when smartTrimmer is available and timeline is non-empty
