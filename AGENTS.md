@@ -822,3 +822,37 @@
 - `npm run test` — 231 tests pass (19 test files)
 - `npm run build` — Vite (31 modules, 165KB) + TypeScript compile clean
 - Commit: `b68a66b`
+
+---
+
+### 2026-09-02 — Sprint 3.1: Highlight Scoring
+
+**Agent:** agent-a
+**Status:** Complete
+
+**Objectives:**
+- Implement heuristic highlight scoring (interaction, visual change, window change, manual marker)
+- Weighted formula: interaction*0.35 + visual*0.30 + window*0.20 + marker*0.15
+- ScoreAll for batch scoring, sorted by score descending
+- Configurable weights and marker boost
+- Signal clamping (0-1) and score clamping
+
+**Verification:**
+- `npm run test` — 250 tests pass (20 test files, 19 new)
+- `npm run build` — Vite (31 modules, 165KB) + TypeScript compile clean
+- score(): 0 for all-zero, max for all-1 + marker, weights applied correctly
+- score(): clamping for out-of-range signals, marker boost, custom config
+- scoreAll(): sorted descending, preserves timestamps, empty input, deterministic
+
+**Files created:**
+- `apps/desktop/electron/services/highlight-scorer.ts` — HighlightScorerImpl class
+- `tests/unit/highlight-scorer.test.ts` — 19 tests
+
+**Files modified:**
+- `packages/shared/types/index.ts` — added HighlightScoreSignals, HighlightScoreConfig, HighlightScoreResult, HighlightScorer interfaces
+- `apps/desktop/electron/services/index.ts` — exported HighlightScorerImpl
+
+**Notes:**
+- Architecture formula: `highlight_score = interaction_density * 0.35 + visual_change * 0.30 + window_change * 0.20 + marker * 0.15`
+- Import path: `../../../../packages/shared/types/index.js` (monorepo structure)
+- Commit: `a1e4a8c`
