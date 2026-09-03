@@ -1,15 +1,16 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { Project, RecordingSession, CreateProjectInput, UpdateProjectInput } from "../../../packages/shared/types/index.js";
+import { Dashboard } from "./components/Dashboard";
 import { ProjectList } from "./components/ProjectList";
 import { ProjectForm } from "./components/ProjectForm";
 import { SessionList } from "./components/SessionList";
 import { SessionDetail } from "./components/SessionDetail";
 
-type Tab = "projects" | "recordings";
+type Tab = "dashboard" | "projects" | "recordings";
 type ProjectView = "list" | "add" | "edit";
 
 export function App() {
-  const [tab, setTab] = useState<Tab>("projects");
+  const [tab, setTab] = useState<Tab>("dashboard");
 
   const [projects, setProjects] = useState<Project[]>([]);
   const [projectView, setProjectView] = useState<ProjectView>("list");
@@ -150,7 +151,7 @@ export function App() {
     };
   }, [activeProjectIds]);
 
-  const loading = tab === "projects" ? loadingProjects : loadingSessions;
+  const loading = tab === "projects" ? loadingProjects : tab === "recordings" ? loadingSessions : false;
 
   return (
     <div style={container}>
@@ -159,12 +160,27 @@ export function App() {
       </h1>
 
       <div style={{ display: "flex", gap: "0", marginBottom: "1rem" }}>
-        <TabBtn active={tab === "projects"} onClick={() => { setTab("projects"); setSelectedSession(null); }}>Projects</TabBtn>
+        <TabBtn active={tab === "dashboard"} onClick={() => { setTab("dashboard"); setSelectedSession(null); }}>Dashboard</TabBtn>
+        <TabBtn active={tab === "projects"} onClick={() => { setTab("projects"); setSelectedSession(null); setProjectView("list"); }}>Projects</TabBtn>
         <TabBtn active={tab === "recordings"} onClick={() => { setTab("recordings"); setSelectedSession(null); }}>Recordings</TabBtn>
       </div>
 
       {loading ? (
         <p style={{ color: "#888" }}>Loading...</p>
+      ) : tab === "dashboard" ? (
+        <Dashboard
+          projects={projects}
+          sessions={sessions}
+          onProjectClick={(p) => {
+            setEditing(p);
+            setProjectView("edit");
+            setTab("projects");
+          }}
+          onSessionClick={(s) => {
+            setSelectedSession(s);
+            setTab("recordings");
+          }}
+        />
       ) : tab === "projects" ? (
         <>
           {projectView === "list" && (
