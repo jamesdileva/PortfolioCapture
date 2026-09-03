@@ -105,4 +105,87 @@ describe("ProjectRepository", () => {
     expect(deleted).toBe(true);
     expect(repo.getById(created.id)).toBeNull();
   });
+
+  it("creates project with all metadata fields", () => {
+    const input: CreateProjectInput = {
+      name: "Metadata Project",
+      path: "C:\\Metadata",
+      description: "A test project with metadata",
+      features: ["auth", "dashboard", "API"],
+      techStack: ["React", "TypeScript", "Node.js"],
+      githubUrl: "https://github.com/user/repo",
+      projectStatus: "active",
+    };
+    const created = repo.create(input);
+
+    expect(created.description).toBe("A test project with metadata");
+    expect(created.features).toEqual(["auth", "dashboard", "API"]);
+    expect(created.techStack).toEqual(["React", "TypeScript", "Node.js"]);
+    expect(created.githubUrl).toBe("https://github.com/user/repo");
+    expect(created.projectStatus).toBe("active");
+
+    const found = repo.getById(created.id);
+    expect(found!.description).toBe("A test project with metadata");
+    expect(found!.features).toEqual(["auth", "dashboard", "API"]);
+    expect(found!.techStack).toEqual(["React", "TypeScript", "Node.js"]);
+    expect(found!.githubUrl).toBe("https://github.com/user/repo");
+    expect(found!.projectStatus).toBe("active");
+  });
+
+  it("defaults metadata fields when not provided", () => {
+    const created = repo.create({ name: "No Metadata", path: "C:\\NoMeta" });
+
+    expect(created.description).toBeNull();
+    expect(created.features).toEqual([]);
+    expect(created.techStack).toEqual([]);
+    expect(created.githubUrl).toBeNull();
+    expect(created.projectStatus).toBe("active");
+  });
+
+  it("updates metadata fields", () => {
+    const created = repo.create({ name: "Update Meta", path: "C:\\UpdateMeta" });
+
+    const updated = repo.update(created.id, {
+      description: "Updated description",
+      features: ["new-feature"],
+      techStack: ["Vue.js"],
+      githubUrl: "https://github.com/user/new-repo",
+      projectStatus: "archived",
+    });
+
+    expect(updated).not.toBeNull();
+    expect(updated!.description).toBe("Updated description");
+    expect(updated!.features).toEqual(["new-feature"]);
+    expect(updated!.techStack).toEqual(["Vue.js"]);
+    expect(updated!.githubUrl).toBe("https://github.com/user/new-repo");
+    expect(updated!.projectStatus).toBe("archived");
+  });
+
+  it("handles empty arrays for features and techStack", () => {
+    const created = repo.create({
+      name: "Empty Arrays",
+      path: "C:\\EmptyArrays",
+      features: ["a", "b"],
+      techStack: ["x"],
+    });
+    expect(created.features).toEqual(["a", "b"]);
+    expect(created.techStack).toEqual(["x"]);
+
+    const updated = repo.update(created.id, { features: [], techStack: [] });
+    expect(updated!.features).toEqual([]);
+    expect(updated!.techStack).toEqual([]);
+  });
+
+  it("handles null description and githubUrl on update", () => {
+    const created = repo.create({
+      name: "Null Fields",
+      path: "C:\\NullFields",
+      description: "has description",
+      githubUrl: "https://github.com/user/repo",
+    });
+
+    const updated = repo.update(created.id, { description: null, githubUrl: null });
+    expect(updated!.description).toBeNull();
+    expect(updated!.githubUrl).toBeNull();
+  });
 });

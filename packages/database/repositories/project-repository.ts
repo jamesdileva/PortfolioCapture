@@ -1,6 +1,6 @@
 import Database from "better-sqlite3";
 import { randomUUID } from "crypto";
-import type { Project, CreateProjectInput, UpdateProjectInput } from "../../shared/types/index.js";
+import type { Project, ProjectStatus, CreateProjectInput, UpdateProjectInput } from "../../shared/types/index.js";
 
 export class ProjectRepository {
   constructor(private db: Database.Database) {}
@@ -15,14 +15,19 @@ export class ProjectRepository {
       launchCommand: input.launchCommand ?? null,
       enabled: input.enabled ?? true,
       autoRecord: input.autoRecord ?? true,
+      description: input.description ?? null,
+      features: input.features ?? [],
+      techStack: input.techStack ?? [],
+      githubUrl: input.githubUrl ?? null,
+      projectStatus: input.projectStatus ?? "active",
       createdAt: now,
       updatedAt: now,
     };
 
     this.db
       .prepare(
-        `INSERT INTO projects (id, name, path, executable_path, launch_command, enabled, auto_record, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO projects (id, name, path, executable_path, launch_command, enabled, auto_record, description, features, tech_stack, github_url, project_status, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .run(
         project.id,
@@ -32,6 +37,11 @@ export class ProjectRepository {
         project.launchCommand,
         project.enabled ? 1 : 0,
         project.autoRecord ? 1 : 0,
+        project.description,
+        JSON.stringify(project.features),
+        JSON.stringify(project.techStack),
+        project.githubUrl,
+        project.projectStatus,
         project.createdAt,
         project.updatedAt
       );
@@ -65,6 +75,11 @@ export class ProjectRepository {
     if (input.launchCommand !== undefined) { updates.push("launch_command = ?"); values.push(input.launchCommand); }
     if (input.enabled !== undefined) { updates.push("enabled = ?"); values.push(input.enabled ? 1 : 0); }
     if (input.autoRecord !== undefined) { updates.push("auto_record = ?"); values.push(input.autoRecord ? 1 : 0); }
+    if (input.description !== undefined) { updates.push("description = ?"); values.push(input.description); }
+    if (input.features !== undefined) { updates.push("features = ?"); values.push(JSON.stringify(input.features)); }
+    if (input.techStack !== undefined) { updates.push("tech_stack = ?"); values.push(JSON.stringify(input.techStack)); }
+    if (input.githubUrl !== undefined) { updates.push("github_url = ?"); values.push(input.githubUrl); }
+    if (input.projectStatus !== undefined) { updates.push("project_status = ?"); values.push(input.projectStatus); }
 
     if (updates.length === 0) return existing;
 
@@ -90,8 +105,23 @@ export class ProjectRepository {
       launchCommand: row.launch_command as string | null,
       enabled: (row.enabled as number) === 1,
       autoRecord: (row.auto_record as number) === 1,
+      description: row.description as string | null,
+      features: parseJsonArray(row.features as string | null),
+      techStack: parseJsonArray(row.tech_stack as string | null),
+      githubUrl: row.github_url as string | null,
+      projectStatus: (row.project_status as ProjectStatus) ?? "active",
       createdAt: row.created_at as string,
       updatedAt: row.updated_at as string,
     };
+  }
+}
+
+function parseJsonArray(raw: string | null): string[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
   }
 }

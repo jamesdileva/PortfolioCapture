@@ -24,6 +24,8 @@ export type AssetType =
   | "gif"
   | "export";
 
+export type ProjectStatus = "active" | "paused" | "archived" | "completed";
+
 export interface Project {
   id: string;
   name: string;
@@ -32,6 +34,11 @@ export interface Project {
   launchCommand: string | null;
   enabled: boolean;
   autoRecord: boolean;
+  description: string | null;
+  features: string[];
+  techStack: string[];
+  githubUrl: string | null;
+  projectStatus: ProjectStatus;
   createdAt: string;
   updatedAt: string;
 }
@@ -72,6 +79,11 @@ export interface CreateProjectInput {
   launchCommand?: string;
   enabled?: boolean;
   autoRecord?: boolean;
+  description?: string;
+  features?: string[];
+  techStack?: string[];
+  githubUrl?: string;
+  projectStatus?: ProjectStatus;
 }
 
 export interface UpdateProjectInput {
@@ -81,6 +93,11 @@ export interface UpdateProjectInput {
   launchCommand?: string | null;
   enabled?: boolean;
   autoRecord?: boolean;
+  description?: string | null;
+  features?: string[];
+  techStack?: string[];
+  githubUrl?: string | null;
+  projectStatus?: ProjectStatus;
 }
 
 export interface CreateSessionInput {

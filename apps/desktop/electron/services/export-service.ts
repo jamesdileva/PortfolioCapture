@@ -83,6 +83,11 @@ export class ExportServiceImpl implements ExportService {
         id: project.id,
         name: project.name,
         path: project.path,
+        description: project.description,
+        features: project.features,
+        techStack: project.techStack,
+        githubUrl: project.githubUrl,
+        projectStatus: project.projectStatus,
       },
       exportedAt: new Date().toISOString(),
       sessionCount: completeSessions.length,
@@ -94,9 +99,14 @@ export class ExportServiceImpl implements ExportService {
       "utf-8",
     );
 
-    const readme = `# ${project.name}\n\nExported from Portfolio Auto Recorder on ${metadata.exportedAt}.\n\nSessions: ${completeSessions.length}\n`;
+    const readmeParts = [`# ${project.name}\n`];
+    if (project.description) readmeParts.push(`\n${project.description}\n`);
+    if (project.techStack.length > 0) readmeParts.push(`\n**Tech Stack:** ${project.techStack.join(", ")}\n`);
+    if (project.features.length > 0) readmeParts.push(`\n**Features:**\n${project.features.map((f) => `- ${f}`).join("\n")}\n`);
+    if (project.githubUrl) readmeParts.push(`\n**GitHub:** ${project.githubUrl}\n`);
+    readmeParts.push(`\nExported from Portfolio Auto Recorder on ${metadata.exportedAt}.\n\nSessions: ${completeSessions.length}\n`);
 
-    writeFileSync(join(exportPath, "README.md"), readme, "utf-8");
+    writeFileSync(join(exportPath, "README.md"), readmeParts.join(""), "utf-8");
 
     return {
       exportPath,

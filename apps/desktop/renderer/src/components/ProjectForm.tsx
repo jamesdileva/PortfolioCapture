@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import type { Project, CreateProjectInput, UpdateProjectInput } from "../../../../packages/shared/types/index.js";
+import type { Project, ProjectStatus, CreateProjectInput, UpdateProjectInput } from "../../../../packages/shared/types/index.js";
 
 interface ProjectFormProps {
   project: Project | null;
@@ -14,6 +14,11 @@ export function ProjectForm({ project, onSave, onCancel }: ProjectFormProps) {
   const [launchCommand, setLaunchCommand] = useState("");
   const [autoRecord, setAutoRecord] = useState(true);
   const [enabled, setEnabled] = useState(true);
+  const [description, setDescription] = useState("");
+  const [features, setFeatures] = useState("");
+  const [techStack, setTechStack] = useState("");
+  const [githubUrl, setGithubUrl] = useState("");
+  const [projectStatus, setProjectStatus] = useState<ProjectStatus>("active");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,6 +30,11 @@ export function ProjectForm({ project, onSave, onCancel }: ProjectFormProps) {
       setLaunchCommand(project.launchCommand ?? "");
       setAutoRecord(project.autoRecord);
       setEnabled(project.enabled);
+      setDescription(project.description ?? "");
+      setFeatures(project.features.join(", "));
+      setTechStack(project.techStack.join(", "));
+      setGithubUrl(project.githubUrl ?? "");
+      setProjectStatus(project.projectStatus);
     }
   }, [project]);
 
@@ -43,6 +53,9 @@ export function ProjectForm({ project, onSave, onCancel }: ProjectFormProps) {
 
     setSaving(true);
     try {
+      const parseList = (raw: string): string[] =>
+        raw.split(",").map((s) => s.trim()).filter(Boolean);
+
       if (project) {
         const input: UpdateProjectInput & { id: string } = {
           id: project.id,
@@ -52,6 +65,11 @@ export function ProjectForm({ project, onSave, onCancel }: ProjectFormProps) {
           launchCommand: launchCommand.trim() || null,
           autoRecord,
           enabled,
+          description: description.trim() || null,
+          features: parseList(features),
+          techStack: parseList(techStack),
+          githubUrl: githubUrl.trim() || null,
+          projectStatus,
         };
         await onSave(input);
       } else {
@@ -62,6 +80,11 @@ export function ProjectForm({ project, onSave, onCancel }: ProjectFormProps) {
           launchCommand: launchCommand.trim() || undefined,
           autoRecord,
           enabled,
+          description: description.trim() || undefined,
+          features: parseList(features),
+          techStack: parseList(techStack),
+          githubUrl: githubUrl.trim() || undefined,
+          projectStatus,
         };
         await onSave(input);
       }
@@ -112,6 +135,36 @@ export function ProjectForm({ project, onSave, onCancel }: ProjectFormProps) {
           Enabled
         </label>
       </div>
+
+      <label style={labelStyle}>
+        Description
+        <textarea value={description} onChange={(e) => setDescription(e.target.value)} style={{ ...inputStyle, minHeight: "60px", resize: "vertical" }} placeholder="What does this project do?" />
+      </label>
+
+      <label style={labelStyle}>
+        Features (comma-separated)
+        <input value={features} onChange={(e) => setFeatures(e.target.value)} style={inputStyle} placeholder="auth, dashboard, API" />
+      </label>
+
+      <label style={labelStyle}>
+        Tech Stack (comma-separated)
+        <input value={techStack} onChange={(e) => setTechStack(e.target.value)} style={inputStyle} placeholder="React, TypeScript, Node.js" />
+      </label>
+
+      <label style={labelStyle}>
+        GitHub URL
+        <input value={githubUrl} onChange={(e) => setGithubUrl(e.target.value)} style={inputStyle} placeholder="https://github.com/user/repo" />
+      </label>
+
+      <label style={labelStyle}>
+        Status
+        <select value={projectStatus} onChange={(e) => setProjectStatus(e.target.value as ProjectStatus)} style={inputStyle}>
+          <option value="active">Active</option>
+          <option value="paused">Paused</option>
+          <option value="archived">Archived</option>
+          <option value="completed">Completed</option>
+        </select>
+      </label>
 
       <div style={{ display: "flex", gap: "0.5rem" }}>
         <button type="submit" disabled={saving} style={{ ...btnStyle, ...primaryBtn }}>
