@@ -1007,3 +1007,55 @@
 - readFileBytes injectable for testing without real PNG files
 - Screenshot ranking is best-effort: errors caught and do not fail the session
 - Commit: `85e6881`
+
+---
+
+### 2026-09-03 — Sprint 3.5: Recording Profiles
+
+**Agent:** agent-a
+**Status:** Complete
+
+**Objectives:**
+- RecordingProfileServiceImpl: CRUD for recording profiles with 5 built-in presets
+- Presets: Quick Demo (720p), Portfolio Demo (1080p), Long Session, Screenshot Only, Manual
+- Profile settings override SessionManager capture config (fps, width, height, audio, idle, screenshots, demo)
+- Profile-aware idle detection (idleTimeoutMs from profile, 0 disables idle detection)
+- screenshotsOnly profile mode skips trim/demo generation
+- IPC handlers: profiles:list, get, create, update, delete, getPreset, getSettings
+- Preload bridge: portfolio.profiles.* namespace
+- Session start accepts optional profileId
+- 26 unit tests covering CRUD, presets, persistence, settings merging
+
+**Verification:**
+- `npm run test` — 326 tests pass (24 test files, 26 new)
+- `npm run build` — Vite (31 modules, 165KB) + TypeScript compile clean
+- create: default settings, partial overrides, persistence, unique ids
+- getById: found/not-found
+- update: name, settings, description, updatedAt, throws on missing
+- delete: custom profile, throws on missing, throws on preset, persists
+- getPreset: all 5 presets with correct settings, caching, throws on unknown
+- getSettingsForProfile: returns copy, throws on missing, full settings for preset
+- SessionManager: profile overrides capture width/height/fps/audio, idle timeout, screenshotsOnly mode
+
+**Files created:**
+- `apps/desktop/electron/services/recording-profile-service.ts` — RecordingProfileServiceImpl class
+- `apps/desktop/electron/ipc/profiles.ts` — IPC handlers for profiles namespace
+- `tests/unit/recording-profile-service.test.ts` — 26 tests
+
+**Files modified:**
+- `packages/shared/types/index.ts` — added ProfilePresetName, RecordingProfileSettings, RecordingProfile, CreateProfileInput, UpdateProfileInput, RecordingProfileService interfaces
+- `apps/desktop/electron/services/index.ts` — exported RecordingProfileServiceImpl
+- `apps/desktop/electron/services/session-manager.ts` — startSession accepts profileSettings, IdleDetectorFactory accepts config, profile-aware capture options, screenshotsOnly mode
+- `apps/desktop/electron/ipc/sessions.ts` — sessions:start accepts optional profileId, resolves to settings
+- `apps/desktop/electron/ipc/index.ts` — exported registerProfileHandlers
+- `apps/desktop/electron/preload.ts` — added profiles namespace, sessions:start accepts profileId
+- `apps/desktop/renderer/src/types/global.d.ts` — added PortfolioProfilesAPI, profile types, sessions.start accepts profileId
+- `apps/desktop/electron/main.ts` — wired RecordingProfileServiceImpl, registerProfileHandlers, profileService to sessions
+
+**Notes:**
+- Profiles stored as JSON array in settings table (key: `recording-profiles`)
+- Presets are lazy-created on first getPreset() call, cached in profile list
+- idleTimeoutMs=0 disables idle detection entirely (manual profile)
+- screenshotsOnly skips trimVideo + generateDemo, only extracts screenshots
+- Profile settings are partial overrides merged on top of DEFAULT_SETTINGS
+- Commit: `f6c6abe`
