@@ -624,15 +624,60 @@ Integration:
 
 ## Sprint 3.4 — Automatic Screenshot Selection
 
-Rank frames.
+Rank extracted screenshot frames and select the best subset for portfolio display.
 
-Factors:
+### ScreenshotRanker
 
-- visual uniqueness
-- interaction proximity
-- readability
-- duration
-- feature coverage
+- `rank(frames, context)`: score each frame by weighted factors
+- `selectRanked(frames, config)`: return top-N frames sorted by score
+- Factors (weighted):
+
+| Factor | Weight | Description |
+|--------|--------|-------------|
+| visual uniqueness | 0.30 | Perceptual hash distance from other selected frames |
+| interaction proximity | 0.25 | Distance to nearest user interaction event (click, key) |
+| readability | 0.20 | Blur detection (Laplacian variance), brightness, contrast |
+| duration on screen | 0.15 | How long the frame was displayed without change |
+| feature coverage | 0.10 | Unique UI elements visible vs. already-selected frames |
+
+### Types
+
+```typescript
+interface ScreenshotRankConfig {
+  maxScreenshots: number;       // default 5–8
+  minScoreThreshold: number;    // 0.0–1.0, reject below
+  similarityThreshold: number;  // pHash distance, reject if too close
+  weights: ScreenshotWeights;
+}
+
+interface ScreenshotWeights {
+  visualUniqueness: number;
+  interactionProximity: number;
+  readability: number;
+  durationOnScreen: number;
+  featureCoverage: number;
+}
+
+interface RankedScreenshot {
+  framePath: string;
+  timestampMs: number;
+  score: number;
+  factors: {
+    visualUniqueness: number;
+    interactionProximity: number;
+    readability: number;
+    durationOnScreen: number;
+    featureCoverage: number;
+  };
+}
+```
+
+### Integration
+
+- SessionManager calls ScreenshotRanker after ScreenshotExtractor
+- Ranked results replace raw screenshot list in asset metadata
+- Readability pre-filter: reject frames below threshold before ranking
+- Visual dedup: pHash comparison rejects near-duplicates before ranking
 
 ### Verification
 
@@ -640,12 +685,25 @@ Factors:
 npm run test
   → screenshot ranking unit tests pass
 
-Integration:
+Factors:
+  → visual uniqueness: high score for distinct frames
+  → visual uniqueness: low score for near-duplicates
+  → interaction proximity: frames near clicks scored higher
+  → readability: blurry/dark frames scored low
+  → readability: sharp/bright frames scored high
+  → duration: frames displayed longer scored higher
+  → feature coverage: frames with unique UI elements scored higher
+
+Selection:
   → given session with 20 frames → top 5–8 selected
   → visually similar frames → only highest-ranked kept
   → frames near interaction events ranked higher
   → frames spread across session timeline
   → readability filter rejects blurry/dark frames
+  → minScoreThreshold rejects low-quality frames
+  → maxScreenshots limit enforced
+  → empty input returns empty array
+  → single frame returns that frame with score 1.0
 ```
 
 ---
