@@ -2,9 +2,9 @@ import { app, BrowserWindow } from "electron";
 import * as path from "path";
 import { createDatabase, runMigrations, closeDatabase } from "../../../packages/database/index.js";
 import { ProjectRepository, SessionRepository, AssetRepository, SettingsRepository } from "../../../packages/database/repositories/index.js";
-import { ProjectService, SessionService, AssetService, SettingsService, ProcessMonitor, FfmpegCaptureProvider, FfmpegServiceImpl, FfmpegScreenshotExtractor, IdleDetectorImpl, SmartTrimmerImpl, DemoGeneratorImpl, ExportServiceImpl, ScreenshotRankerImpl, RecordingProfileServiceImpl } from "./services/index.js";
+import { ProjectService, SessionService, AssetService, SettingsService, ProcessMonitor, FfmpegCaptureProvider, FfmpegServiceImpl, FfmpegScreenshotExtractor, IdleDetectorImpl, SmartTrimmerImpl, DemoGeneratorImpl, ExportServiceImpl, ScreenshotRankerImpl, RecordingProfileServiceImpl, ManualEditOverridesServiceImpl } from "./services/index.js";
 import { SessionManager } from "./services/session-manager.js";
-import { registerProjectHandlers, registerSessionHandlers, registerAssetHandlers, registerSettingsHandlers, registerExportHandlers, registerProfileHandlers } from "./ipc/index.js";
+import { registerProjectHandlers, registerSessionHandlers, registerAssetHandlers, registerSettingsHandlers, registerExportHandlers, registerProfileHandlers, registerManualOverridesHandlers } from "./ipc/index.js";
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -88,6 +88,9 @@ function initializeServices() {
 
   const profileService = new RecordingProfileServiceImpl(settingsService);
   registerProfileHandlers(profileService);
+
+  const overridesService = new ManualEditOverridesServiceImpl(settingsService);
+  registerManualOverridesHandlers(overridesService);
 
   registerSessionHandlers(sessionService, sessionManager, profileService);
 

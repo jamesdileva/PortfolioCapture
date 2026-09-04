@@ -349,6 +349,20 @@ export interface TimelineAssembler {
   ): Timeline;
 }
 
+export interface TimelineOverrides {
+  selectedIndices: number[];
+  removedIndices: number[];
+  thumbnailTimestampMs: number | null;
+  highlightIndices: number[];
+  customOrder: number[] | null;
+}
+
+export interface ManualEditOverridesService {
+  getOverrides(sessionId: string): TimelineOverrides;
+  saveOverrides(sessionId: string, overrides: TimelineOverrides): void;
+  clearOverrides(sessionId: string): void;
+}
+
 export interface ScreenshotRankConfig {
   maxScreenshots: number;
   minScoreThreshold: number;

@@ -59,4 +59,10 @@ contextBridge.exposeInMainWorld("portfolio", {
   export: {
     project: (projectId: string) => ipcRenderer.invoke("export:project", projectId),
   },
+  overrides: {
+    get: (sessionId: string) => ipcRenderer.invoke("overrides:get", sessionId),
+    save: (sessionId: string, overrides: { selectedIndices: number[]; removedIndices: number[]; thumbnailTimestampMs: number | null; highlightIndices: number[]; customOrder: number[] | null }) =>
+      ipcRenderer.invoke("overrides:save", sessionId, overrides),
+    clear: (sessionId: string) => ipcRenderer.invoke("overrides:clear", sessionId),
+  },
 });

@@ -17,6 +17,7 @@ import type {
   UpdateProfileInput,
   ProfilePresetName,
   RecordingProfileSettings,
+  TimelineOverrides,
 } from "../../../../packages/shared/types/index.js";
 
 interface PortfolioProjectsAPI {
@@ -58,6 +59,12 @@ interface PortfolioExportAPI {
   project: (projectId: string) => Promise<ExportBundleResult>;
 }
 
+interface PortfolioOverridesAPI {
+  get: (sessionId: string) => Promise<TimelineOverrides>;
+  save: (sessionId: string, overrides: TimelineOverrides) => Promise<void>;
+  clear: (sessionId: string) => Promise<void>;
+}
+
 interface PortfolioProfilesAPI {
   list: () => Promise<RecordingProfile[]>;
   get: (id: string) => Promise<RecordingProfile | null>;
@@ -76,6 +83,7 @@ interface PortfolioAPI {
   settings: PortfolioSettingsAPI;
   profiles: PortfolioProfilesAPI;
   export: PortfolioExportAPI;
+  overrides: PortfolioOverridesAPI;
 }
 
 declare global {
