@@ -18,7 +18,7 @@ contextBridge.exposeInMainWorld("portfolio", {
     delete: (id: string) => ipcRenderer.invoke("projects:delete", id),
   },
   sessions: {
-    start: (projectId: string) => ipcRenderer.invoke("sessions:start", projectId),
+    start: (projectId: string, profileId?: string) => ipcRenderer.invoke("sessions:start", projectId, profileId),
     stop: (projectId: string) => ipcRenderer.invoke("sessions:stop", projectId),
     list: (projectId?: string) => ipcRenderer.invoke("sessions:list", projectId),
     get: (id: string) => ipcRenderer.invoke("sessions:get", id),
@@ -44,6 +44,17 @@ contextBridge.exposeInMainWorld("portfolio", {
     get: () => ipcRenderer.invoke("settings:get"),
     set: (key: string, value: string) => ipcRenderer.invoke("settings:set", key, value),
     delete: (key: string) => ipcRenderer.invoke("settings:delete", key),
+  },
+  profiles: {
+    list: () => ipcRenderer.invoke("profiles:list"),
+    get: (id: string) => ipcRenderer.invoke("profiles:get", id),
+    create: (input: { name: string; description?: string; settings: Record<string, unknown>; presetName?: string }) =>
+      ipcRenderer.invoke("profiles:create", input),
+    update: (id: string, input: { name?: string; description?: string; settings?: Record<string, unknown> }) =>
+      ipcRenderer.invoke("profiles:update", id, input),
+    delete: (id: string) => ipcRenderer.invoke("profiles:delete", id),
+    getPreset: (presetName: string) => ipcRenderer.invoke("profiles:getPreset", presetName),
+    getSettings: (id: string) => ipcRenderer.invoke("profiles:getSettings", id),
   },
   export: {
     project: (projectId: string) => ipcRenderer.invoke("export:project", projectId),

@@ -12,6 +12,11 @@ import type {
   AssetType,
   SessionStatus,
   ExportBundleResult,
+  RecordingProfile,
+  CreateProfileInput,
+  UpdateProfileInput,
+  ProfilePresetName,
+  RecordingProfileSettings,
 } from "../../../../packages/shared/types/index.js";
 
 interface PortfolioProjectsAPI {
@@ -23,7 +28,7 @@ interface PortfolioProjectsAPI {
 }
 
 interface PortfolioSessionsAPI {
-  start: (projectId: string) => Promise<RecordingSession>;
+  start: (projectId: string, profileId?: string) => Promise<RecordingSession>;
   stop: (projectId: string) => Promise<RecordingSession | null>;
   list: (projectId?: string) => Promise<RecordingSession[]>;
   get: (id: string) => Promise<RecordingSession | null>;
@@ -53,12 +58,23 @@ interface PortfolioExportAPI {
   project: (projectId: string) => Promise<ExportBundleResult>;
 }
 
+interface PortfolioProfilesAPI {
+  list: () => Promise<RecordingProfile[]>;
+  get: (id: string) => Promise<RecordingProfile | null>;
+  create: (input: CreateProfileInput) => Promise<RecordingProfile>;
+  update: (id: string, input: UpdateProfileInput) => Promise<RecordingProfile>;
+  delete: (id: string) => Promise<void>;
+  getPreset: (presetName: ProfilePresetName) => Promise<RecordingProfile>;
+  getSettings: (id: string) => Promise<RecordingProfileSettings>;
+}
+
 interface PortfolioAPI {
   on: (channel: string, callback: (...args: unknown[]) => void) => () => void;
   projects: PortfolioProjectsAPI;
   sessions: PortfolioSessionsAPI;
   assets: PortfolioAssetsAPI;
   settings: PortfolioSettingsAPI;
+  profiles: PortfolioProfilesAPI;
   export: PortfolioExportAPI;
 }
 

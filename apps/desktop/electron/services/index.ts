@@ -15,3 +15,4 @@ export { HighlightScorerImpl } from "./highlight-scorer.js";
 export { SceneDetectorImpl } from "./scene-detector.js";
 export { TimelineAssemblerImpl } from "./timeline-assembler.js";
 export { ScreenshotRankerImpl } from "./screenshot-ranker.js";
+export { RecordingProfileServiceImpl } from "./recording-profile-service.js";

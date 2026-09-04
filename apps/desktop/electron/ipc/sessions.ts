@@ -1,10 +1,19 @@
 import { ipcMain } from "electron";
 import type { SessionService } from "../services/session-service.js";
 import type { SessionManager } from "../services/session-manager.js";
+import type { RecordingProfileServiceImpl } from "../services/recording-profile-service.js";
 
-export function registerSessionHandlers(sessionService: SessionService, sessionManager: SessionManager): void {
-  ipcMain.handle("sessions:start", async (_event, projectId: string) => {
-    return sessionManager.startSession(projectId, "manual");
+export function registerSessionHandlers(
+  sessionService: SessionService,
+  sessionManager: SessionManager,
+  profileService: RecordingProfileServiceImpl,
+): void {
+  ipcMain.handle("sessions:start", async (_event, projectId: string, profileId?: string) => {
+    let profileSettings;
+    if (profileId) {
+      profileSettings = profileService.getSettingsForProfile(profileId);
+    }
+    return sessionManager.startSession(projectId, "manual", profileSettings);
   });
 
   ipcMain.handle("sessions:stop", async (_event, projectId: string) => {

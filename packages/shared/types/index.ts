@@ -395,3 +395,58 @@ export interface ScreenshotRanker {
     config?: Partial<ScreenshotRankConfig>,
   ): RankedScreenshot[];
 }
+
+export type ProfilePresetName =
+  | "quick_demo"
+  | "portfolio_demo"
+  | "long_session"
+  | "screenshot_only"
+  | "manual";
+
+export interface RecordingProfileSettings {
+  fps: number;
+  width: number;
+  height: number;
+  audio: AudioMode;
+  idleTimeoutMs: number;
+  minIdleDurationMs: number;
+  maxScreenshots: number;
+  demoTargetDurationMs: number;
+  demoMinDurationMs: number;
+  demoMaxDurationMs: number;
+  screenshotsOnly: boolean;
+}
+
+export interface RecordingProfile {
+  id: string;
+  name: string;
+  description: string;
+  isPreset: boolean;
+  presetName: ProfilePresetName | null;
+  settings: RecordingProfileSettings;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateProfileInput {
+  name: string;
+  description?: string;
+  settings: Partial<RecordingProfileSettings>;
+  presetName?: ProfilePresetName;
+}
+
+export interface UpdateProfileInput {
+  name?: string;
+  description?: string;
+  settings?: Partial<RecordingProfileSettings>;
+}
+
+export interface RecordingProfileService {
+  list(): RecordingProfile[];
+  getById(id: string): RecordingProfile | null;
+  create(input: CreateProfileInput): RecordingProfile;
+  update(id: string, input: UpdateProfileInput): RecordingProfile;
+  delete(id: string): void;
+  getPreset(presetName: ProfilePresetName): RecordingProfile;
+  getSettingsForProfile(id: string): RecordingProfileSettings;
+}

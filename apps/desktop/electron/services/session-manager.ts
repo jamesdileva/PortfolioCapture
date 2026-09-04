@@ -12,6 +12,7 @@ import type {
   SmartTrimmer,
   DemoGenerator,
   ScreenshotRanker,
+  RecordingProfileSettings,
 } from "../../../../packages/shared/types/index.js";
 import type { SessionService } from "./session-service.js";
 import type { ProjectService } from "./project-service.js";
@@ -19,7 +20,7 @@ import type { AssetService } from "./asset-service.js";
 import type { SettingsService } from "./settings-service.js";
 import type { IdleDetectorImpl } from "./idle-detector.js";
 
-export type IdleDetectorFactory = () => IdleDetectorImpl;
+export type IdleDetectorFactory = (config?: Partial<import("../../../../packages/shared/types/index.js").IdleDetectorConfig>) => IdleDetectorImpl;
 
 interface SessionManagerConfig {
   outputRoot: string;
@@ -42,6 +43,7 @@ interface ActiveSession {
   captureSessionId: string;
   projectId: string;
   idleDetector?: IdleDetectorImpl;
+  profileSettings?: Partial<RecordingProfileSettings>;
 }
 
 export class SessionManager {
@@ -84,7 +86,7 @@ export class SessionManager {
     this.screenshotRanker = screenshotRanker;
   }
 
-  async startSession(projectId: string, trigger: SessionTrigger): Promise<RecordingSession> {
+  async startSession(projectId: string, trigger: SessionTrigger, profileSettings?: Partial<RecordingProfileSettings>): Promise<RecordingSession> {
     if (this.activeByProject.has(projectId)) {
       throw new Error(`Session already active for project ${projectId}`);
     }
@@ -102,12 +104,17 @@ export class SessionManager {
     }
     const outputPath = join(outputDir, "raw.mp4");
 
+    const effectiveWidth = profileSettings?.width ?? this.config.width;
+    const effectiveHeight = profileSettings?.height ?? this.config.height;
+    const effectiveFps = profileSettings?.fps ?? this.config.fps;
+    const effectiveAudio = profileSettings?.audio ?? this.config.audio;
+
     const captureOptions: CaptureOptions = {
       outputPath,
-      fps: this.config.fps,
-      width: this.config.width,
-      height: this.config.height,
-      audio: this.config.audio,
+      fps: effectiveFps,
+      width: effectiveWidth,
+      height: effectiveHeight,
+      audio: effectiveAudio,
     };
 
     try {
@@ -117,11 +124,13 @@ export class SessionManager {
         session: { ...session, status: "recording" },
         captureSessionId: captureSession.sessionId,
         projectId,
+        profileSettings,
       });
 
       const active = this.activeByProject.get(projectId)!;
-      if (this.idleDetectorFactory) {
-        const detector = this.idleDetectorFactory();
+      if (this.idleDetectorFactory && profileSettings?.idleTimeoutMs !== 0) {
+        const idleTimeout = profileSettings?.idleTimeoutMs ?? 15000;
+        const detector = this.idleDetectorFactory({ idleTimeoutMs: idleTimeout });
         detector.start();
         active.idleDetector = detector;
       }
@@ -160,11 +169,17 @@ export class SessionManager {
         this.settingsService?.set(`timeline:${active.session.id}`, JSON.stringify(timeline));
       }
 
-      await this.extractScreenshots(active.session.id, active.projectId, result.outputPath);
+      const screenshotsOnly = active.profileSettings?.screenshotsOnly ?? false;
 
-      const trimmedVideoPath = await this.trimVideo(active.session.id, active.projectId, result.outputPath, timeline);
+      if (!screenshotsOnly) {
+        await this.extractScreenshots(active.session.id, active.projectId, result.outputPath, active.profileSettings);
 
-      await this.generateDemo(active.session.id, active.projectId, trimmedVideoPath);
+        const trimmedVideoPath = await this.trimVideo(active.session.id, active.projectId, result.outputPath, timeline);
+
+        await this.generateDemo(active.session.id, active.projectId, trimmedVideoPath, active.profileSettings);
+      } else {
+        await this.extractScreenshots(active.session.id, active.projectId, result.outputPath, active.profileSettings);
+      }
 
       this.sessionService.updateStatus(active.session.id, "complete");
 
@@ -218,6 +233,7 @@ export class SessionManager {
     sessionId: string,
     projectId: string,
     rawVideoPath: string,
+    profileSettings?: Partial<RecordingProfileSettings>,
   ): Promise<void> {
     if (!this.screenshotExtractor || !this.assetService) {
       return;
@@ -241,6 +257,7 @@ export class SessionManager {
       if (this.screenshotRanker && screenshots.length > 1) {
         const session = this.sessionService.getById(sessionId);
         const videoDurationMs = session?.durationMs ?? 60000;
+        const maxScreenshots = profileSettings?.maxScreenshots ?? 5;
 
         const ranked = this.screenshotRanker.selectRanked(
           screenshots,
@@ -249,6 +266,7 @@ export class SessionManager {
             segmentDurations: [],
             videoDurationMs,
           },
+          { maxScreenshots },
         );
 
         if (ranked.length > 0) {
@@ -309,6 +327,7 @@ export class SessionManager {
     sessionId: string,
     projectId: string,
     trimmedVideoPath: string | null,
+    profileSettings?: Partial<RecordingProfileSettings>,
   ): Promise<void> {
     if (!this.demoGenerator || !this.assetService || !trimmedVideoPath) {
       return;
