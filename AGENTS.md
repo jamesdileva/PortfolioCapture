@@ -1059,3 +1059,47 @@
 - screenshotsOnly skips trimVideo + generateDemo, only extracts screenshots
 - Profile settings are partial overrides merged on top of DEFAULT_SETTINGS
 - Commit: `f6c6abe`
+
+---
+
+### 2026-09-03 — Sprint 3.6: Manual Editing Overrides
+
+**Agent:** agent-a
+**Status:** Complete
+
+**Objectives:**
+- ManualEditOverridesServiceImpl: persist per-session timeline overrides via SettingsService
+- TimelineOverrides type: selectedIndices, removedIndices, thumbnailTimestampMs, highlightIndices, customOrder
+- IPC handlers: overrides:get, overrides:save, overrides:clear
+- Preload bridge: portfolio.overfiles.get/save/clear
+- CRUD for overrides with isolation per session
+
+**Verification:**
+- `npm run test` — 344 tests pass (25 test files, 18 new)
+- `npm run build` — Vite (31 modules, 165KB) + TypeScript compile clean
+- getOverrides: returns defaults when none saved, handles corrupted JSON, handles partial JSON
+- getOverrides: returns independent copy, isolates per session
+- saveOverrides: stores overrides, creates copy (no shared refs), overwrites existing
+- saveOverrides: handles all fields populated, persists across instances
+- clearOverrides: removes overrides, no throw on nonexistent, only clears target session
+- Input validation: throws on empty sessionId, throws on null overrides
+
+**Files created:**
+- `apps/desktop/electron/services/manual-edit-overrides-service.ts` — ManualEditOverridesServiceImpl class
+- `apps/desktop/electron/ipc/overrides.ts` — IPC handlers for overrides namespace
+- `tests/unit/manual-edit-overrides-service.test.ts` — 18 tests
+
+**Files modified:**
+- `packages/shared/types/index.ts` — added TimelineOverrides, ManualEditOverridesService interfaces
+- `apps/desktop/electron/services/index.ts` — exported ManualEditOverridesServiceImpl
+- `apps/desktop/electron/ipc/index.ts` — exported registerManualOverridesHandlers
+- `apps/desktop/electron/preload.ts` — added overrides namespace (get/save/clear)
+- `apps/desktop/renderer/src/types/global.d.ts` — added PortfolioOverridesAPI, TimelineOverrides import
+- `apps/desktop/electron/main.ts` — wired ManualEditOverridesServiceImpl, registerManualOverridesHandlers
+
+**Notes:**
+- Overrides stored as JSON in settings table (key: `timeline-overrides:{sessionId}`)
+- Default overrides: all arrays empty, thumbnailTimestampMs null, customOrder null
+- getDefaults returns fresh copy each time (no shared reference bugs)
+- Input sanitization: non-array values coerced to empty arrays, non-number thumbnails coerced to null
+- Commit: `dca7eb7`
