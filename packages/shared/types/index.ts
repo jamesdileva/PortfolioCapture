@@ -330,7 +330,7 @@ export interface TimelineSegment {
 
 export interface Timeline {
   segments: TimelineSegment[];
-  totalDurationMs: number;
+  spanMs: number;
 }
 
 export interface TimelineAssemblerConfig {

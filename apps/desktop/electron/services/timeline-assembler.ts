@@ -103,7 +103,7 @@ function selectByPriority(
   return selected.sort((a, b) => a.startMs - b.startMs);
 }
 
-function computeTotalDuration(segments: TimelineSegment[]): number {
+function computeSpan(segments: TimelineSegment[]): number {
   if (segments.length === 0) return 0;
   return segments[segments.length - 1].endMs - segments[0].startMs;
 }
@@ -146,7 +146,7 @@ export class TimelineAssemblerImpl implements TimelineAssembler {
     for (const seg of selected) {
       segments.push({
         ...seg,
-        label: seg.label === `Feature ${seg.label.match(/\d+/)?.[0]}` ? `Feature ${index}` : seg.label,
+        label: seg.label.startsWith("Feature") ? `Feature ${index}` : seg.label,
       });
       index++;
     }
@@ -163,7 +163,7 @@ export class TimelineAssemblerImpl implements TimelineAssembler {
 
     return {
       segments,
-      totalDurationMs: computeTotalDuration(segments),
+      spanMs: computeSpan(segments),
     };
   }
 }

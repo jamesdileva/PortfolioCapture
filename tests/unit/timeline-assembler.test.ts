@@ -133,7 +133,7 @@ describe("TimelineAssemblerImpl", () => {
     }
   });
 
-  it("computes totalDurationMs from first start to last end", () => {
+  it("computes spanMs from first start to last end", () => {
     const scenes: Scene[] = [
       { timestampMs: 0, score: 0.5 },
       { timestampMs: 20_000, score: 0.5 },
@@ -142,7 +142,7 @@ describe("TimelineAssemblerImpl", () => {
     const assembler = new TimelineAssemblerImpl();
     const timeline = assembler.assemble(scenes, [], 60_000);
 
-    expect(timeline.totalDurationMs).toBe(60_000);
+    expect(timeline.spanMs).toBe(60_000);
   });
 
   it("returns empty timeline when all segments filtered by minSegmentDuration", () => {
@@ -158,7 +158,7 @@ describe("TimelineAssemblerImpl", () => {
     });
 
     expect(timeline.segments).toHaveLength(0);
-    expect(timeline.totalDurationMs).toBe(0);
+    expect(timeline.spanMs).toBe(0);
   });
 
   it("deduplicates segments with same start/end", () => {
@@ -197,7 +197,7 @@ describe("TimelineAssemblerImpl", () => {
     const timeline = assembler.assemble([], [], 60_000);
 
     expect(timeline.segments).toHaveLength(5);
-    expect(timeline.totalDurationMs).toBe(60_000);
+    expect(timeline.spanMs).toBe(60_000);
   });
 
   it("overrides config with partial values", () => {
@@ -237,7 +237,7 @@ describe("TimelineAssemblerImpl", () => {
     const timeline = assembler.assemble([], [], 60_000);
 
     expect(timeline.segments).toHaveLength(5);
-    expect(timeline.totalDurationMs).toBe(60_000);
+    expect(timeline.spanMs).toBe(60_000);
   });
 
   it("handles single scene", () => {

@@ -935,3 +935,28 @@
 - TimelineAssemblerImpl is standalone (not yet wired into SessionManager — Sprint 3.4+ will integrate with DemoGenerator)
 - Intro/outro duration (5s) hardcoded; configurable in future sprint
 - Commit: `83017cb`
+
+---
+
+### 2026-09-03 — Sprint 3.3 Post-fix: Review Issues Addressed
+
+**Agent:** agent-a
+**Status:** Complete
+**Triggered by:** agent-b review #82
+
+**Actions taken:**
+- Renamed `totalDurationMs` → `spanMs` in `Timeline` type and implementation (field returns span, not sum of segment durations)
+- Simplified label renumbering regex: `seg.label === \`Feature ${seg.label.match(/\d+/)?.[0]}\`` → `seg.label.startsWith("Feature")`
+
+**Verification:**
+- `npm run test` — 280 tests pass (22 test files)
+- `npm run build:renderer` — Vite build succeeds (31 modules, 165KB)
+- `npx tsc --noEmit -p apps/desktop/electron/tsconfig.json` — TypeScript compile clean
+
+**Files modified:**
+- `packages/shared/types/index.ts` — Timeline.spanMs (was totalDurationMs)
+- `apps/desktop/electron/services/timeline-assembler.ts` — computeSpan (was computeTotalDuration), simplified label check
+- `tests/unit/timeline-assembler.test.ts` — updated assertions to use spanMs
+
+**Notes:**
+- Review notes #2 (intro/outro untested for existing files) and #4 (hardcoded 5s) accepted as-is — coverage gap noted, configurable duration deferred
