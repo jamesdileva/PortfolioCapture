@@ -892,3 +892,46 @@
 - All detected scenes get score=1.0 (passed threshold); score-based ranking deferred
 - Merge logic: skip scenes within minSceneGapMs, keep first when scores equal
 - Commit: `b629b7c`
+
+---
+
+### 2026-09-03 — Sprint 3.3: Timeline Assembler
+
+**Agent:** agent-a
+**Status:** Complete
+
+**Objectives:**
+- TimelineAssembler: scene/highlight-driven timeline assembly
+- buildSegmentsFromScenes: segment video at scene boundaries
+- scoreSegments: weight segment priority with highlight scores (0.4 scene + 0.35 max highlight + 0.25 avg highlight)
+- selectByPriority: greedy selection within maxDurationMs, minSegmentDurationMs filter
+- Optional intro/outro prepend/append (5s each, subtracted from effective budget)
+- Fallback: 5 equal chunks when no scenes provided
+- 17 unit tests covering all paths
+
+**Verification:**
+- `npm run test` — 280 tests pass (22 test files, 17 new)
+- `npm run build` — Vite (31 modules, 165KB) + TypeScript compile clean
+- 5 equal segments fallback when no scenes
+- Scene-based segment creation with correct boundaries
+- Highlight scoring: max + average influence segment priority
+- Priority selection: greedy within maxDurationMs budget
+- Min segment duration filter
+- Chronological sort of selected segments
+- totalDurationMs computed from first start to last end
+- Duplicate segments with same start/end collapsed
+- Intro/outro skipped when paths null or nonexistent
+- Empty scenes/highlights handled gracefully
+
+**Files created:**
+- `apps/desktop/electron/services/timeline-assembler.ts` — TimelineAssemblerImpl class
+- `tests/unit/timeline-assembler.test.ts` — 17 tests
+
+**Files modified:**
+- `packages/shared/types/index.ts` — added TimelineSegment, Timeline, TimelineAssemblerConfig, TimelineAssembler interfaces
+- `apps/desktop/electron/services/index.ts` — exported TimelineAssemblerImpl
+
+**Notes:**
+- TimelineAssemblerImpl is standalone (not yet wired into SessionManager — Sprint 3.4+ will integrate with DemoGenerator)
+- Intro/outro duration (5s) hardcoded; configurable in future sprint
+- Commit: `83017cb`
