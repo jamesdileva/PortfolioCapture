@@ -960,3 +960,50 @@
 
 **Notes:**
 - Review notes #2 (intro/outro untested for existing files) and #4 (hardcoded 5s) accepted as-is — coverage gap noted, configurable duration deferred
+
+---
+
+### 2026-09-03 — Sprint 3.4: Screenshot Ranker
+
+**Agent:** agent-a
+**Status:** Complete
+
+**Objectives:**
+- ScreenshotRanker: weighted-factor scoring for extracted screenshot frames
+- rank(): score each frame by 5 factors (visual uniqueness, interaction proximity, readability, duration on screen, feature coverage)
+- selectRanked(): top-N selection with readability pre-filter, visual dedup, maxScreenshots limit
+- SessionManager integration: rank after screenshot extraction, replace raw list with ranked selection
+- Injectable readFileBytes for testability
+
+**Verification:**
+- `npm run test` — 300 tests pass (23 test files, 20 new)
+- `npm run build` — Vite (31 modules, 165KB) + TypeScript compile clean
+- rank(): empty input → empty array, single frame → visual uniqueness 1.0
+- rank(): distinct frames score higher than near-duplicates (byte-sample similarity)
+- rank(): frames near interaction events scored higher (proximity factor)
+- rank(): small file size → low readability, large → high readability
+- rank(): duration on screen scored from segment durations
+- rank(): feature coverage scored from byte-distance to already-selected frames
+- rank(): custom weights applied, results sorted by score descending
+- rank(): graceful handling of missing files and empty contexts
+- selectRanked(): top-N selected, chronologically sorted
+- selectRanked(): maxScreenshots limit enforced
+- selectRanked(): minScoreThreshold rejects low-quality frames
+- selectRanked(): visually similar duplicates filtered via similarityThreshold
+- SessionManager: ranked screenshots replace raw list after extraction
+
+**Files created:**
+- `apps/desktop/electron/services/screenshot-ranker.ts` — ScreenshotRankerImpl class
+- `tests/unit/screenshot-ranker.test.ts` — 20 tests
+
+**Files modified:**
+- `packages/shared/types/index.ts` — added ScreenshotRankConfig, ScreenshotWeights, RankedScreenshot, ScreenshotRankContext, ScreenshotRanker interfaces
+- `apps/desktop/electron/services/index.ts` — exported ScreenshotRankerImpl
+- `apps/desktop/electron/services/session-manager.ts` — added screenshotRanker optional dep, rankScreenshots post-processing
+- `apps/desktop/electron/main.ts` — wired ScreenshotRankerImpl into SessionManager
+
+**Notes:**
+- ScreenshotRanker is optional in SessionManager constructor (backward compatible with existing tests)
+- readFileBytes injectable for testing without real PNG files
+- Screenshot ranking is best-effort: errors caught and do not fail the session
+- Commit: `85e6881`
