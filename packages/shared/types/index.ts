@@ -320,3 +320,31 @@ export interface SceneDetectorConfig {
 export interface SceneDetector {
   detect(inputVideo: string, config?: Partial<SceneDetectorConfig>): Promise<Scene[]>;
 }
+
+export interface TimelineSegment {
+  startMs: number;
+  endMs: number;
+  label: string;
+  priority: number;
+}
+
+export interface Timeline {
+  segments: TimelineSegment[];
+  totalDurationMs: number;
+}
+
+export interface TimelineAssemblerConfig {
+  maxDurationMs: number;
+  minSegmentDurationMs: number;
+  introPath: string | null;
+  outroPath: string | null;
+}
+
+export interface TimelineAssembler {
+  assemble(
+    scenes: Scene[],
+    highlights: HighlightScoreResult[],
+    videoDurationMs: number,
+    config?: Partial<TimelineAssemblerConfig>,
+  ): Timeline;
+}
