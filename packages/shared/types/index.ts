@@ -348,3 +348,50 @@ export interface TimelineAssembler {
     config?: Partial<TimelineAssemblerConfig>,
   ): Timeline;
 }
+
+export interface ScreenshotRankConfig {
+  maxScreenshots: number;
+  minScoreThreshold: number;
+  similarityThreshold: number;
+  weights: ScreenshotWeights;
+}
+
+export interface ScreenshotWeights {
+  visualUniqueness: number;
+  interactionProximity: number;
+  readability: number;
+  durationOnScreen: number;
+  featureCoverage: number;
+}
+
+export interface RankedScreenshot {
+  framePath: string;
+  timestampMs: number;
+  score: number;
+  factors: {
+    visualUniqueness: number;
+    interactionProximity: number;
+    readability: number;
+    durationOnScreen: number;
+    featureCoverage: number;
+  };
+}
+
+export interface ScreenshotRankContext {
+  interactionTimestamps: number[];
+  segmentDurations: number[];
+  videoDurationMs: number;
+}
+
+export interface ScreenshotRanker {
+  rank(
+    frames: ExtractedScreenshot[],
+    context: ScreenshotRankContext,
+    config?: Partial<ScreenshotRankConfig>,
+  ): RankedScreenshot[];
+  selectRanked(
+    frames: ExtractedScreenshot[],
+    context: ScreenshotRankContext,
+    config?: Partial<ScreenshotRankConfig>,
+  ): RankedScreenshot[];
+}

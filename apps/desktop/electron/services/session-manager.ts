@@ -11,6 +11,7 @@ import type {
   IdleSegment,
   SmartTrimmer,
   DemoGenerator,
+  ScreenshotRanker,
 } from "../../../../packages/shared/types/index.js";
 import type { SessionService } from "./session-service.js";
 import type { ProjectService } from "./project-service.js";
@@ -55,6 +56,7 @@ export class SessionManager {
   private settingsService?: SettingsService;
   private smartTrimmer?: SmartTrimmer;
   private demoGenerator?: DemoGenerator;
+  private screenshotRanker?: ScreenshotRanker;
 
   constructor(
     sessionService: SessionService,
@@ -67,6 +69,7 @@ export class SessionManager {
     settingsService?: SettingsService,
     smartTrimmer?: SmartTrimmer,
     demoGenerator?: DemoGenerator,
+    screenshotRanker?: ScreenshotRanker,
   ) {
     this.config = { ...DEFAULT_CONFIG, ...config };
     this.sessionService = sessionService;
@@ -78,6 +81,7 @@ export class SessionManager {
     this.settingsService = settingsService;
     this.smartTrimmer = smartTrimmer;
     this.demoGenerator = demoGenerator;
+    this.screenshotRanker = screenshotRanker;
   }
 
   async startSession(projectId: string, trigger: SessionTrigger): Promise<RecordingSession> {
@@ -232,7 +236,32 @@ export class SessionManager {
         screenshotsDir,
       );
 
-      for (const shot of screenshots) {
+      let selectedScreenshots = screenshots;
+
+      if (this.screenshotRanker && screenshots.length > 1) {
+        const session = this.sessionService.getById(sessionId);
+        const videoDurationMs = session?.durationMs ?? 60000;
+
+        const ranked = this.screenshotRanker.selectRanked(
+          screenshots,
+          {
+            interactionTimestamps: [],
+            segmentDurations: [],
+            videoDurationMs,
+          },
+        );
+
+        if (ranked.length > 0) {
+          selectedScreenshots = ranked.map((r) => ({
+            path: r.framePath,
+            timestampMs: r.timestampMs,
+            width: 1920,
+            height: 1080,
+          }));
+        }
+      }
+
+      for (const shot of selectedScreenshots) {
         this.assetService.create({
           sessionId,
           projectId,

@@ -14,3 +14,4 @@ export { ExportServiceImpl } from "./export-service.js";
 export { HighlightScorerImpl } from "./highlight-scorer.js";
 export { SceneDetectorImpl } from "./scene-detector.js";
 export { TimelineAssemblerImpl } from "./timeline-assembler.js";
+export { ScreenshotRankerImpl } from "./screenshot-ranker.js";
