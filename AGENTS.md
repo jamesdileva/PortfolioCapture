@@ -1467,3 +1467,57 @@
 - Timeline renders each session as a list item with date, "Recording" label, and duration
 - CSS: timeline uses left border for visual timeline effect
 - Commit: `85994bc`
+
+---
+
+### 2026-09-04 — Sprint 5.3: Theme System
+
+**Agent:** agent-a
+**Status:** Complete
+
+**Objectives:**
+- ThemeServiceImpl: 5 built-in themes (Minimal, Developer, Dark, Grid, Resume)
+- Theme persistence via SettingsService (active theme + custom colors)
+- PortfolioGenerator accepts theme config and applies theme-specific CSS
+- IPC handlers: themes:list, themes:getActive, themes:setActive, themes:getCustomColors, themes:setCustomColors
+- Preload bridge: portfolio.themes.* namespace
+- Typed renderer API: PortfolioThemesAPI
+
+**Verification:**
+- `npm run test` — 537 tests pass (33 test files, 30 new)
+- `npm run build` — Vite (32 modules, 168KB) + TypeScript compile clean
+- listThemes: 5 themes with required fields (name, label, colors, fontFamily, borderRadius, gridColumns, cardStyle)
+- getTheme: returns correct theme, throws on unknown
+- Active theme: defaults to developer, persists across instances
+- Custom colors: override theme defaults, persist, handle corrupted JSON
+- PortfolioGenerator: developer theme CSS applied by default
+- PortfolioGenerator: minimal/dark/grid/resume themes apply correct CSS
+- PortfolioGenerator: custom colors override theme defaults
+- PortfolioGenerator: theme applies to both index.html and project pages
+- PortfolioGenerator: works without themeService (fallback)
+
+**Files created:**
+- `apps/desktop/electron/services/theme-service.ts` — ThemeServiceImpl with 5 built-in themes
+- `apps/desktop/electron/ipc/themes.ts` — IPC handlers for themes namespace
+- `tests/unit/theme-service.test.ts` — 20 tests
+
+**Files modified:**
+- `packages/shared/types/index.ts` — added PortfolioThemeName, ThemeColorConfig, PortfolioThemeConfig, ThemeService interfaces
+- `apps/desktop/electron/services/portfolio-generator.ts` — theme-aware CSS generation, ThemeServiceImpl dependency
+- `apps/desktop/electron/services/index.ts` — exported ThemeServiceImpl
+- `apps/desktop/electron/ipc/index.ts` — exported registerThemeHandlers
+- `apps/desktop/electron/main.ts` — wired ThemeServiceImpl, registerThemeHandlers
+- `apps/desktop/electron/preload.ts` — added themes namespace
+- `apps/desktop/renderer/src/types/global.d.ts` — added PortfolioThemesAPI
+- `tests/unit/portfolio-generator.test.ts` — 10 new theme integration tests
+
+**Notes:**
+- Themes use CSS variable patterns: colors, fontFamily, borderRadius, gridColumns, cardStyle
+- Minimal: no radius, flat cards, system-ui font
+- Developer: monospace font, bordered cards (current default)
+- Dark: elevated cards, dark background
+- Grid: tighter 280px columns
+- Resume: serif font, single column layout
+- Custom colors merged on top of base theme (partial override)
+- PortfolioGenerator backward compatible (themeService optional)
+- Commit: `a32f5d8`
