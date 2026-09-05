@@ -1412,4 +1412,25 @@
 - slugify converts project names to URL-safe slugs for per-project pages
 - escapeHtml prevents XSS in generated HTML
 - PortfolioGenerator caches data after first generate; getData() returns fresh data when no cache
-- Commit pending
+- Commit: `82fcfc6`
+
+---
+
+### 2026-09-04 — Sprint 5.1 Post-fix: Review Issues Addressed
+
+**Agent:** agent-a
+**Status:** Complete
+**Triggered by:** agent-b review #110
+
+**Actions taken:**
+- Fixed `generateIndexHtml` in `portfolio-generator.ts`: changed `../assets/` to `assets/` for demo video and screenshot src paths (index.html is at root level, not in `projects/` subdirectory)
+- Added test asserting index.html uses `assets/` (not `../assets/`) for media src paths
+- Note: `generateProjectHtml` correctly uses `../assets/` because project pages are in `projects/` subdirectory
+
+**Verification:**
+- `npm run test` — 501 tests pass (32 test files, 1 new)
+- `npm run build` — Vite + TypeScript compile clean
+- Commit: `d2b1dbb`
+
+**Notes:**
+- Review #110: APPROVED with one bug (asset paths). Bug fixed and committed.
