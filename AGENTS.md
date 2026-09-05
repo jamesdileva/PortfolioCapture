@@ -1317,3 +1317,48 @@
 - Model errors caught and fall back to heuristic — never crashes the app
 - No real ML model bundled — HeuristicModel is the default; LocalModel interface allows plugging in ONNX/LLM later
 - Commit: `aeaaf4b`
+
+---
+
+### 2026-09-04 — Sprint 4.5: Project Timeline
+
+**Agent:** agent-a
+**Status:** Complete
+
+**Objectives:**
+- Add `getGitLog()` to GitService for commit history
+- Define `GitCommit`, `TimelineEvent`, `ProjectTimeline` shared types
+- IPC handler for `git:log` channel
+- Preload bridge: `portfolio.git.log()`
+- `ProjectTimeline` renderer component with date-grouped chronological display
+- Integration into project edit view
+
+**Verification:**
+- `npm run test` — 483 tests pass (31 test files, 19 new)
+- `npm run build` — Vite (32 modules, 168KB) + TypeScript compile clean
+- getGitLog: parses git log format (sha, message, date, author)
+- getGitLog: respects maxCount parameter (default 50)
+- getGitLog: returns empty array on git failure or empty output
+- ProjectTimeline: loading state, empty state, commit display, recording display
+- ProjectTimeline: date grouping, demo/screenshot events, click handlers
+- ProjectTimeline: graceful fallback on git/asset fetch failures
+
+**Files created:**
+- `apps/desktop/renderer/src/components/ProjectTimeline.tsx` — timeline component with date-grouped events
+- `tests/renderer/project-timeline.test.tsx` — 12 tests
+
+**Files modified:**
+- `packages/shared/types/index.ts` — added GitCommit, TimelineEvent, ProjectTimeline, getGitLog to GitService
+- `apps/desktop/electron/services/git-service.ts` — added getGitLog() method
+- `apps/desktop/electron/ipc/git.ts` — added git:log handler
+- `apps/desktop/electron/preload.ts` — added git.log() to preload bridge
+- `apps/desktop/renderer/src/App.tsx` — integrated ProjectTimeline into project edit view
+- `apps/desktop/renderer/src/types/global.d.ts` — added GitCommit import, git.log to PortfolioGitAPI
+- `tests/unit/git-service.test.ts` — 6 new getGitLog tests
+
+**Notes:**
+- Timeline merges git commits, recording sessions, demos, and screenshots
+- Events sorted newest-first, grouped by date with date headers
+- Clicking recording event navigates to recordings tab with session selected
+- Timeline shown below ProjectForm when editing a project
+- Commit: `3e39d71`
