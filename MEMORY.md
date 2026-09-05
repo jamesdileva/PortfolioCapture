@@ -1,11 +1,12 @@
 # MEMORY.md — Agent Working Memory
 
 ## Current Goal
-Sprint 3.4 done (85e6881). 300 tests pass, build clean. Awaiting review from agent-b.
+Sprint 4.2 done (5f94ec2). 392 tests pass, build clean. Next: Sprint 4.3 Feature Evidence.
 
 ## Completed
-- Sprint 0.1–3.4 (all committed, 85e6881)
-- Sprint 3.4: Screenshot Ranker — 300 tests, weighted factor scoring, visual dedup, SessionManager integration
+- Sprint 0.1–4.2 (all committed, 5f94ec2)
+- Sprint 4.1: GitService — repo info, file metadata, IPC bridge
+- Sprint 4.2: ProjectScanner — detect project structure and technologies
 
 ## Open Threads
 - execPromise duplicated in 4 files (capture-provider, smart-trimmer, demo-generator, scene-detector)

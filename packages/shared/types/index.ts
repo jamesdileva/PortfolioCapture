@@ -515,3 +515,59 @@ export interface ProjectStructure {
 export interface ProjectScanner {
   scan(projectPath: string): Promise<ProjectStructure>;
 }
+
+export type FeatureEvidenceStatus = "candidate" | "accepted" | "rejected";
+
+export interface FeatureEvidenceCommit {
+  sha: string;
+  message: string;
+  date: string;
+}
+
+export interface FeatureEvidence {
+  id: string;
+  projectId: string;
+  featureName: string;
+  description: string | null;
+  confidence: number;
+  status: FeatureEvidenceStatus;
+  commits: FeatureEvidenceCommit[];
+  screenshotPaths: string[];
+  recordingSegmentPaths: string[];
+  readmeSnippet: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface FeatureEvidenceInput {
+  projectId: string;
+  featureName: string;
+  description?: string;
+  confidence?: number;
+  commits?: FeatureEvidenceCommit[];
+  screenshotPaths?: string[];
+  recordingSegmentPaths?: string[];
+  readmeSnippet?: string | null;
+}
+
+export interface FeatureEvidenceUpdateInput {
+  featureName?: string;
+  description?: string | null;
+  confidence?: number;
+  status?: FeatureEvidenceStatus;
+  commits?: FeatureEvidenceCommit[];
+  screenshotPaths?: string[];
+  recordingSegmentPaths?: string[];
+  readmeSnippet?: string | null;
+}
+
+export interface FeatureEvidenceService {
+  generate(projectId: string): Promise<FeatureEvidence[]>;
+  list(projectId: string): FeatureEvidence[];
+  getById(id: string): FeatureEvidence | null;
+  save(input: FeatureEvidenceInput): FeatureEvidence;
+  update(id: string, input: FeatureEvidenceUpdateInput): FeatureEvidence;
+  accept(id: string): FeatureEvidence;
+  reject(id: string): FeatureEvidence;
+  delete(id: string): void;
+}

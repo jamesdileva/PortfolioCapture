@@ -22,6 +22,9 @@ import type {
   ProjectFileInfo,
   ProjectMetadata,
   ProjectStructure,
+  FeatureEvidence,
+  FeatureEvidenceInput,
+  FeatureEvidenceUpdateInput,
 } from "../../../../packages/shared/types/index.js";
 
 interface PortfolioProjectsAPI {
@@ -89,6 +92,17 @@ interface PortfolioScannerAPI {
   scan: (projectPath: string) => Promise<ProjectStructure>;
 }
 
+interface PortfolioFeatureEvidenceAPI {
+  generate: (projectId: string) => Promise<FeatureEvidence[]>;
+  list: (projectId: string) => Promise<FeatureEvidence[]>;
+  get: (id: string) => Promise<FeatureEvidence | null>;
+  save: (input: FeatureEvidenceInput) => Promise<FeatureEvidence>;
+  update: (id: string, input: FeatureEvidenceUpdateInput) => Promise<FeatureEvidence>;
+  accept: (id: string) => Promise<FeatureEvidence>;
+  reject: (id: string) => Promise<FeatureEvidence>;
+  delete: (id: string) => Promise<void>;
+}
+
 interface PortfolioAPI {
   on: (channel: string, callback: (...args: unknown[]) => void) => () => void;
   projects: PortfolioProjectsAPI;
@@ -100,6 +114,7 @@ interface PortfolioAPI {
   overrides: PortfolioOverridesAPI;
   git: PortfolioGitAPI;
   scanner: PortfolioScannerAPI;
+  featureEvidence: PortfolioFeatureEvidenceAPI;
 }
 
 declare global {

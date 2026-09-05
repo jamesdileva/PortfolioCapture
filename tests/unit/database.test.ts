@@ -24,7 +24,7 @@ describe("database migrations", () => {
       .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name != '_migrations'")
       .all() as { name: string }[];
     const names = tables.map((t) => t.name).sort();
-    expect(names).toEqual(["assets", "projects", "sessions", "settings"]);
+    expect(names).toEqual(["assets", "feature_evidence", "projects", "sessions", "settings"]);
   });
 
   it("creates required indexes", () => {
@@ -36,6 +36,8 @@ describe("database migrations", () => {
     expect(names).toContain("idx_assets_project");
     expect(names).toContain("idx_assets_session");
     expect(names).toContain("idx_sessions_started_at");
+    expect(names).toContain("idx_feature_evidence_project");
+    expect(names).toContain("idx_feature_evidence_status");
   });
 
   it("migration is idempotent", () => {

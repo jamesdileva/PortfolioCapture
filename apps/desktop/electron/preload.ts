@@ -73,4 +73,16 @@ contextBridge.exposeInMainWorld("portfolio", {
   scanner: {
     scan: (projectPath: string) => ipcRenderer.invoke("scanner:scan", projectPath),
   },
+  featureEvidence: {
+    generate: (projectId: string) => ipcRenderer.invoke("feature-evidence:generate", projectId),
+    list: (projectId: string) => ipcRenderer.invoke("feature-evidence:list", projectId),
+    get: (id: string) => ipcRenderer.invoke("feature-evidence:get", id),
+    save: (input: { projectId: string; featureName: string; description?: string; confidence?: number; commits?: Array<{ sha: string; message: string; date: string }>; screenshotPaths?: string[]; recordingSegmentPaths?: string[]; readmeSnippet?: string | null }) =>
+      ipcRenderer.invoke("feature-evidence:save", input),
+    update: (id: string, input: { featureName?: string; description?: string | null; confidence?: number; status?: string }) =>
+      ipcRenderer.invoke("feature-evidence:update", id, input),
+    accept: (id: string) => ipcRenderer.invoke("feature-evidence:accept", id),
+    reject: (id: string) => ipcRenderer.invoke("feature-evidence:reject", id),
+    delete: (id: string) => ipcRenderer.invoke("feature-evidence:delete", id),
+  },
 });

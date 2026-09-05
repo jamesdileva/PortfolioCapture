@@ -1,10 +1,10 @@
 import { app, BrowserWindow } from "electron";
 import * as path from "path";
 import { createDatabase, runMigrations, closeDatabase } from "../../../packages/database/index.js";
-import { ProjectRepository, SessionRepository, AssetRepository, SettingsRepository } from "../../../packages/database/repositories/index.js";
-import { ProjectService, SessionService, AssetService, SettingsService, ProcessMonitor, FfmpegCaptureProvider, FfmpegServiceImpl, FfmpegScreenshotExtractor, IdleDetectorImpl, SmartTrimmerImpl, DemoGeneratorImpl, ExportServiceImpl, ScreenshotRankerImpl, RecordingProfileServiceImpl, ManualEditOverridesServiceImpl, GitServiceImpl, ProjectScannerImpl } from "./services/index.js";
+import { ProjectRepository, SessionRepository, AssetRepository, SettingsRepository, FeatureEvidenceRepository } from "../../../packages/database/repositories/index.js";
+import { ProjectService, SessionService, AssetService, SettingsService, ProcessMonitor, FfmpegCaptureProvider, FfmpegServiceImpl, FfmpegScreenshotExtractor, IdleDetectorImpl, SmartTrimmerImpl, DemoGeneratorImpl, ExportServiceImpl, ScreenshotRankerImpl, RecordingProfileServiceImpl, ManualEditOverridesServiceImpl, GitServiceImpl, ProjectScannerImpl, FeatureEvidenceServiceImpl } from "./services/index.js";
 import { SessionManager } from "./services/session-manager.js";
-import { registerProjectHandlers, registerSessionHandlers, registerAssetHandlers, registerSettingsHandlers, registerExportHandlers, registerProfileHandlers, registerManualOverridesHandlers, registerGitHandlers, registerScannerHandlers } from "./ipc/index.js";
+import { registerProjectHandlers, registerSessionHandlers, registerAssetHandlers, registerSettingsHandlers, registerExportHandlers, registerProfileHandlers, registerManualOverridesHandlers, registerGitHandlers, registerScannerHandlers, registerFeatureEvidenceHandlers } from "./ipc/index.js";
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -50,6 +50,7 @@ function initializeServices() {
   const sessionRepo = new SessionRepository(db);
   const assetRepo = new AssetRepository(db);
   const settingsRepo = new SettingsRepository(db);
+  const evidenceRepo = new FeatureEvidenceRepository(db);
 
   const projectService = new ProjectService(projectRepo);
   const sessionService = new SessionService(sessionRepo);
@@ -97,6 +98,9 @@ function initializeServices() {
 
   const scannerService = new ProjectScannerImpl();
   registerScannerHandlers(scannerService);
+
+  const featureEvidenceService = new FeatureEvidenceServiceImpl(evidenceRepo, projectRepo, sessionRepo, assetRepo, gitService);
+  registerFeatureEvidenceHandlers(featureEvidenceService);
 
   registerSessionHandlers(sessionService, sessionManager, profileService);
 

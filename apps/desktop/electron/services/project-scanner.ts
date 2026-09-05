@@ -86,7 +86,7 @@ export class ProjectScannerImpl {
     const hasFrontend = this.detectFrontend(allDeps);
     const hasBackend = this.detectBackend(allDeps, topLevelDirs);
     const hasDatabase = this.detectDatabase(allDeps, topLevelDirs);
-    const hasTests = await this.detectTests(topLevelDirs) || this.hasTestFiles(allDeps) || this.hasTestConfigs(topLevelDirs);
+    const hasTests = this.detectTests(topLevelDirs) || this.hasTestFiles(allDeps) || this.hasTestConfigs(topLevelDirs);
     const hasDocs = this.detectDocs(topLevelDirs) || this.hasMdFiles(topLevelDirs);
     const hasAssets = this.detectAssets(topLevelDirs);
     const detectedTech = this.detectTech(allDeps, configFiles);
@@ -158,7 +158,7 @@ export class ProjectScannerImpl {
     return false;
   }
 
-  private async detectTests(dirs: string[]): Promise<boolean> {
+  private detectTests(dirs: string[]): boolean {
     return dirs.includes("tests") || dirs.includes("__tests__") || dirs.includes("test");
   }
 

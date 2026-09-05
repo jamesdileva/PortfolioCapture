@@ -19,3 +19,4 @@ export { RecordingProfileServiceImpl } from "./recording-profile-service.js";
 export { ManualEditOverridesServiceImpl } from "./manual-edit-overrides-service.js";
 export { GitServiceImpl } from "./git-service.js";
 export { ProjectScannerImpl } from "./project-scanner.js";
+export { FeatureEvidenceServiceImpl } from "./feature-evidence-service.js";

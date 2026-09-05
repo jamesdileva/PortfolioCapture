@@ -1103,3 +1103,112 @@
 - getDefaults returns fresh copy each time (no shared reference bugs)
 - Input sanitization: non-array values coerced to empty arrays, non-number thumbnails coerced to null
 - Commit: `dca7eb7`
+
+---
+
+### 2026-09-04 — Sprint 4.1: Git Service
+
+**Agent:** agent-a
+**Status:** Complete
+
+**Objectives:**
+- GitServiceImpl: getRepoInfo, getProjectFileInfo, getProjectMetadata
+- IPC handlers: git:repoInfo, git:projectFile, git:metadata
+- Preload bridge: portfolio.git.* namespace
+- Typed renderer API: PortfolioGitAPI
+
+**Verification:**
+- `npm run test` — 359 tests pass (26 test files, 16 new)
+- `npm run build` — Vite (31 modules, 165KB) + TypeScript compile clean
+- getRepoInfo: extracts branch, SHA, commit message, remote URL
+- getRepoInfo: handles no git repo, partial info, detached HEAD
+- getProjectFileInfo: parses package.json deps/devDeps, README first paragraph
+- getProjectFileInfo: handles missing files, malformed JSON, fallback readme names
+- getProjectMetadata: combines repo + file info
+- IPC bridge wired, typed against shared types
+
+**Files created:**
+- `apps/desktop/electron/services/git-service.ts` — GitServiceImpl class
+- `apps/desktop/electron/ipc/git.ts` — IPC handlers for git namespace
+- `tests/unit/git-service.test.ts` — 16 tests
+
+**Files modified:**
+- `packages/shared/types/index.ts` — added GitRepoInfo, PackageJsonInfo, ReadmeInfo, ProjectFileInfo, ProjectMetadata, GitService interfaces
+- `apps/desktop/electron/services/index.ts` — exported GitServiceImpl
+- `apps/desktop/electron/ipc/index.ts` — exported registerGitHandlers
+- `apps/desktop/electron/preload.ts` — added git namespace (repoInfo, projectFile, metadata)
+- `apps/desktop/renderer/src/types/global.d.ts` — added PortfolioGitAPI, git types
+- `apps/desktop/electron/main.ts` — wired GitServiceImpl, registerGitHandlers
+
+**Notes:**
+- GitService is read-only (no DB persistence) — roadmap verification "persisted" is integration concern
+- parseJsonArray duplication tracked in open threads
+- Commit: `13bef18`
+
+---
+
+### 2026-09-04 — Sprint 4.1 Post-fix: Review Issues Addressed
+
+**Agent:** agent-a
+**Status:** Complete
+**Triggered by:** agent-b review #98
+
+**Actions taken:**
+- Added test for malformed package.json JSON (returns null gracefully)
+
+**Verification:**
+- `npm run test` — 359 tests pass (26 test files)
+- `npm run build` — Vite + TypeScript compile clean
+
+**Notes:**
+- Review #98: APPROVED with minor notes
+- Note #1 (GitService read-only vs roadmap "persisted"): accepted — read-only service, persistence is integration concern
+- Note #2 (parseJsonArray duplication): already tracked
+- Note #3 (malformed package.json): test added
+- Commit: `13bef18` (included in Sprint 4.1 commit)
+
+---
+
+### 2026-09-04 — Sprint 4.2: Project Scanner
+
+**Agent:** agent-a
+**Status:** Complete
+
+**Objectives:**
+- ProjectScannerImpl: scan detects frontend/backend/database/tests/docs/assets
+- Tech detection from package.json deps and config files
+- Inject readdir/readFile for testability
+- IPC handler: scanner:scan
+- Preload bridge: portfolio.scanner.scan()
+
+**Verification:**
+- `npm run test` — 392 tests pass (27 test files, 33 new)
+- `npm run build` — Vite (31 modules, 165KB) + TypeScript compile clean
+- scan(): returns empty structure for empty path
+- scan(): detects React/Vue/Angular/Svelte from package.json deps
+- scan(): detects backend from Express/NestJS/fastify deps or server/api dirs
+- scan(): detects database from prisma/sequelize/typeorm deps or migrations/prisma dirs
+- scan(): detects tests from tests/__tests__/test dirs or vitest/jest/mocha deps
+- scan(): detects docs from docs/doc dirs or .md files
+- scan(): detects assets from assets/images/public/static dirs
+- scan(): detects tech from config files (tsconfig, vite, webpack, docker, etc.)
+- scan(): handles missing package.json, malformed JSON, unreadable directories
+- scan(): filters hidden dirs, combines multiple technologies
+
+**Files created:**
+- `apps/desktop/electron/services/project-scanner.ts` — ProjectScannerImpl class
+- `apps/desktop/electron/ipc/scanner.ts` — IPC handler for scanner namespace
+- `tests/unit/project-scanner.test.ts` — 33 tests
+
+**Files modified:**
+- `packages/shared/types/index.ts` — added ProjectStructure, ProjectScanner interfaces
+- `apps/desktop/electron/services/index.ts` — exported ProjectScannerImpl
+- `apps/desktop/electron/ipc/index.ts` — exported registerScannerHandlers
+- `apps/desktop/electron/preload.ts` — added scanner namespace (scan)
+- `apps/desktop/renderer/src/types/global.d.ts` — added PortfolioScannerAPI, ProjectStructure import
+- `apps/desktop/electron/main.ts` — wired ProjectScannerImpl, registerScannerHandlers
+
+**Notes:**
+- Detection based on dep names and directory conventions — no deep file content analysis
+- Config file detection tries to read each known config pattern (graceful miss)
+- Commit: `5f94ec2`
