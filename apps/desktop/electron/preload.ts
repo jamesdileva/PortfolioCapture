@@ -85,4 +85,16 @@ contextBridge.exposeInMainWorld("portfolio", {
     reject: (id: string) => ipcRenderer.invoke("feature-evidence:reject", id),
     delete: (id: string) => ipcRenderer.invoke("feature-evidence:delete", id),
   },
+  ai: {
+    status: () => ipcRenderer.invoke("ai:status"),
+    setConfig: (config: { enabled?: boolean; modelPath?: string | null; maxTokens?: number; temperature?: number }) =>
+      ipcRenderer.invoke("ai:setConfig", config),
+    generateDescription: (input: { projectName: string; description: string | null; features: string[]; techStack: string[]; gitBranch: string | null; gitCommitMessage: string | null; readmeContent: string | null; screenshotPaths: string[]; featureNames: string[] }) =>
+      ipcRenderer.invoke("ai:generateDescription", input),
+    generateScreenshotCaption: (input: { screenshotPath: string; projectName: string; featureContext: string | null; timestampMs: number }) =>
+      ipcRenderer.invoke("ai:generateScreenshotCaption", input),
+    generatePortfolioSummary: (input: { projectName: string; description: string | null; featureCount: number; sessionCount: number; techStack: string[] }) =>
+      ipcRenderer.invoke("ai:generatePortfolioSummary", input),
+    clearCache: () => ipcRenderer.invoke("ai:clearCache"),
+  },
 });

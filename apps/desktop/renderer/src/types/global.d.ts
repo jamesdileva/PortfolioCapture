@@ -25,6 +25,9 @@ import type {
   FeatureEvidence,
   FeatureEvidenceInput,
   FeatureEvidenceUpdateInput,
+  ProjectAiDescription,
+  ScreenshotCaption,
+  PortfolioSummary,
 } from "../../../../packages/shared/types/index.js";
 
 interface PortfolioProjectsAPI {
@@ -103,6 +106,15 @@ interface PortfolioFeatureEvidenceAPI {
   delete: (id: string) => Promise<void>;
 }
 
+interface PortfolioAiAPI {
+  status: () => Promise<{ enabled: boolean; modelLoaded: boolean; cacheSize: number }>;
+  setConfig: (config: { enabled?: boolean; modelPath?: string | null; maxTokens?: number; temperature?: number }) => Promise<void>;
+  generateDescription: (input: { projectName: string; description: string | null; features: string[]; techStack: string[]; gitBranch: string | null; gitCommitMessage: string | null; readmeContent: string | null; screenshotPaths: string[]; featureNames: string[] }) => Promise<ProjectAiDescription>;
+  generateScreenshotCaption: (input: { screenshotPath: string; projectName: string; featureContext: string | null; timestampMs: number }) => Promise<ScreenshotCaption>;
+  generatePortfolioSummary: (input: { projectName: string; description: string | null; featureCount: number; sessionCount: number; techStack: string[] }) => Promise<PortfolioSummary>;
+  clearCache: () => Promise<void>;
+}
+
 interface PortfolioAPI {
   on: (channel: string, callback: (...args: unknown[]) => void) => () => void;
   projects: PortfolioProjectsAPI;
@@ -115,6 +127,7 @@ interface PortfolioAPI {
   git: PortfolioGitAPI;
   scanner: PortfolioScannerAPI;
   featureEvidence: PortfolioFeatureEvidenceAPI;
+  ai: PortfolioAiAPI;
 }
 
 declare global {

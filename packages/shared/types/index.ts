@@ -571,3 +571,67 @@ export interface FeatureEvidenceService {
   reject(id: string): FeatureEvidence;
   delete(id: string): void;
 }
+
+export interface LocalModel {
+  infer(context: string): Promise<string>;
+}
+
+export interface AiConfig {
+  enabled: boolean;
+  modelPath: string | null;
+  maxTokens: number;
+  temperature: number;
+}
+
+export interface ProjectAiInput {
+  projectName: string;
+  description: string | null;
+  features: string[];
+  techStack: string[];
+  gitBranch: string | null;
+  gitCommitMessage: string | null;
+  readmeContent: string | null;
+  screenshotPaths: string[];
+  featureNames: string[];
+}
+
+export interface ProjectAiDescription {
+  title: string;
+  description: string;
+  featureList: string[];
+  techSummary: string;
+}
+
+export interface ScreenshotCaptionInput {
+  screenshotPath: string;
+  projectName: string;
+  featureContext: string | null;
+  timestampMs: number;
+}
+
+export interface ScreenshotCaption {
+  caption: string;
+  confidence: number;
+}
+
+export interface PortfolioSummaryInput {
+  projectName: string;
+  description: string | null;
+  featureCount: number;
+  sessionCount: number;
+  techStack: string[];
+}
+
+export interface PortfolioSummary {
+  summary: string;
+  highlights: string[];
+}
+
+export interface AiService {
+  getStatus(): { enabled: boolean; modelLoaded: boolean; cacheSize: number };
+  setConfig(config: Partial<AiConfig>): void;
+  generateProjectDescription(input: ProjectAiInput): Promise<ProjectAiDescription>;
+  generateScreenshotCaption(input: ScreenshotCaptionInput): Promise<ScreenshotCaption>;
+  generatePortfolioSummary(input: PortfolioSummaryInput): Promise<PortfolioSummary>;
+  clearCache(): void;
+}

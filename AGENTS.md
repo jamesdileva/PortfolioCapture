@@ -1212,3 +1212,57 @@
 - Detection based on dep names and directory conventions — no deep file content analysis
 - Config file detection tries to read each known config pattern (graceful miss)
 - Commit: `5f94ec2`
+
+---
+
+### 2026-09-04 — Sprint 4.3: Feature Evidence
+
+**Agent:** agent-a
+**Status:** Complete
+
+**Objectives:**
+- FeatureEvidenceService: generate feature candidates from git commits, screenshots, recordings, README
+- Heuristic grouping: commits by feature keyword, nearby assets linked by timestamp
+- Confidence scoring: weighted by commit count, screenshots, segments, readme match
+- CRUD: save, update, accept, reject, delete evidence
+- IPC handlers: feature-evidence:generate, list, get, save, update, accept, reject, delete
+- Preload bridge: portfolio.featureEvidence.* namespace
+- Typed renderer API: PortfolioFeatureEvidenceAPI
+- DB migration: feature_evidence table with indexes
+
+**Verification:**
+- `npm run test` — 428 tests pass (29 test files, 35 new)
+- `npm run build` — Vite (31 modules, 165KB) + TypeScript compile clean
+- Repository: CRUD for feature evidence, sorted by confidence
+- Service: generate from git commits, handles empty/failure gracefully
+- Service: links screenshots/segments from sessions
+- Service: readme snippet extraction when feature name matches
+- Service: accept/reject/delete with existence checks
+- Confidence scaling with evidence count
+- DB migration: feature_evidence table + 2 indexes, idempotent
+
+**Files created:**
+- `packages/database/migrations/003_feature_evidence.sql` — schema with FK and indexes
+- `packages/database/repositories/feature-evidence-repository.ts` — FeatureEvidenceRepository class
+- `apps/desktop/electron/services/feature-evidence-service.ts` — FeatureEvidenceServiceImpl class
+- `apps/desktop/electron/ipc/feature-evidence.ts` — IPC handlers for feature evidence namespace
+- `tests/unit/feature-evidence-repository.test.ts` — 11 tests
+- `tests/unit/feature-evidence-service.test.ts` — 24 tests
+
+**Files modified:**
+- `packages/shared/types/index.ts` — added FeatureEvidenceStatus, FeatureEvidenceCommit, FeatureEvidence, FeatureEvidenceInput, FeatureEvidenceUpdateInput, FeatureEvidenceService interfaces
+- `packages/database/repositories/index.ts` — exported FeatureEvidenceRepository
+- `apps/desktop/electron/services/index.ts` — exported FeatureEvidenceServiceImpl
+- `apps/desktop/electron/ipc/index.ts` — exported registerFeatureEvidenceHandlers
+- `apps/desktop/electron/preload.ts` — added featureEvidence namespace (generate, list, get, save, update, accept, reject, delete)
+- `apps/desktop/renderer/src/types/global.d.ts` — added PortfolioFeatureEvidenceAPI, FeatureEvidence types
+- `apps/desktop/electron/main.ts` — wired FeatureEvidenceServiceImpl, registerFeatureEvidenceHandlers
+- `tests/unit/database.test.ts` — added feature_evidence table and indexes to assertions
+- `apps/desktop/electron/services/project-scanner.ts` — removed async from detectTests (review #100 fix)
+
+**Notes:**
+- FeatureEvidenceService is standalone (not wired into SessionManager — UI integration deferred)
+- Git commits grouped by feature keyword; groups with <2 commits treated as fallback evidence
+- findNearbyAssets uses timestamp windowing (not actual file timestamps) — sufficient for MVP
+- Confidence formula: commits*0.15 + screenshots*0.1 + segments*0.1 + readme*0.1 (capped at 1.0)
+- Commit: pending

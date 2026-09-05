@@ -8,3 +8,4 @@ export { registerManualOverridesHandlers } from "./overrides.js";
 export { registerGitHandlers } from "./git.js";
 export { registerScannerHandlers } from "./scanner.js";
 export { registerFeatureEvidenceHandlers } from "./feature-evidence.js";
+export { registerAiHandlers } from "./ai.js";

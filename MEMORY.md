@@ -1,12 +1,13 @@
 # MEMORY.md — Agent Working Memory
 
 ## Current Goal
-Sprint 4.2 done (5f94ec2). 392 tests pass, build clean. Next: Sprint 4.3 Feature Evidence.
+Sprint 4.3 done (pending commit). 428 tests pass, build clean. Next: Sprint 4.4 Local AI.
 
 ## Completed
-- Sprint 0.1–4.2 (all committed, 5f94ec2)
+- Sprint 0.1–4.3 (4.3 pending commit)
 - Sprint 4.1: GitService — repo info, file metadata, IPC bridge
 - Sprint 4.2: ProjectScanner — detect project structure and technologies
+- Sprint 4.3: FeatureEvidence — generate feature candidates from git/screenshots/recordings/README
 
 ## Open Threads
 - execPromise duplicated in 4 files (capture-provider, smart-trimmer, demo-generator, scene-detector)
