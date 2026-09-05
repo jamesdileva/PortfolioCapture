@@ -21,3 +21,4 @@ export { GitServiceImpl } from "./git-service.js";
 export { ProjectScannerImpl } from "./project-scanner.js";
 export { FeatureEvidenceServiceImpl } from "./feature-evidence-service.js";
 export { LocalAiServiceImpl, HeuristicModel } from "./local-ai-service.js";
+export { PortfolioGeneratorImpl } from "./portfolio-generator.js";

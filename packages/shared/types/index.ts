@@ -649,6 +649,59 @@ export interface PortfolioSummary {
   highlights: string[];
 }
 
+export interface PortfolioGenerateConfig {
+  outputDir?: string;
+  includeScreenshots?: boolean;
+  includeDemos?: boolean;
+}
+
+export interface PortfolioProjectData {
+  id: string;
+  name: string;
+  description: string | null;
+  features: string[];
+  techStack: string[];
+  githubUrl: string | null;
+  projectStatus: ProjectStatus;
+  sessions: Array<{
+    id: string;
+    startedAt: string;
+    durationMs: number | null;
+    status: SessionStatus;
+  }>;
+  screenshots: Array<{
+    id: string;
+    path: string;
+    width: number | null;
+    height: number | null;
+  }>;
+  demoPath: string | null;
+}
+
+export interface PortfolioData {
+  generatedAt: string;
+  projects: PortfolioProjectData[];
+  summary: {
+    totalProjects: number;
+    totalSessions: number;
+    totalScreenshots: number;
+    hasDemos: boolean;
+  };
+}
+
+export interface PortfolioGenerateResult {
+  outputDir: string;
+  projectCount: number;
+  assetCount: number;
+  indexHtmlPath: string;
+  dataJsonPath: string;
+}
+
+export interface PortfolioGenerator {
+  generate(config?: PortfolioGenerateConfig): Promise<PortfolioGenerateResult>;
+  getData(): PortfolioData;
+}
+
 export interface AiService {
   getStatus(): { enabled: boolean; modelLoaded: boolean; cacheSize: number };
   setConfig(config: Partial<AiConfig>): void;

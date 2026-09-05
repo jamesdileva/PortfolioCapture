@@ -1362,3 +1362,54 @@
 - Clicking recording event navigates to recordings tab with session selected
 - Timeline shown below ProjectForm when editing a project
 - Commit: `3e39d71`
+
+---
+
+### 2026-09-04 — Sprint 5.1: Portfolio Generator
+
+**Agent:** agent-a
+**Status:** Complete
+
+**Objectives:**
+- PortfolioGenerator service: generate static HTML portfolio site
+- Read all projects with sessions and assets from DB
+- Generate `data.json` with full project metadata, session summaries, screenshot refs
+- Generate `index.html` landing page with project cards (name, description, status, tech stack, demo preview, screenshot gallery)
+- Generate per-project HTML pages (`projects/{slug}.html`) with demo, screenshots, features, tech stack, GitHub link
+- Copy demo videos and screenshots to `assets/` directory
+- Configurable output directory, includeScreenshots, includeDemos options
+- Re-generation overwrites cleanly (idempotent)
+- IPC handler: `portfolio:generate`, `portfolio:data`
+- Preload bridge: `portfolio.generate()`, `portfolio.data()`
+
+**Verification:**
+- `npm run test` — 500 tests pass (32 test files, 17 new)
+- `npm run build` — Vite (32 modules, 168KB) + TypeScript compile clean
+- Generates output directory with index.html, projects/, assets/
+- data.json contains all project metadata
+- Per-project pages show demo, screenshots, features, tech, GitHub link
+- Assets copied correctly
+- Re-generation overwrites cleanly
+- Empty projects list produces valid empty portfolio
+- includeScreenshots/includeDemos flags respected
+
+**Files created:**
+- `apps/desktop/electron/services/portfolio-generator.ts` — PortfolioGeneratorImpl class
+- `apps/desktop/electron/ipc/portfolio.ts` — IPC handlers for portfolio namespace
+- `tests/unit/portfolio-generator.test.ts` — 17 tests
+
+**Files modified:**
+- `packages/shared/types/index.ts` — added PortfolioGenerateConfig, PortfolioProjectData, PortfolioData, PortfolioGenerateResult, PortfolioGenerator interfaces
+- `apps/desktop/electron/services/index.ts` — exported PortfolioGeneratorImpl
+- `apps/desktop/electron/ipc/index.ts` — exported registerPortfolioHandlers
+- `apps/desktop/electron/preload.ts` — added portfolio namespace (generate, data)
+- `apps/desktop/renderer/src/types/global.d.ts` — added PortfolioGeneratorAPI, portfolio types
+- `apps/desktop/electron/main.ts` — wired PortfolioGeneratorImpl, registerPortfolioHandlers
+
+**Notes:**
+- Also fixed review #108: renamed local `TimelineEvent` → `TimelineDisplayEvent` in ProjectTimeline.tsx (shadows shared type)
+- HTML generation uses inline CSS (dark theme, consistent with app)
+- slugify converts project names to URL-safe slugs for per-project pages
+- escapeHtml prevents XSS in generated HTML
+- PortfolioGenerator caches data after first generate; getData() returns fresh data when no cache
+- Commit pending

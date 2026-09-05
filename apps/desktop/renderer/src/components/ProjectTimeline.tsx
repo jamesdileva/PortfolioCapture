@@ -7,7 +7,7 @@ interface ProjectTimelineProps {
   onSessionClick: (session: RecordingSession) => void;
 }
 
-interface TimelineEvent {
+interface TimelineDisplayEvent {
   type: "commit" | "recording" | "screenshot" | "demo";
   timestamp: string;
   dateKey: string;
@@ -19,7 +19,7 @@ interface TimelineEvent {
 interface DateGroup {
   dateKey: string;
   dateLabel: string;
-  events: TimelineEvent[];
+  events: TimelineDisplayEvent[];
 }
 
 function formatDate(iso: string): string {
@@ -31,12 +31,12 @@ function dateKey(iso: string): string {
   return iso.slice(0, 10);
 }
 
-function buildTimelineEvents(
+function buildTimelineDisplayEvents(
   commits: GitCommit[],
   sessions: RecordingSession[],
   assets: MediaAsset[],
-): TimelineEvent[] {
-  const events: TimelineEvent[] = [];
+): TimelineDisplayEvent[] {
+  const events: TimelineDisplayEvent[] = [];
 
   for (const c of commits) {
     events.push({
@@ -86,8 +86,8 @@ function buildTimelineEvents(
   return events;
 }
 
-function groupByDate(events: TimelineEvent[]): DateGroup[] {
-  const map = new Map<string, TimelineEvent[]>();
+function groupByDate(events: TimelineDisplayEvent[]): DateGroup[] {
+  const map = new Map<string, TimelineDisplayEvent[]>();
   for (const e of events) {
     const key = e.dateKey;
     if (!map.has(key)) map.set(key, []);
@@ -107,7 +107,7 @@ function groupByDate(events: TimelineEvent[]): DateGroup[] {
   return groups;
 }
 
-function eventIcon(type: TimelineEvent["type"]): string {
+function eventIcon(type: TimelineDisplayEvent["type"]): string {
   switch (type) {
     case "commit": return "git";
     case "recording": return "rec";
@@ -141,7 +141,7 @@ export function ProjectTimeline({ project, sessions, onSessionClick }: ProjectTi
     return () => { cancelled = true; };
   }, [project.path, project.id]);
 
-  const events = buildTimelineEvents(commits, sessions, assets);
+  const events = buildTimelineDisplayEvents(commits, sessions, assets);
   const groups = groupByDate(events);
 
   if (loading) {
@@ -218,8 +218,8 @@ const eventStyle: React.CSSProperties = {
   borderRadius: "4px",
 };
 
-function dotStyle(type: TimelineEvent["type"]): React.CSSProperties {
-  const colors: Record<TimelineEvent["type"], string> = {
+function dotStyle(type: TimelineDisplayEvent["type"]): React.CSSProperties {
+  const colors: Record<TimelineDisplayEvent["type"], string> = {
     commit: "#5b9",
     recording: "#e55",
     screenshot: "#59e",

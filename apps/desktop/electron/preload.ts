@@ -98,4 +98,9 @@ contextBridge.exposeInMainWorld("portfolio", {
       ipcRenderer.invoke("ai:generatePortfolioSummary", input),
     clearCache: () => ipcRenderer.invoke("ai:clearCache"),
   },
+  portfolio: {
+    generate: (config?: { outputDir?: string; includeScreenshots?: boolean; includeDemos?: boolean }) =>
+      ipcRenderer.invoke("portfolio:generate", config),
+    data: () => ipcRenderer.invoke("portfolio:data"),
+  },
 });

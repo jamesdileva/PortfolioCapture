@@ -9,3 +9,4 @@ export { registerGitHandlers } from "./git.js";
 export { registerScannerHandlers } from "./scanner.js";
 export { registerFeatureEvidenceHandlers } from "./feature-evidence.js";
 export { registerAiHandlers } from "./ai.js";
+export { registerPortfolioHandlers } from "./portfolio.js";

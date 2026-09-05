@@ -29,6 +29,9 @@ import type {
   ProjectAiDescription,
   ScreenshotCaption,
   PortfolioSummary,
+  PortfolioGenerateConfig,
+  PortfolioGenerateResult,
+  PortfolioData,
 } from "../../../../packages/shared/types/index.js";
 
 interface PortfolioProjectsAPI {
@@ -117,6 +120,11 @@ interface PortfolioAiAPI {
   clearCache: () => Promise<void>;
 }
 
+interface PortfolioGeneratorAPI {
+  generate: (config?: PortfolioGenerateConfig) => Promise<PortfolioGenerateResult>;
+  data: () => Promise<PortfolioData>;
+}
+
 interface PortfolioAPI {
   on: (channel: string, callback: (...args: unknown[]) => void) => () => void;
   projects: PortfolioProjectsAPI;
@@ -130,6 +138,7 @@ interface PortfolioAPI {
   scanner: PortfolioScannerAPI;
   featureEvidence: PortfolioFeatureEvidenceAPI;
   ai: PortfolioAiAPI;
+  portfolio: PortfolioGeneratorAPI;
 }
 
 declare global {

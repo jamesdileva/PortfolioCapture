@@ -995,25 +995,40 @@ Generate:
 portfolio/
 ├── index.html
 ├── projects/
+│   └── {project-slug}.html
 ├── assets/
+│   ├── demo.mp4
+│   └── screenshots/
 └── data.json
 ```
 
 Static-site output.
 
+### Objectives
+
+- PortfolioGenerator service: generate static HTML portfolio site
+- Read all projects with sessions and assets from DB
+- Generate `data.json` with full project metadata, session summaries, screenshot refs
+- Generate `index.html` landing page with project cards (name, description, status, tech stack, demo preview, screenshot gallery)
+- Generate per-project HTML pages (`projects/{slug}.html`) with demo, screenshots, features, tech stack, GitHub link
+- Copy demo videos and screenshots to `assets/` directory
+- Configurable output directory, includeScreenshots, includeDemos options
+- Re-generation overwrites cleanly (idempotent)
+- IPC handler: `portfolio:generate`, `portfolio:data`
+- Preload bridge: `portfolio.generate()`, `portfolio.data()`
+
 ### Verification
 
 ```text
 npm run test
-  → portfolio generator unit tests pass
-
-Manual:
-  → generate portfolio → creates portfolio/ directory
-  → output contains index.html, projects/, assets/, data.json
-  → index.html opens in browser and displays projects
+  → portfolio generator unit tests pass (17+ tests)
+  → generates output directory with index.html, projects/, assets/
   → data.json contains all project metadata
+  → index.html opens in browser and displays project cards
+  → per-project pages show demo, screenshots, features, tech, GitHub link
   → assets (images, videos) copied correctly
   → re-generation overwrites cleanly
+  → empty projects list produces valid empty portfolio
 ```
 
 ---
