@@ -5,3 +5,4 @@ export { registerSettingsHandlers } from "./settings.js";
 export { registerExportHandlers } from "./exports.js";
 export { registerProfileHandlers } from "./profiles.js";
 export { registerManualOverridesHandlers } from "./overrides.js";
+export { registerGitHandlers } from "./git.js";

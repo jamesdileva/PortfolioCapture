@@ -464,3 +464,38 @@ export interface RecordingProfileService {
   getPreset(presetName: ProfilePresetName): RecordingProfile;
   getSettingsForProfile(id: string): RecordingProfileSettings;
 }
+
+export interface GitRepoInfo {
+  branch: string | null;
+  sha: string | null;
+  commitMessage: string | null;
+  remoteUrl: string | null;
+}
+
+export interface PackageJsonInfo {
+  name: string | null;
+  description: string | null;
+  dependencies: string[];
+  devDependencies: string[];
+}
+
+export interface ReadmeInfo {
+  description: string | null;
+  content: string | null;
+}
+
+export interface ProjectFileInfo {
+  packageJson: PackageJsonInfo | null;
+  readme: ReadmeInfo | null;
+}
+
+export interface ProjectMetadata {
+  repoInfo: GitRepoInfo | null;
+  fileInfo: ProjectFileInfo;
+}
+
+export interface GitService {
+  getRepoInfo(projectPath: string): Promise<GitRepoInfo | null>;
+  getProjectFileInfo(projectPath: string): Promise<ProjectFileInfo>;
+  getProjectMetadata(projectPath: string): Promise<ProjectMetadata>;
+}

@@ -18,6 +18,9 @@ import type {
   ProfilePresetName,
   RecordingProfileSettings,
   TimelineOverrides,
+  GitRepoInfo,
+  ProjectFileInfo,
+  ProjectMetadata,
 } from "../../../../packages/shared/types/index.js";
 
 interface PortfolioProjectsAPI {
@@ -75,6 +78,12 @@ interface PortfolioProfilesAPI {
   getSettings: (id: string) => Promise<RecordingProfileSettings>;
 }
 
+interface PortfolioGitAPI {
+  repoInfo: (projectPath: string) => Promise<GitRepoInfo | null>;
+  projectFile: (projectPath: string) => Promise<ProjectFileInfo>;
+  metadata: (projectPath: string) => Promise<ProjectMetadata>;
+}
+
 interface PortfolioAPI {
   on: (channel: string, callback: (...args: unknown[]) => void) => () => void;
   projects: PortfolioProjectsAPI;
@@ -84,6 +93,7 @@ interface PortfolioAPI {
   profiles: PortfolioProfilesAPI;
   export: PortfolioExportAPI;
   overrides: PortfolioOverridesAPI;
+  git: PortfolioGitAPI;
 }
 
 declare global {

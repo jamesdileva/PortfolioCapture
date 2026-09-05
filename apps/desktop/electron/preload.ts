@@ -65,4 +65,9 @@ contextBridge.exposeInMainWorld("portfolio", {
       ipcRenderer.invoke("overrides:save", sessionId, overrides),
     clear: (sessionId: string) => ipcRenderer.invoke("overrides:clear", sessionId),
   },
+  git: {
+    repoInfo: (projectPath: string) => ipcRenderer.invoke("git:repoInfo", projectPath),
+    projectFile: (projectPath: string) => ipcRenderer.invoke("git:projectFile", projectPath),
+    metadata: (projectPath: string) => ipcRenderer.invoke("git:metadata", projectPath),
+  },
 });

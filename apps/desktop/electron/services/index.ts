@@ -17,3 +17,4 @@ export { TimelineAssemblerImpl } from "./timeline-assembler.js";
 export { ScreenshotRankerImpl } from "./screenshot-ranker.js";
 export { RecordingProfileServiceImpl } from "./recording-profile-service.js";
 export { ManualEditOverridesServiceImpl } from "./manual-edit-overrides-service.js";
+export { GitServiceImpl } from "./git-service.js";
