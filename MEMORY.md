@@ -1,13 +1,14 @@
 # MEMORY.md — Agent Working Memory
 
 ## Current Goal
-Sprint 4.3 done (pending commit). 428 tests pass, build clean. Next: Sprint 4.4 Local AI.
+Sprint 4.4 done (aeaaf4b). 464 tests, build clean. Next: Sprint 4.5 Project Timeline.
 
 ## Completed
-- Sprint 0.1–4.3 (4.3 pending commit)
+- Sprint 0.1–4.4
 - Sprint 4.1: GitService — repo info, file metadata, IPC bridge
 - Sprint 4.2: ProjectScanner — detect project structure and technologies
 - Sprint 4.3: FeatureEvidence — generate feature candidates from git/screenshots/recordings/README
+- Sprint 4.4: Local AI — optional heuristic model with caching, IPC bridge, graceful fallback
 
 ## Open Threads
 - execPromise duplicated in 4 files (capture-provider, smart-trimmer, demo-generator, scene-detector)
@@ -43,6 +44,7 @@ Sprint 4.3 done (pending commit). 428 tests pass, build clean. Next: Sprint 4.4 
 - mockReturnValue with mutable singleton is recurring test pitfall — always use mockImplementation for factories
 - Workspace status header can be stale; always verify with git status + npm run test
 - Screenshot ranker: inject readFileBytes for testing without real PNG files, use byte sampling for similarity
+- Local AI: disabled by default, HeuristicModel extracts KEY: prefixed lines, cache by input hash (djb2)
 
 ## Directory Structure
 - apps/desktop/{electron,renderer}

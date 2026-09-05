@@ -1265,4 +1265,55 @@
 - Git commits grouped by feature keyword; groups with <2 commits treated as fallback evidence
 - findNearbyAssets uses timestamp windowing (not actual file timestamps) — sufficient for MVP
 - Confidence formula: commits*0.15 + screenshots*0.1 + segments*0.1 + readme*0.1 (capped at 1.0)
-- Commit: pending
+- Commit: `903c4db`
+
+---
+
+### 2026-09-04 — Sprint 4.4: Local AI
+
+**Agent:** agent-a
+**Status:** Complete
+
+**Objectives:**
+- LocalAiServiceImpl with optional local model for content generation
+- HeuristicModel fallback (no ML dependency) — keyword extraction + template sentences
+- Generate project descriptions, screenshot captions, portfolio summaries
+- AI disabled by default; graceful fallback when enabled but model fails
+- Result caching by input hash to avoid re-processing
+- Non-blocking async throughout
+- IPC handlers: ai:status, ai:setConfig, ai:generateDescription, ai:generateScreenshotCaption, ai:generatePortfolioSummary, ai:clearCache
+- Preload bridge: portfolio.ai.* namespace
+- Typed renderer API: PortfolioAiAPI
+
+**Verification:**
+- `npm run test` — 464 tests pass (30 test files, 36 new)
+- `npm run build` — Vite (31 modules, 165KB) + TypeScript compile clean
+- HeuristicModel: KEY: line extraction, fallback to first 3 lines, empty input
+- getStatus: disabled by default, model loaded, cache size
+- setConfig: updates config, preserves existing
+- generateProjectDescription: throws on empty name, fallback when disabled, uses model when enabled, caches, falls back on error
+- generateScreenshotCaption: throws on empty path, fallback, caches, falls back on error
+- generatePortfolioSummary: throws on empty name, fallback, handles zero counts, caches, falls back on error
+- clearCache: clears cache, allows re-generation
+- Model integration: correct prompt construction for all 3 generation methods
+
+**Files created:**
+- `apps/desktop/electron/services/local-ai-service.ts` — LocalAiServiceImpl + HeuristicModel
+- `apps/desktop/electron/ipc/ai.ts` — IPC handlers for ai namespace
+- `tests/unit/local-ai-service.test.ts` — 36 tests
+
+**Files modified:**
+- `packages/shared/types/index.ts` — added LocalModel, AiConfig, ProjectAiInput, ProjectAiDescription, ScreenshotCaptionInput, ScreenshotCaption, PortfolioSummaryInput, PortfolioSummary, AiService interfaces
+- `apps/desktop/electron/services/index.ts` — exported LocalAiServiceImpl, HeuristicModel
+- `apps/desktop/electron/ipc/index.ts` — exported registerAiHandlers
+- `apps/desktop/electron/preload.ts` — added ai namespace
+- `apps/desktop/renderer/src/types/global.d.ts` — added PortfolioAiAPI, AI types
+- `apps/desktop/electron/main.ts` — wired LocalAiServiceImpl, registerAiHandlers
+
+**Notes:**
+- AI disabled by default — `config.enabled = false` means all generation returns heuristic fallback
+- HeuristicModel uses KEY: prefix convention in prompts — extracts keywords for description/caption/summary
+- Cache uses input hash (djb2) for dedup — identical inputs return cached result
+- Model errors caught and fall back to heuristic — never crashes the app
+- No real ML model bundled — HeuristicModel is the default; LocalModel interface allows plugging in ONNX/LLM later
+- Commit: `aeaaf4b`
