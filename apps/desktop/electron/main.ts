@@ -4,6 +4,7 @@ import { createDatabase, runMigrations, closeDatabase } from "../../../packages/
 import { ProjectRepository, SessionRepository, AssetRepository, SettingsRepository, FeatureEvidenceRepository } from "../../../packages/database/repositories/index.js";
 import { ProjectService, SessionService, AssetService, SettingsService, ProcessMonitor, FfmpegCaptureProvider, FfmpegServiceImpl, FfmpegScreenshotExtractor, IdleDetectorImpl, SmartTrimmerImpl, DemoGeneratorImpl, ExportServiceImpl, ScreenshotRankerImpl, RecordingProfileServiceImpl, ManualEditOverridesServiceImpl, GitServiceImpl, ProjectScannerImpl, FeatureEvidenceServiceImpl, LocalAiServiceImpl, PortfolioGeneratorImpl, ThemeServiceImpl } from "./services/index.js";
 import { SessionManager } from "./services/session-manager.js";
+import { PortfolioUpdateTriggerImpl } from "./services/portfolio-update-trigger.js";
 import { registerProjectHandlers, registerSessionHandlers, registerAssetHandlers, registerSettingsHandlers, registerExportHandlers, registerProfileHandlers, registerManualOverridesHandlers, registerGitHandlers, registerScannerHandlers, registerFeatureEvidenceHandlers, registerAiHandlers, registerPortfolioHandlers, registerThemeHandlers } from "./ipc/index.js";
 
 let mainWindow: BrowserWindow | null = null;
@@ -66,20 +67,6 @@ function initializeServices() {
   const demoGenerator = new DemoGeneratorImpl(ffmpegService);
   const screenshotRanker = new ScreenshotRankerImpl();
 
-  const sessionManager = new SessionManager(
-    sessionService,
-    captureProvider,
-    projectService,
-    { outputRoot },
-    screenshotExtractor,
-    assetService,
-    () => new IdleDetectorImpl(),
-    settingsService,
-    smartTrimmer,
-    demoGenerator,
-    screenshotRanker,
-  );
-
   registerProjectHandlers(projectService);
   registerAssetHandlers(assetService);
   registerSettingsHandlers(settingsService);
@@ -110,6 +97,27 @@ function initializeServices() {
 
   const portfolioGenerator = new PortfolioGeneratorImpl(projectService, sessionService, assetService, path.join(app.getPath("userData"), "portfolio"), themeService);
   registerPortfolioHandlers(portfolioGenerator);
+
+  const portfolioUpdateTrigger = new PortfolioUpdateTriggerImpl(portfolioGenerator, () => {
+    mainWindow?.webContents.send("portfolio:regenerated");
+  });
+
+  const sessionManager = new SessionManager(
+    sessionService,
+    captureProvider,
+    projectService,
+    { outputRoot },
+    screenshotExtractor,
+    assetService,
+    () => new IdleDetectorImpl(),
+    settingsService,
+    smartTrimmer,
+    demoGenerator,
+    screenshotRanker,
+    (projectId, _sessionId) => {
+      portfolioUpdateTrigger.requestUpdate();
+    },
+  );
 
   registerSessionHandlers(sessionService, sessionManager, profileService);
 

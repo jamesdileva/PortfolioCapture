@@ -59,6 +59,7 @@ export class SessionManager {
   private smartTrimmer?: SmartTrimmer;
   private demoGenerator?: DemoGenerator;
   private screenshotRanker?: ScreenshotRanker;
+  private onSessionComplete?: (projectId: string, sessionId: string) => void;
 
   constructor(
     sessionService: SessionService,
@@ -72,6 +73,7 @@ export class SessionManager {
     smartTrimmer?: SmartTrimmer,
     demoGenerator?: DemoGenerator,
     screenshotRanker?: ScreenshotRanker,
+    onSessionComplete?: (projectId: string, sessionId: string) => void,
   ) {
     this.config = { ...DEFAULT_CONFIG, ...config };
     this.sessionService = sessionService;
@@ -84,6 +86,7 @@ export class SessionManager {
     this.smartTrimmer = smartTrimmer;
     this.demoGenerator = demoGenerator;
     this.screenshotRanker = screenshotRanker;
+    this.onSessionComplete = onSessionComplete;
   }
 
   async startSession(projectId: string, trigger: SessionTrigger, profileSettings?: Partial<RecordingProfileSettings>): Promise<RecordingSession> {
@@ -182,6 +185,8 @@ export class SessionManager {
       }
 
       this.sessionService.updateStatus(active.session.id, "complete");
+
+      this.onSessionComplete?.(active.projectId, active.session.id);
 
       return this.sessionService.getById(active.session.id)!;
     } catch {

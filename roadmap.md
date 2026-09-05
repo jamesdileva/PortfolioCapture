@@ -1095,6 +1095,8 @@ Manual:
 
 ---
 
+## Sprint 5.4 — Auto-Update Trigger
+
 New project evidence:
 
 ```text

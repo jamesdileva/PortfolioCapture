@@ -277,4 +277,25 @@ describe("SessionManager", () => {
       manager.recordActivity("nonexistent");
     });
   });
+
+  describe("onSessionComplete callback", () => {
+    it("calls onSessionComplete after session finishes", async () => {
+      const onComplete = vi.fn();
+      const mgr = new SessionManager(sessionService, captureProvider, projectService, {
+        outputRoot: "data/recordings",
+      }, undefined, undefined, undefined, undefined, undefined, undefined, undefined, onComplete);
+
+      const project = projectService.create({ name: "Test", path: "/test", executablePath: "/test/app.exe" });
+      await mgr.startSession(project.id, "manual");
+      await mgr.stopSession(project.id);
+
+      expect(onComplete).toHaveBeenCalledWith(project.id, expect.any(String));
+    });
+
+    it("does not throw when onSessionComplete not provided", async () => {
+      const project = projectService.create({ name: "Test", path: "/test", executablePath: "/test/app.exe" });
+      await manager.startSession(project.id, "manual");
+      await manager.stopSession(project.id);
+    });
+  });
 });
