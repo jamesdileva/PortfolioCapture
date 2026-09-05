@@ -29,8 +29,8 @@ const BUILTIN_THEME_FALLBACK: PortfolioThemeConfig = {
     statusCompleted: "#58a6ff",
     statusPaused: "#d29922",
   },
-  fontFamily: "system-ui, sans-serif",
-  borderRadius: "8px",
+  fontFamily: "'Cascadia Code', 'Fira Code', 'JetBrains Mono', monospace",
+  borderRadius: "6px",
   gridColumns: "repeat(auto-fill, minmax(340px, 1fr))",
   cardStyle: "bordered",
 };
