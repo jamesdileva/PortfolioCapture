@@ -653,6 +653,8 @@ export interface PortfolioGenerateConfig {
   outputDir?: string;
   includeScreenshots?: boolean;
   includeDemos?: boolean;
+  theme?: PortfolioThemeName;
+  customColors?: Partial<ThemeColorConfig>;
 }
 
 export interface PortfolioProjectData {
@@ -709,4 +711,37 @@ export interface AiService {
   generateScreenshotCaption(input: ScreenshotCaptionInput): Promise<ScreenshotCaption>;
   generatePortfolioSummary(input: PortfolioSummaryInput): Promise<PortfolioSummary>;
   clearCache(): void;
+}
+
+export type PortfolioThemeName = "minimal" | "developer" | "dark" | "grid" | "resume";
+
+export interface ThemeColorConfig {
+  background: string;
+  surface: string;
+  text: string;
+  textMuted: string;
+  accent: string;
+  border: string;
+  statusActive: string;
+  statusCompleted: string;
+  statusPaused: string;
+}
+
+export interface PortfolioThemeConfig {
+  name: PortfolioThemeName;
+  label: string;
+  colors: ThemeColorConfig;
+  fontFamily: string;
+  borderRadius: string;
+  gridColumns: string;
+  cardStyle: "flat" | "bordered" | "elevated";
+}
+
+export interface ThemeService {
+  getTheme(name: PortfolioThemeName): PortfolioThemeConfig;
+  listThemes(): PortfolioThemeConfig[];
+  getActiveThemeName(): PortfolioThemeName;
+  setActiveTheme(name: PortfolioThemeName): void;
+  getCustomColors(): Partial<ThemeColorConfig>;
+  setCustomColors(colors: Partial<ThemeColorConfig>): void;
 }

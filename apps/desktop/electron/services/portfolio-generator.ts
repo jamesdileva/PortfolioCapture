@@ -5,12 +5,35 @@ import type {
   PortfolioGenerateResult,
   PortfolioData,
   PortfolioProjectData,
+  PortfolioThemeConfig,
+  ThemeColorConfig,
 } from "../../../../packages/shared/types/index.js";
 import type { ProjectService } from "./project-service.js";
 import type { SessionService } from "./session-service.js";
 import type { AssetService } from "./asset-service.js";
+import type { ThemeServiceImpl } from "./theme-service.js";
 
 const DEFAULT_OUTPUT_DIR = "data/portfolio";
+
+const BUILTIN_THEME_FALLBACK: PortfolioThemeConfig = {
+  name: "developer",
+  label: "Developer",
+  colors: {
+    background: "#0d1117",
+    surface: "#161b22",
+    text: "#e6edf3",
+    textMuted: "#8b949e",
+    accent: "#58a6ff",
+    border: "#30363d",
+    statusActive: "#3fb950",
+    statusCompleted: "#58a6ff",
+    statusPaused: "#d29922",
+  },
+  fontFamily: "system-ui, sans-serif",
+  borderRadius: "8px",
+  gridColumns: "repeat(auto-fill, minmax(340px, 1fr))",
+  cardStyle: "bordered",
+};
 
 function slugify(name: string): string {
   return name.replace(/[<>:"/\\|?*\s]+/g, "-").replace(/^-|-$/g, "").toLowerCase();
@@ -31,7 +54,59 @@ function escapeHtml(text: string): string {
     .replace(/"/g, "&quot;");
 }
 
-function generateIndexHtml(data: PortfolioData): string {
+function generateThemeCSS(theme: PortfolioThemeConfig): string {
+  const c = theme.colors;
+  return `
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: ${theme.fontFamily}; background: ${c.background}; color: ${c.text}; padding: 2rem; }
+    h1 { margin-bottom: 0.5rem; }
+    .summary { color: ${c.textMuted}; margin-bottom: 2rem; }
+    .grid { display: grid; grid-template-columns: ${theme.gridColumns}; gap: 1.5rem; }
+    .card { background: ${c.surface}; ${theme.cardStyle === "bordered" ? `border: 1px solid ${c.border};` : theme.cardStyle === "elevated" ? `box-shadow: 0 2px 8px rgba(0,0,0,0.3);` : ""} border-radius: ${theme.borderRadius}; padding: 1.25rem; }
+    .card h2 { font-size: 1.1rem; margin-bottom: 0.5rem; }
+    .card h2 a { color: ${c.accent}; text-decoration: none; }
+    .card p { color: ${c.textMuted}; font-size: 0.9rem; margin-bottom: 0.75rem; }
+    .meta { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
+    .status { font-size: 0.75rem; padding: 0.15rem 0.5rem; border-radius: 999px; background: ${c.border}; }
+    .status.active { color: ${c.statusActive}; }
+    .status.completed { color: ${c.statusCompleted}; }
+    .status.paused { color: ${c.statusPaused}; }
+    .tech { font-size: 0.75rem; color: ${c.textMuted}; }
+    .demo { width: 100%; border-radius: ${theme.borderRadius}; margin-bottom: 0.5rem; }
+    .screenshots { display: flex; gap: 0.5rem; overflow-x: auto; }
+    .screenshots img { height: 100px; border-radius: ${theme.borderRadius}; }
+    footer { margin-top: 3rem; color: ${c.textMuted}; font-size: 0.8rem; text-align: center; }
+  `;
+}
+
+function generateProjectThemeCSS(theme: PortfolioThemeConfig): string {
+  const c = theme.colors;
+  return `
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: ${theme.fontFamily}; background: ${c.background}; color: ${c.text}; padding: 2rem; max-width: 800px; margin: 0 auto; }
+    h1 { margin-bottom: 0.5rem; }
+    .back { color: ${c.accent}; text-decoration: none; display: inline-block; margin-bottom: 1.5rem; }
+    .hero { margin-bottom: 1.5rem; }
+    .hero img { width: 100%; border-radius: ${theme.borderRadius}; }
+    section { margin-bottom: 1.5rem; }
+    h2 { font-size: 1rem; color: ${c.textMuted}; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    p, li { line-height: 1.6; }
+    ul { padding-left: 1.2rem; }
+    .badges { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+    .badge { background: ${c.border}; padding: 0.2rem 0.6rem; border-radius: 999px; font-size: 0.8rem; }
+    .demo { width: 100%; border-radius: ${theme.borderRadius}; }
+    .screenshots { display: flex; gap: 0.5rem; overflow-x: auto; }
+    .screenshots img { height: 120px; border-radius: ${theme.borderRadius}; }
+    .timeline { list-style: none; padding-left: 0; }
+    .timeline li { display: flex; gap: 0.75rem; align-items: baseline; padding: 0.3rem 0; border-left: 2px solid ${c.border}; padding-left: 1rem; margin-left: 0.5rem; }
+    .tl-date { color: ${c.textMuted}; font-size: 0.8rem; min-width: 8rem; }
+    .tl-label { color: ${c.text}; }
+    .tl-duration { color: ${c.textMuted}; font-size: 0.8rem; margin-left: auto; }
+    a { color: ${c.accent}; }
+  `;
+}
+
+function generateIndexHtml(data: PortfolioData, theme?: PortfolioThemeConfig): string {
   const projectCards = data.projects
     .map(
       (p) => `
@@ -48,6 +123,8 @@ function generateIndexHtml(data: PortfolioData): string {
     )
     .join("\n");
 
+  const css = theme ? generateThemeCSS(theme) : generateThemeCSS(BUILTIN_THEME_FALLBACK);
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -55,25 +132,7 @@ function generateIndexHtml(data: PortfolioData): string {
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Portfolio</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: system-ui, sans-serif; background: #0d1117; color: #e6edf3; padding: 2rem; }
-    h1 { margin-bottom: 0.5rem; }
-    .summary { color: #8b949e; margin-bottom: 2rem; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 1.5rem; }
-    .card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 1.25rem; }
-    .card h2 { font-size: 1.1rem; margin-bottom: 0.5rem; }
-    .card h2 a { color: #58a6ff; text-decoration: none; }
-    .card p { color: #8b949e; font-size: 0.9rem; margin-bottom: 0.75rem; }
-    .meta { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
-    .status { font-size: 0.75rem; padding: 0.15rem 0.5rem; border-radius: 999px; background: #21262d; }
-    .status.active { color: #3fb950; }
-    .status.completed { color: #58a6ff; }
-    .status.paused { color: #d29922; }
-    .tech { font-size: 0.75rem; color: #8b949e; }
-    .demo { width: 100%; border-radius: 4px; margin-bottom: 0.5rem; }
-    .screenshots { display: flex; gap: 0.5rem; overflow-x: auto; }
-    .screenshots img { height: 100px; border-radius: 4px; }
-    footer { margin-top: 3rem; color: #484f58; font-size: 0.8rem; text-align: center; }
+    ${css}
   </style>
 </head>
 <body>
@@ -87,7 +146,7 @@ ${projectCards}
 </html>`;
 }
 
-function generateProjectHtml(project: PortfolioProjectData): string {
+function generateProjectHtml(project: PortfolioProjectData, theme?: PortfolioThemeConfig): string {
   const heroSection =
     project.screenshots.length > 0
       ? `<div class="hero"><img src="../assets/${basename(project.screenshots[0].path)}" alt="hero" /></div>`
@@ -127,6 +186,8 @@ function generateProjectHtml(project: PortfolioProjectData): string {
           .join("")}</ul></section>`
       : "";
 
+  const css = theme ? generateProjectThemeCSS(theme) : generateProjectThemeCSS(BUILTIN_THEME_FALLBACK);
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -134,27 +195,7 @@ function generateProjectHtml(project: PortfolioProjectData): string {
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>${escapeHtml(project.name)} — Portfolio</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: system-ui, sans-serif; background: #0d1117; color: #e6edf3; padding: 2rem; max-width: 800px; margin: 0 auto; }
-    h1 { margin-bottom: 0.5rem; }
-    .back { color: #58a6ff; text-decoration: none; display: inline-block; margin-bottom: 1.5rem; }
-    .hero { margin-bottom: 1.5rem; }
-    .hero img { width: 100%; border-radius: 8px; }
-    section { margin-bottom: 1.5rem; }
-    h2 { font-size: 1rem; color: #8b949e; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em; }
-    p, li { line-height: 1.6; }
-    ul { padding-left: 1.2rem; }
-    .badges { display: flex; gap: 0.4rem; flex-wrap: wrap; }
-    .badge { background: #21262d; padding: 0.2rem 0.6rem; border-radius: 999px; font-size: 0.8rem; }
-    .demo { width: 100%; border-radius: 4px; }
-    .screenshots { display: flex; gap: 0.5rem; overflow-x: auto; }
-    .screenshots img { height: 120px; border-radius: 4px; }
-    .timeline { list-style: none; padding-left: 0; }
-    .timeline li { display: flex; gap: 0.75rem; align-items: baseline; padding: 0.3rem 0; border-left: 2px solid #30363d; padding-left: 1rem; margin-left: 0.5rem; }
-    .tl-date { color: #8b949e; font-size: 0.8rem; min-width: 8rem; }
-    .tl-label { color: #e6edf3; }
-    .tl-duration { color: #8b949e; font-size: 0.8rem; margin-left: auto; }
-    a { color: #58a6ff; }
+    ${css}
   </style>
 </head>
 <body>
@@ -176,6 +217,7 @@ export class PortfolioGeneratorImpl {
   private projectService: ProjectService;
   private sessionService: SessionService;
   private assetService: AssetService;
+  private themeService: ThemeServiceImpl | null;
   private defaultOutputDir: string;
   private cachedData: PortfolioData | null = null;
 
@@ -184,17 +226,28 @@ export class PortfolioGeneratorImpl {
     sessionService: SessionService,
     assetService: AssetService,
     defaultOutputDir?: string,
+    themeService?: ThemeServiceImpl,
   ) {
     this.projectService = projectService;
     this.sessionService = sessionService;
     this.assetService = assetService;
     this.defaultOutputDir = defaultOutputDir ?? DEFAULT_OUTPUT_DIR;
+    this.themeService = themeService ?? null;
   }
 
   async generate(config?: PortfolioGenerateConfig): Promise<PortfolioGenerateResult> {
     const outputDir = config?.outputDir ?? this.defaultOutputDir;
     const includeScreenshots = config?.includeScreenshots !== false;
     const includeDemos = config?.includeDemos !== false;
+
+    let theme: PortfolioThemeConfig | undefined;
+    if (this.themeService) {
+      const themeName = config?.theme ?? this.themeService.getActiveThemeName();
+      theme = this.themeService.getTheme(themeName);
+      if (config?.customColors) {
+        theme = { ...theme, colors: { ...theme.colors, ...config.customColors } };
+      }
+    }
 
     const projects = this.projectService.list();
     const data = this.buildPortfolioData(projects, includeScreenshots, includeDemos);
@@ -224,11 +277,11 @@ export class PortfolioGeneratorImpl {
 
     writeFileSync(join(outputDir, "data.json"), JSON.stringify(data, null, 2), "utf-8");
 
-    const indexHtml = generateIndexHtml(data);
+    const indexHtml = generateIndexHtml(data, theme);
     writeFileSync(join(outputDir, "index.html"), indexHtml, "utf-8");
 
     for (const project of data.projects) {
-      const projectHtml = generateProjectHtml(project);
+      const projectHtml = generateProjectHtml(project, theme);
       writeFileSync(join(projectsDir, `${slugify(project.name)}.html`), projectHtml, "utf-8");
     }
 

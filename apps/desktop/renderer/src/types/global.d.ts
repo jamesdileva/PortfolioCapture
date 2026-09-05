@@ -32,6 +32,9 @@ import type {
   PortfolioGenerateConfig,
   PortfolioGenerateResult,
   PortfolioData,
+  PortfolioThemeConfig,
+  PortfolioThemeName,
+  ThemeColorConfig,
 } from "../../../../packages/shared/types/index.js";
 
 interface PortfolioProjectsAPI {
@@ -125,6 +128,14 @@ interface PortfolioGeneratorAPI {
   data: () => Promise<PortfolioData>;
 }
 
+interface PortfolioThemesAPI {
+  list: () => Promise<PortfolioThemeConfig[]>;
+  getActive: () => Promise<PortfolioThemeName>;
+  setActive: (name: PortfolioThemeName) => Promise<boolean>;
+  getCustomColors: () => Promise<Partial<ThemeColorConfig>>;
+  setCustomColors: (colors: Partial<ThemeColorConfig>) => Promise<boolean>;
+}
+
 interface PortfolioAPI {
   on: (channel: string, callback: (...args: unknown[]) => void) => () => void;
   projects: PortfolioProjectsAPI;
@@ -139,6 +150,7 @@ interface PortfolioAPI {
   featureEvidence: PortfolioFeatureEvidenceAPI;
   ai: PortfolioAiAPI;
   portfolio: PortfolioGeneratorAPI;
+  themes: PortfolioThemesAPI;
 }
 
 declare global {

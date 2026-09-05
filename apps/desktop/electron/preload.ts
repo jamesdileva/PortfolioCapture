@@ -99,8 +99,15 @@ contextBridge.exposeInMainWorld("portfolio", {
     clearCache: () => ipcRenderer.invoke("ai:clearCache"),
   },
   portfolio: {
-    generate: (config?: { outputDir?: string; includeScreenshots?: boolean; includeDemos?: boolean }) =>
+    generate: (config?: { outputDir?: string; includeScreenshots?: boolean; includeDemos?: boolean; theme?: string; customColors?: Record<string, string> }) =>
       ipcRenderer.invoke("portfolio:generate", config),
     data: () => ipcRenderer.invoke("portfolio:data"),
+  },
+  themes: {
+    list: () => ipcRenderer.invoke("themes:list"),
+    getActive: () => ipcRenderer.invoke("themes:getActive"),
+    setActive: (name: string) => ipcRenderer.invoke("themes:setActive", name),
+    getCustomColors: () => ipcRenderer.invoke("themes:getCustomColors"),
+    setCustomColors: (colors: Record<string, string>) => ipcRenderer.invoke("themes:setCustomColors", colors),
   },
 });

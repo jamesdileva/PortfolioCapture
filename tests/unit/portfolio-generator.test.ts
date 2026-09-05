@@ -7,10 +7,13 @@ import type Database from "better-sqlite3";
 import { ProjectRepository } from "../../packages/database/repositories/project-repository.js";
 import { SessionRepository } from "../../packages/database/repositories/session-repository.js";
 import { AssetRepository } from "../../packages/database/repositories/asset-repository.js";
+import { SettingsRepository } from "../../packages/database/repositories/settings-repository.js";
 import { ProjectService } from "../../apps/desktop/electron/services/project-service.js";
 import { SessionService } from "../../apps/desktop/electron/services/session-service.js";
 import { AssetService } from "../../apps/desktop/electron/services/asset-service.js";
+import { SettingsService } from "../../apps/desktop/electron/services/settings-service.js";
 import { PortfolioGeneratorImpl } from "../../apps/desktop/electron/services/portfolio-generator.js";
+import { ThemeServiceImpl } from "../../apps/desktop/electron/services/theme-service.js";
 
 describe("PortfolioGeneratorImpl", () => {
   let db: Database.Database;
@@ -353,5 +356,80 @@ describe("PortfolioGeneratorImpl", () => {
     expect(html).toContain("Back to Portfolio");
     expect(html).not.toContain('class="hero"');
     expect(html).not.toContain('class="timeline"');
+  });
+
+  describe("theme integration", () => {
+    let themeService: ThemeServiceImpl;
+    let themedGenerator: PortfolioGeneratorImpl;
+
+    beforeEach(() => {
+      const settingsService = new SettingsService(new SettingsRepository(db));
+      themeService = new ThemeServiceImpl(settingsService);
+      themedGenerator = new PortfolioGeneratorImpl(projectService, sessionService, assetService, tempDir, themeService);
+    });
+
+    it("applies developer theme CSS by default", async () => {
+      await themedGenerator.generate();
+      const html = fs.readFileSync(path.join(tempDir, "index.html"), "utf-8");
+
+      expect(html).toContain("#0d1117");
+      expect(html).toContain("monospace");
+    });
+
+    it("applies minimal theme when specified", async () => {
+      await themedGenerator.generate({ theme: "minimal" });
+      const html = fs.readFileSync(path.join(tempDir, "index.html"), "utf-8");
+
+      expect(html).toContain("#ffffff");
+      expect(html).toContain("system-ui");
+    });
+
+    it("applies dark theme", async () => {
+      await themedGenerator.generate({ theme: "dark" });
+      const html = fs.readFileSync(path.join(tempDir, "index.html"), "utf-8");
+
+      expect(html).toContain("#121212");
+    });
+
+    it("applies grid theme with narrower columns", async () => {
+      await themedGenerator.generate({ theme: "grid" });
+      const html = fs.readFileSync(path.join(tempDir, "index.html"), "utf-8");
+
+      expect(html).toContain("280px");
+    });
+
+    it("applies resume theme with serif font and single column", async () => {
+      await themedGenerator.generate({ theme: "resume" });
+      const html = fs.readFileSync(path.join(tempDir, "index.html"), "utf-8");
+
+      expect(html).toContain("Georgia");
+      expect(html).toContain("1fr");
+    });
+
+    it("theme applied to project pages too", async () => {
+      projectService.create({ name: "ThemedProject", path: "/themed" });
+      await themedGenerator.generate({ theme: "minimal" });
+      const html = fs.readFileSync(path.join(tempDir, "projects", "themedproject.html"), "utf-8");
+
+      expect(html).toContain("#ffffff");
+    });
+
+    it("custom colors override theme defaults", async () => {
+      await themedGenerator.generate({
+        theme: "developer",
+        customColors: { background: "#custom-bg" },
+      });
+      const html = fs.readFileSync(path.join(tempDir, "index.html"), "utf-8");
+
+      expect(html).toContain("#custom-bg");
+    });
+
+    it("generator without themeService uses fallback", async () => {
+      const noThemeGen = new PortfolioGeneratorImpl(projectService, sessionService, assetService, tempDir);
+      await noThemeGen.generate();
+      const html = fs.readFileSync(path.join(tempDir, "index.html"), "utf-8");
+
+      expect(html).toContain("#0d1117");
+    });
   });
 });
