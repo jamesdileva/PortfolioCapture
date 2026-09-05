@@ -35,8 +35,8 @@ function generateIndexHtml(data: PortfolioData): string {
           <span class="status ${p.projectStatus}">${p.projectStatus}</span>
           ${p.techStack.length > 0 ? `<span class="tech">${escapeHtml(p.techStack.join(", "))}</span>` : ""}
         </div>
-        ${p.demoPath ? `<video class="demo" src="../assets/${basename(p.demoPath)}" controls muted></video>` : ""}
-        ${p.screenshots.length > 0 ? `<div class="screenshots">${p.screenshots.map((s) => `<img src="../assets/${basename(s.path)}" alt="screenshot" loading="lazy" />`).join("")}</div>` : ""}
+        ${p.demoPath ? `<video class="demo" src="assets/${basename(p.demoPath)}" controls muted></video>` : ""}
+        ${p.screenshots.length > 0 ? `<div class="screenshots">${p.screenshots.map((s) => `<img src="assets/${basename(s.path)}" alt="screenshot" loading="lazy" />`).join("")}</div>` : ""}
       </div>`,
     )
     .join("\n");

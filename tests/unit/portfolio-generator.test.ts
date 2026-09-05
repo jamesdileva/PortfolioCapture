@@ -77,6 +77,29 @@ describe("PortfolioGeneratorImpl", () => {
     expect(html).toContain("MyApp</a>");
   });
 
+  it("index.html uses assets/ path (not ../assets/) for demos and screenshots", async () => {
+    const project = projectService.create({ name: "PathTest", path: "/pt" });
+    const session = sessionService.create({ projectId: project.id, trigger: "manual" });
+    sessionService.updateStatus(session.id, "complete");
+
+    const sourceDir = path.join(tempDir, "src");
+    fs.mkdirSync(sourceDir, { recursive: true });
+    const demo = path.join(sourceDir, "demo.mp4");
+    const shot = path.join(sourceDir, "shot.png");
+    fs.writeFileSync(demo, "fake demo");
+    fs.writeFileSync(shot, "fake png");
+
+    assetService.create({ sessionId: session.id, projectId: project.id, type: "demo_video", path: demo });
+    assetService.create({ sessionId: session.id, projectId: project.id, type: "screenshot", path: shot, width: 1920, height: 1080 });
+
+    await generator.generate();
+    const html = fs.readFileSync(path.join(tempDir, "index.html"), "utf-8");
+
+    expect(html).toContain('src="assets/demo.mp4"');
+    expect(html).toContain('src="assets/shot.png"');
+    expect(html).not.toContain('../assets/');
+  });
+
   it("generates per-project HTML pages", async () => {
     projectService.create({ name: "Alpha", path: "/alpha", description: "Alpha project", features: ["f1", "f2"], techStack: ["Vue"] });
 
