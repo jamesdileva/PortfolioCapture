@@ -274,4 +274,84 @@ describe("PortfolioGeneratorImpl", () => {
 
     expect(result.assetCount).toBe(0);
   });
+
+  it("renders hero image from first screenshot in project page", async () => {
+    const project = projectService.create({ name: "HeroProject", path: "/hero" });
+    const session = sessionService.create({ projectId: project.id, trigger: "manual" });
+    sessionService.updateStatus(session.id, "complete");
+
+    const sourceDir = path.join(tempDir, "hero-src");
+    fs.mkdirSync(sourceDir, { recursive: true });
+    const shot1 = path.join(sourceDir, "shot-001.png");
+    const shot2 = path.join(sourceDir, "shot-002.png");
+    fs.writeFileSync(shot1, "png1");
+    fs.writeFileSync(shot2, "png2");
+
+    assetService.create({ sessionId: session.id, projectId: project.id, type: "screenshot", path: shot1, width: 1920, height: 1080 });
+    assetService.create({ sessionId: session.id, projectId: project.id, type: "screenshot", path: shot2, width: 1280, height: 720 });
+
+    await generator.generate();
+    const html = fs.readFileSync(path.join(tempDir, "projects", "heroproject.html"), "utf-8");
+
+    expect(html).toContain('class="hero"');
+    expect(html).toContain('src="../assets/shot-001.png"');
+    expect(html).toContain('alt="hero"');
+  });
+
+  it("no hero section when no screenshots", async () => {
+    projectService.create({ name: "NoHero", path: "/nohero" });
+
+    await generator.generate();
+    const html = fs.readFileSync(path.join(tempDir, "projects", "nohero.html"), "utf-8");
+
+    expect(html).not.toContain('class="hero"');
+  });
+
+  it("renders timeline with recording sessions in project page", async () => {
+    const project = projectService.create({ name: "TimelineProject", path: "/tl" });
+    const session = sessionService.create({ projectId: project.id, trigger: "manual" });
+    sessionService.updateStatus(session.id, "complete");
+    sessionService.updateRawVideoPath(session.id, "/video.mp4");
+
+    await generator.generate();
+    const html = fs.readFileSync(path.join(tempDir, "projects", "timelineproject.html"), "utf-8");
+
+    expect(html).toContain('class="timeline"');
+    expect(html).toContain("Recording");
+    expect(html).toContain("tl-date");
+    expect(html).toContain("tl-duration");
+  });
+
+  it("no timeline section when no sessions", async () => {
+    projectService.create({ name: "NoTimeline", path: "/notl" });
+
+    await generator.generate();
+    const html = fs.readFileSync(path.join(tempDir, "projects", "notimeline.html"), "utf-8");
+
+    expect(html).not.toContain('class="timeline"');
+  });
+
+  it("timeline shows formatted duration", async () => {
+    const project = projectService.create({ name: "DurationProject", path: "/dur" });
+    const session = sessionService.create({ projectId: project.id, trigger: "manual" });
+    sessionService.updateStatus(session.id, "complete");
+
+    await generator.generate();
+    const html = fs.readFileSync(path.join(tempDir, "projects", "durationproject.html"), "utf-8");
+
+    expect(html).toContain("m ");
+    expect(html).toContain("s");
+  });
+
+  it("project page renders with minimal data (no crashes)", async () => {
+    projectService.create({ name: "Minimal", path: "/min" });
+
+    await generator.generate();
+    const html = fs.readFileSync(path.join(tempDir, "projects", "minimal.html"), "utf-8");
+
+    expect(html).toContain("Minimal");
+    expect(html).toContain("Back to Portfolio");
+    expect(html).not.toContain('class="hero"');
+    expect(html).not.toContain('class="timeline"');
+  });
 });

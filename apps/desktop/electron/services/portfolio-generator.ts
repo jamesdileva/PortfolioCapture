@@ -16,6 +16,13 @@ function slugify(name: string): string {
   return name.replace(/[<>:"/\\|?*\s]+/g, "-").replace(/^-|-$/g, "").toLowerCase();
 }
 
+function formatDuration(ms: number): string {
+  const totalSeconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}m ${seconds}s`;
+}
+
 function escapeHtml(text: string): string {
   return text
     .replace(/&/g, "&amp;")
@@ -81,6 +88,11 @@ ${projectCards}
 }
 
 function generateProjectHtml(project: PortfolioProjectData): string {
+  const heroSection =
+    project.screenshots.length > 0
+      ? `<div class="hero"><img src="../assets/${basename(project.screenshots[0].path)}" alt="hero" /></div>`
+      : "";
+
   const featuresList =
     project.features.length > 0
       ? `<section><h2>Features</h2><ul>${project.features.map((f) => `<li>${escapeHtml(f)}</li>`).join("")}</ul></section>`
@@ -104,9 +116,15 @@ function generateProjectHtml(project: PortfolioProjectData): string {
     ? `<section><h2>GitHub</h2><a href="${escapeHtml(project.githubUrl)}" target="_blank">${escapeHtml(project.githubUrl)}</a></section>`
     : "";
 
-  const sessionsSection =
+  const timelineSection =
     project.sessions.length > 0
-      ? `<section><h2>Sessions</h2><p>${project.sessions.length} recording session${project.sessions.length === 1 ? "" : "s"}</p></section>`
+      ? `<section><h2>Timeline</h2><ul class="timeline">${project.sessions
+          .map((s) => {
+            const date = new Date(s.startedAt).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+            const duration = s.durationMs != null ? formatDuration(s.durationMs) : "in progress";
+            return `<li><span class="tl-date">${escapeHtml(date)}</span> <span class="tl-label">Recording</span> <span class="tl-duration">${escapeHtml(duration)}</span></li>`;
+          })
+          .join("")}</ul></section>`
       : "";
 
   return `<!DOCTYPE html>
@@ -120,6 +138,8 @@ function generateProjectHtml(project: PortfolioProjectData): string {
     body { font-family: system-ui, sans-serif; background: #0d1117; color: #e6edf3; padding: 2rem; max-width: 800px; margin: 0 auto; }
     h1 { margin-bottom: 0.5rem; }
     .back { color: #58a6ff; text-decoration: none; display: inline-block; margin-bottom: 1.5rem; }
+    .hero { margin-bottom: 1.5rem; }
+    .hero img { width: 100%; border-radius: 8px; }
     section { margin-bottom: 1.5rem; }
     h2 { font-size: 1rem; color: #8b949e; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em; }
     p, li { line-height: 1.6; }
@@ -129,19 +149,25 @@ function generateProjectHtml(project: PortfolioProjectData): string {
     .demo { width: 100%; border-radius: 4px; }
     .screenshots { display: flex; gap: 0.5rem; overflow-x: auto; }
     .screenshots img { height: 120px; border-radius: 4px; }
+    .timeline { list-style: none; padding-left: 0; }
+    .timeline li { display: flex; gap: 0.75rem; align-items: baseline; padding: 0.3rem 0; border-left: 2px solid #30363d; padding-left: 1rem; margin-left: 0.5rem; }
+    .tl-date { color: #8b949e; font-size: 0.8rem; min-width: 8rem; }
+    .tl-label { color: #e6edf3; }
+    .tl-duration { color: #8b949e; font-size: 0.8rem; margin-left: auto; }
     a { color: #58a6ff; }
   </style>
 </head>
 <body>
   <a class="back" href="../index.html">&larr; Back to Portfolio</a>
   <h1>${escapeHtml(project.name)}</h1>
+  ${heroSection}
   ${project.description ? `<p>${escapeHtml(project.description)}</p>` : ""}
   ${demoSection}
   ${screenshotsSection}
   ${featuresList}
   ${techBadges}
   ${githubSection}
-  ${sessionsSection}
+  ${timelineSection}
 </body>
 </html>`;
 }
