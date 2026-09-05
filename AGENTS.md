@@ -1434,3 +1434,36 @@
 
 **Notes:**
 - Review #110: APPROVED with one bug (asset paths). Bug fixed and committed.
+
+---
+
+### 2026-09-04 — Sprint 5.2: Project Pages
+
+**Agent:** agent-a
+**Status:** Complete
+
+**Objectives:**
+- Add hero image (first screenshot) to project pages
+- Add timeline section showing recording sessions
+- formatDuration helper for session duration display
+- Minimal-data graceful rendering (no crashes)
+
+**Verification:**
+- `npm run test` — 507 tests pass (32 test files, 6 new)
+- `npm run build` — Vite (32 modules, 168KB) + TypeScript compile clean
+- Hero: first screenshot rendered at top of project page with `class="hero"`
+- Hero: absent when no screenshots
+- Timeline: sessions shown with date, label, formatted duration
+- Timeline: absent when no sessions
+- formatDuration: displays `Xm Ys` format
+- Minimal project: no hero, no timeline, no crash
+
+**Files modified:**
+- `apps/desktop/electron/services/portfolio-generator.ts` — added hero section, timeline section, formatDuration helper
+- `tests/unit/portfolio-generator.test.ts` — 6 new tests (hero, timeline, minimal data)
+
+**Notes:**
+- Hero uses first screenshot from the screenshots array
+- Timeline renders each session as a list item with date, "Recording" label, and duration
+- CSS: timeline uses left border for visual timeline effect
+- Commit: `85994bc`
