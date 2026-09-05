@@ -499,3 +499,19 @@ export interface GitService {
   getProjectFileInfo(projectPath: string): Promise<ProjectFileInfo>;
   getProjectMetadata(projectPath: string): Promise<ProjectMetadata>;
 }
+
+export interface ProjectStructure {
+  hasFrontend: boolean;
+  hasBackend: boolean;
+  hasDatabase: boolean;
+  hasTests: boolean;
+  hasDocs: boolean;
+  hasAssets: boolean;
+  detectedTech: string[];
+  topLevelDirs: string[];
+  configFiles: string[];
+}
+
+export interface ProjectScanner {
+  scan(projectPath: string): Promise<ProjectStructure>;
+}

@@ -70,4 +70,7 @@ contextBridge.exposeInMainWorld("portfolio", {
     projectFile: (projectPath: string) => ipcRenderer.invoke("git:projectFile", projectPath),
     metadata: (projectPath: string) => ipcRenderer.invoke("git:metadata", projectPath),
   },
+  scanner: {
+    scan: (projectPath: string) => ipcRenderer.invoke("scanner:scan", projectPath),
+  },
 });

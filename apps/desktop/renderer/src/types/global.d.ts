@@ -21,6 +21,7 @@ import type {
   GitRepoInfo,
   ProjectFileInfo,
   ProjectMetadata,
+  ProjectStructure,
 } from "../../../../packages/shared/types/index.js";
 
 interface PortfolioProjectsAPI {
@@ -84,6 +85,10 @@ interface PortfolioGitAPI {
   metadata: (projectPath: string) => Promise<ProjectMetadata>;
 }
 
+interface PortfolioScannerAPI {
+  scan: (projectPath: string) => Promise<ProjectStructure>;
+}
+
 interface PortfolioAPI {
   on: (channel: string, callback: (...args: unknown[]) => void) => () => void;
   projects: PortfolioProjectsAPI;
@@ -94,6 +99,7 @@ interface PortfolioAPI {
   export: PortfolioExportAPI;
   overrides: PortfolioOverridesAPI;
   git: PortfolioGitAPI;
+  scanner: PortfolioScannerAPI;
 }
 
 declare global {
