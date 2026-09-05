@@ -226,4 +226,74 @@ describe("GitServiceImpl", () => {
       expect(result.fileInfo).toEqual({ packageJson: null, readme: null });
     });
   });
+
+  describe("getGitLog", () => {
+    it("returns empty array for empty project path", async () => {
+      const service = new GitServiceImpl();
+      expect(await service.getGitLog("")).toEqual([]);
+    });
+
+    it("parses git log output into commits", async () => {
+      const exec = createMockExec({
+        "git log": {
+          stdout: "abc1234\nfeat: add login\n2026-09-01T10:00:00+00:00\nAlice\ndef5678\nfix: bug\n2026-08-30T09:00:00+00:00\nBob\n",
+          stderr: "",
+        },
+      });
+      const service = new GitServiceImpl(exec);
+      const result = await service.getGitLog("/some/project");
+
+      expect(result).toHaveLength(2);
+      expect(result[0]).toEqual({
+        sha: "abc1234",
+        message: "feat: add login",
+        date: "2026-09-01T10:00:00+00:00",
+        author: "Alice",
+      });
+      expect(result[1]).toEqual({
+        sha: "def5678",
+        message: "fix: bug",
+        date: "2026-08-30T09:00:00+00:00",
+        author: "Bob",
+      });
+    });
+
+    it("returns empty array when git fails", async () => {
+      const exec = async () => { throw new Error("not a git repo"); };
+      const service = new GitServiceImpl(exec);
+      expect(await service.getGitLog("/some/project")).toEqual([]);
+    });
+
+    it("returns empty array for empty output", async () => {
+      const exec = createMockExec({
+        "git log": { stdout: "\n", stderr: "" },
+      });
+      const service = new GitServiceImpl(exec);
+      expect(await service.getGitLog("/some/project")).toEqual([]);
+    });
+
+    it("respects maxCount parameter", async () => {
+      let capturedCmd = "";
+      const exec = async (cmd: string, opts: { cwd: string }) => {
+        capturedCmd = cmd;
+        return { stdout: "abc123\nmsg\n2026-09-01T00:00:00+00:00\nme\n", stderr: "" };
+      };
+      const service = new GitServiceImpl(exec);
+      await service.getGitLog("/some/project", 10);
+
+      expect(capturedCmd).toContain("-10");
+    });
+
+    it("defaults to 50 when maxCount not specified", async () => {
+      let capturedCmd = "";
+      const exec = async (cmd: string, opts: { cwd: string }) => {
+        capturedCmd = cmd;
+        return { stdout: "\n", stderr: "" };
+      };
+      const service = new GitServiceImpl(exec);
+      await service.getGitLog("/some/project");
+
+      expect(capturedCmd).toContain("-50");
+    });
+  });
 });

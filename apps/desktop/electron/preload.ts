@@ -69,6 +69,7 @@ contextBridge.exposeInMainWorld("portfolio", {
     repoInfo: (projectPath: string) => ipcRenderer.invoke("git:repoInfo", projectPath),
     projectFile: (projectPath: string) => ipcRenderer.invoke("git:projectFile", projectPath),
     metadata: (projectPath: string) => ipcRenderer.invoke("git:metadata", projectPath),
+    log: (projectPath: string, maxCount?: number) => ipcRenderer.invoke("git:log", projectPath, maxCount),
   },
   scanner: {
     scan: (projectPath: string) => ipcRenderer.invoke("scanner:scan", projectPath),

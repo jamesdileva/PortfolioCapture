@@ -19,6 +19,7 @@ import type {
   RecordingProfileSettings,
   TimelineOverrides,
   GitRepoInfo,
+  GitCommit,
   ProjectFileInfo,
   ProjectMetadata,
   ProjectStructure,
@@ -89,6 +90,7 @@ interface PortfolioGitAPI {
   repoInfo: (projectPath: string) => Promise<GitRepoInfo | null>;
   projectFile: (projectPath: string) => Promise<ProjectFileInfo>;
   metadata: (projectPath: string) => Promise<ProjectMetadata>;
+  log: (projectPath: string, maxCount?: number) => Promise<GitCommit[]>;
 }
 
 interface PortfolioScannerAPI {

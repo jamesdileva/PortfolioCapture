@@ -13,4 +13,8 @@ export function registerGitHandlers(gitService: GitServiceImpl): void {
   ipcMain.handle("git:metadata", async (_event, projectPath: string) => {
     return gitService.getProjectMetadata(projectPath);
   });
+
+  ipcMain.handle("git:log", async (_event, projectPath: string, maxCount?: number) => {
+    return gitService.getGitLog(projectPath, maxCount);
+  });
 }

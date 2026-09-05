@@ -494,10 +494,32 @@ export interface ProjectMetadata {
   fileInfo: ProjectFileInfo;
 }
 
+export interface GitCommit {
+  sha: string;
+  message: string;
+  date: string;
+  author: string;
+}
+
+export interface TimelineEvent {
+  type: "commit" | "recording" | "screenshot" | "demo" | "feature";
+  timestamp: string;
+  label: string;
+  description: string | null;
+  refId: string | null;
+}
+
+export interface ProjectTimeline {
+  events: TimelineEvent[];
+  commitCount: number;
+  sessionCount: number;
+}
+
 export interface GitService {
   getRepoInfo(projectPath: string): Promise<GitRepoInfo | null>;
   getProjectFileInfo(projectPath: string): Promise<ProjectFileInfo>;
   getProjectMetadata(projectPath: string): Promise<ProjectMetadata>;
+  getGitLog(projectPath: string, maxCount?: number): Promise<GitCommit[]>;
 }
 
 export interface ProjectStructure {

@@ -1,4 +1,4 @@
-import type { GitRepoInfo, ProjectFileInfo, ProjectMetadata, PackageJsonInfo, ReadmeInfo } from "../../../../packages/shared/types/index.js";
+import type { GitRepoInfo, GitCommit, ProjectFileInfo, ProjectMetadata, PackageJsonInfo, ReadmeInfo } from "../../../../packages/shared/types/index.js";
 import { exec as defaultExec } from "child_process";
 import { readFile as defaultReadFile } from "fs/promises";
 import { join } from "path";
@@ -66,6 +66,30 @@ export class GitServiceImpl {
       packageJson: packageJson.status === "fulfilled" ? packageJson.value : null,
       readme: readme.status === "fulfilled" ? readme.value : null,
     };
+  }
+
+  async getGitLog(projectPath: string, maxCount: number = 50): Promise<GitCommit[]> {
+    if (!projectPath) return [];
+
+    try {
+      const result = await this.execFn(
+        `git log --format=%H%n%s%n%aI%n%an -${maxCount}`,
+        { cwd: projectPath }
+      );
+      const lines = result.stdout.trim().split("\n");
+      const commits: GitCommit[] = [];
+      for (let i = 0; i + 3 < lines.length; i += 4) {
+        commits.push({
+          sha: lines[i] ?? "",
+          message: lines[i + 1] ?? "",
+          date: lines[i + 2] ?? "",
+          author: lines[i + 3] ?? "",
+        });
+      }
+      return commits;
+    } catch {
+      return [];
+    }
   }
 
   async getProjectMetadata(projectPath: string): Promise<ProjectMetadata> {

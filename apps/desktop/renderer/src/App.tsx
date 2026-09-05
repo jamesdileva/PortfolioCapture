@@ -5,6 +5,7 @@ import { ProjectList } from "./components/ProjectList";
 import { ProjectForm } from "./components/ProjectForm";
 import { SessionList } from "./components/SessionList";
 import { SessionDetail } from "./components/SessionDetail";
+import { ProjectTimeline } from "./components/ProjectTimeline";
 
 type Tab = "dashboard" | "projects" | "recordings";
 type ProjectView = "list" | "add" | "edit";
@@ -206,11 +207,25 @@ export function App() {
             </>
           )}
           {(projectView === "add" || projectView === "edit") && (
-            <ProjectForm
-              project={editing}
-              onSave={handleSave}
-              onCancel={handleCancel}
-            />
+            <>
+              <ProjectForm
+                project={editing}
+                onSave={handleSave}
+                onCancel={handleCancel}
+              />
+              {projectView === "edit" && editing && (
+                <div style={{ marginTop: "1.5rem" }}>
+                  <ProjectTimeline
+                    project={editing}
+                    sessions={sessions.filter((s) => s.projectId === editing.id)}
+                    onSessionClick={(s) => {
+                      setSelectedSession(s);
+                      setTab("recordings");
+                    }}
+                  />
+                </div>
+              )}
+            </>
           )}
         </>
       ) : (
