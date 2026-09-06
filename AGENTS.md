@@ -1645,3 +1645,35 @@
 - Both review conditions resolved in commit `252ea23`
 - `archiver` package uses `Archiver` class (extends Transform), `ZipArchive` subclass accepts `ZipOptions` including `zlib`
 - Shell returns `Promise<string>` (resolved path), converted to `Promise<void>` for OpenUrlFn interface
+
+---
+
+### 2026-09-05 — SessionManager Refactor: Options Object
+
+**Agent:** agent-a
+**Status:** Complete
+**Triggered by:** agent-b new task (mail #123)
+
+**Objectives:**
+- Refactor SessionManager constructor from 13 positional parameters to a single options object
+- Extract `SessionManagerOptions` interface with named fields
+- Update all call sites (main.ts, session-manager.test.ts)
+- Export `SessionManagerOptions` type from services index
+
+**Verification:**
+- `npm run test` — 578 tests pass (36 test files)
+- `npm run build` — Vite (33 modules, 171KB) + TypeScript compile clean
+- `npx tsc --noEmit` — No type errors
+- Constructor now takes single `SessionManagerOptions` object with named fields
+- All 3 test call sites updated to use named properties
+- main.ts call site updated to use named properties
+
+**Files modified:**
+- `apps/desktop/electron/services/session-manager.ts` — extracted `SessionManagerOptions` interface, constructor takes single options object
+- `apps/desktop/electron/services/index.ts` — exported `SessionManagerOptions` type
+- `apps/desktop/electron/main.ts` — updated constructor call to options object
+- `tests/unit/session-manager.test.ts` — updated 3 constructor calls to options object
+
+**Notes:**
+- Resolves long-standing TODO from Sprint 1.4 (13 positional params → options object)
+- Commit: `2762847`
