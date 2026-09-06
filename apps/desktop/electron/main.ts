@@ -106,22 +106,22 @@ function initializeServices() {
     mainWindow?.webContents.send("portfolio:regenerated");
   });
 
-  const sessionManager = new SessionManager(
+  const sessionManager = new SessionManager({
     sessionService,
     captureProvider,
     projectService,
-    { outputRoot },
+    config: { outputRoot },
     screenshotExtractor,
     assetService,
-    () => new IdleDetectorImpl(),
+    idleDetectorFactory: () => new IdleDetectorImpl(),
     settingsService,
     smartTrimmer,
     demoGenerator,
     screenshotRanker,
-    (projectId, _sessionId) => {
+    onSessionComplete: () => {
       portfolioUpdateTrigger.requestUpdate();
     },
-  );
+  });
 
   registerSessionHandlers(sessionService, sessionManager, profileService);
 

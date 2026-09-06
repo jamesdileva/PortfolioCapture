@@ -45,8 +45,11 @@ describe("SessionManager", () => {
     projectService = new ProjectService(new ProjectRepository(db));
     sessionService = new SessionService(new SessionRepository(db));
     captureProvider = createMockCaptureProvider();
-    manager = new SessionManager(sessionService, captureProvider, projectService, {
-      outputRoot: "data/recordings",
+    manager = new SessionManager({
+      sessionService,
+      captureProvider,
+      projectService,
+      config: { outputRoot: "data/recordings" },
     });
   });
 
@@ -192,16 +195,14 @@ describe("SessionManager", () => {
       const mockNow = vi.fn(() => time);
       const advance = (ms: number) => { time += ms; };
 
-      const mgr = new SessionManager(
+      const mgr = new SessionManager({
         sessionService,
         captureProvider,
         projectService,
-        { outputRoot: "data/recordings" },
-        undefined,
-        undefined,
-        () => new IdleDetectorImpl({ idleTimeoutMs: 15_000, pollIntervalMs: 1000 }, mockNow),
+        config: { outputRoot: "data/recordings" },
+        idleDetectorFactory: () => new IdleDetectorImpl({ idleTimeoutMs: 15_000, pollIntervalMs: 1000 }, mockNow),
         settingsService,
-      );
+      });
       return { mgr, advance, mockNow };
     }
 
@@ -281,9 +282,13 @@ describe("SessionManager", () => {
   describe("onSessionComplete callback", () => {
     it("calls onSessionComplete after session finishes", async () => {
       const onComplete = vi.fn();
-      const mgr = new SessionManager(sessionService, captureProvider, projectService, {
-        outputRoot: "data/recordings",
-      }, undefined, undefined, undefined, undefined, undefined, undefined, undefined, onComplete);
+      const mgr = new SessionManager({
+        sessionService,
+        captureProvider,
+        projectService,
+        config: { outputRoot: "data/recordings" },
+        onSessionComplete: onComplete,
+      });
 
       const project = projectService.create({ name: "Test", path: "/test", executablePath: "/test/app.exe" });
       await mgr.startSession(project.id, "manual");

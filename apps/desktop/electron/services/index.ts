@@ -5,7 +5,7 @@ export { SettingsService } from "./settings-service.js";
 export { ProcessMonitor } from "./process-monitor.js";
 export { FfmpegCaptureProvider } from "./capture-provider.js";
 export { FfmpegServiceImpl } from "./ffmpeg-service.js";
-export { SessionManager } from "./session-manager.js";
+export { SessionManager, type SessionManagerOptions } from "./session-manager.js";
 export { FfmpegScreenshotExtractor } from "./screenshot-extractor.js";
 export { IdleDetectorImpl } from "./idle-detector.js";
 export { SmartTrimmerImpl } from "./smart-trimmer.js";

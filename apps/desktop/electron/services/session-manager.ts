@@ -46,6 +46,21 @@ interface ActiveSession {
   profileSettings?: Partial<RecordingProfileSettings>;
 }
 
+export interface SessionManagerOptions {
+  sessionService: SessionService;
+  captureProvider: CaptureProvider;
+  projectService: ProjectService;
+  config?: Partial<SessionManagerConfig>;
+  screenshotExtractor?: ScreenshotExtractor;
+  assetService?: AssetService;
+  idleDetectorFactory?: IdleDetectorFactory;
+  settingsService?: SettingsService;
+  smartTrimmer?: SmartTrimmer;
+  demoGenerator?: DemoGenerator;
+  screenshotRanker?: ScreenshotRanker;
+  onSessionComplete?: (projectId: string, sessionId: string) => void;
+}
+
 export class SessionManager {
   private activeByProject: Map<string, ActiveSession> = new Map();
   private config: SessionManagerConfig;
@@ -61,32 +76,19 @@ export class SessionManager {
   private screenshotRanker?: ScreenshotRanker;
   private onSessionComplete?: (projectId: string, sessionId: string) => void;
 
-  constructor(
-    sessionService: SessionService,
-    captureProvider: CaptureProvider,
-    projectService: ProjectService,
-    config?: Partial<SessionManagerConfig>,
-    screenshotExtractor?: ScreenshotExtractor,
-    assetService?: AssetService,
-    idleDetectorFactory?: IdleDetectorFactory,
-    settingsService?: SettingsService,
-    smartTrimmer?: SmartTrimmer,
-    demoGenerator?: DemoGenerator,
-    screenshotRanker?: ScreenshotRanker,
-    onSessionComplete?: (projectId: string, sessionId: string) => void,
-  ) {
-    this.config = { ...DEFAULT_CONFIG, ...config };
-    this.sessionService = sessionService;
-    this.captureProvider = captureProvider;
-    this.projectService = projectService;
-    this.screenshotExtractor = screenshotExtractor;
-    this.assetService = assetService;
-    this.idleDetectorFactory = idleDetectorFactory;
-    this.settingsService = settingsService;
-    this.smartTrimmer = smartTrimmer;
-    this.demoGenerator = demoGenerator;
-    this.screenshotRanker = screenshotRanker;
-    this.onSessionComplete = onSessionComplete;
+  constructor(options: SessionManagerOptions) {
+    this.config = { ...DEFAULT_CONFIG, ...options.config };
+    this.sessionService = options.sessionService;
+    this.captureProvider = options.captureProvider;
+    this.projectService = options.projectService;
+    this.screenshotExtractor = options.screenshotExtractor;
+    this.assetService = options.assetService;
+    this.idleDetectorFactory = options.idleDetectorFactory;
+    this.settingsService = options.settingsService;
+    this.smartTrimmer = options.smartTrimmer;
+    this.demoGenerator = options.demoGenerator;
+    this.screenshotRanker = options.screenshotRanker;
+    this.onSessionComplete = options.onSessionComplete;
   }
 
   async startSession(projectId: string, trigger: SessionTrigger, profileSettings?: Partial<RecordingProfileSettings>): Promise<RecordingSession> {
