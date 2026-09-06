@@ -132,6 +132,14 @@ export interface ProcessMonitorConfig {
 
 export type AudioMode = "none" | "system" | "microphone" | "both";
 
+export type CaptureMode = "desktop" | "window";
+
+export interface WindowInfo {
+  title: string;
+  pid: number;
+  hwnd: string;
+}
+
 export interface CaptureOptions {
   outputPath: string;
   fps: number;
@@ -139,6 +147,12 @@ export interface CaptureOptions {
   height: number;
   audio: AudioMode;
   displayId?: string;
+  captureMode?: CaptureMode;
+  windowTitle?: string;
+}
+
+export interface WindowEnumerator {
+  listWindows(): Promise<WindowInfo[]>;
 }
 
 export interface CaptureSession {
@@ -433,6 +447,8 @@ export interface RecordingProfileSettings {
   demoMinDurationMs: number;
   demoMaxDurationMs: number;
   screenshotsOnly: boolean;
+  captureMode?: CaptureMode;
+  windowTitle?: string;
 }
 
 export interface RecordingProfile {

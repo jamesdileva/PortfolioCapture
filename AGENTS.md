@@ -1759,3 +1759,54 @@
 **Notes:**
 - `startSession()` guard (`activeByProject.has()`) handles both monitors firing — second call throws, caught, swallowed
 - `devServerPorts` field previously existed in DB/types but had no UI — now configurable in ProjectForm
+
+---
+
+### 2026-09-05 — Sprint 6.2: Window-Level Capture
+
+**Agent:** agent-a
+**Status:** Complete
+**Objectives:**
+- Add `WindowInfo` type, `CaptureMode`, and `WindowEnumerator` interface to shared types
+- Update `CaptureOptions` with `captureMode` and `windowTitle` fields
+- Create `WindowEnumeratorImpl` service (PowerShell-based window listing via Win32 API)
+- Update `FfmpegCaptureProvider.buildArgs()` for window capture mode (`title=<windowTitle>`)
+- Update `RecordingProfileSettings` with `captureMode` and `windowTitle` fields
+- Update `SessionManager` to pass capture mode/window title from profile settings
+- Add IPC handler for `windows:list`
+- Add preload bridge: `portfolio.windows.list()`
+- Typed renderer API: `PortfolioWindowsAPI`
+- 15 new unit tests (10 WindowEnumerator, 5 window capture args)
+
+**Verification:**
+- `npm run test` — 613 tests pass (38 test files, 15 new)
+- `npm run build` — Vite (33 modules, 172KB) + TypeScript compile clean
+- `npx tsc --noEmit -p apps/desktop/electron/tsconfig.json` — No type errors
+- WindowEnumerator: parses single/multiple windows from PowerShell JSON, filters empty titles, handles errors/invalid JSON/empty output
+- WindowEnumerator: passes correct PowerShell command with Win32 EnumWindows
+- CaptureProvider: `title=<windowTitle>` for window mode, `desktop` for desktop mode, displayId takes precedence, defaults to desktop when no mode specified
+- RecordingProfileSettings: `captureMode` and `windowTitle` optional fields
+- SessionManager: passes captureMode/windowTitle from profile settings to CaptureOptions
+
+**Files created:**
+- `apps/desktop/electron/services/window-enumerator.ts` — WindowEnumeratorImpl class with Win32 API PowerShell script
+- `apps/desktop/electron/ipc/windows.ts` — IPC handler for windows:list
+- `tests/unit/window-enumerator.test.ts` — 10 tests
+
+**Files modified:**
+- `packages/shared/types/index.ts` — added CaptureMode, WindowInfo, WindowEnumerator interfaces; added captureMode/windowTitle to CaptureOptions; added captureMode/windowTitle to RecordingProfileSettings
+- `apps/desktop/electron/services/capture-provider.ts` — updated buildArgs() for window capture mode
+- `apps/desktop/electron/services/index.ts` — exported WindowEnumeratorImpl
+- `apps/desktop/electron/ipc/index.ts` — exported registerWindowHandlers
+- `apps/desktop/electron/main.ts` — wired WindowEnumeratorImpl, registerWindowHandlers
+- `apps/desktop/electron/preload.ts` — added windows namespace (list)
+- `apps/desktop/renderer/src/types/global.d.ts` — added PortfolioWindowsAPI, WindowInfo import
+- `apps/desktop/electron/services/session-manager.ts` — added captureMode/windowTitle to config and CaptureOptions construction
+- `tests/unit/capture-provider.test.ts` — 5 new window capture mode tests
+
+**Notes:**
+- Window enumeration uses Win32 API EnumWindows via PowerShell Add-Type (C# interop)
+- gdigrab `-i title=<windowTitle>` matches window by title substring (Windows-specific)
+- WindowEnumeratorImpl catches all errors and returns empty array (best-effort)
+- Injectable `ExecFn` for testability (same pattern as other services)
+- DisplayId still takes precedence over window title when both provided

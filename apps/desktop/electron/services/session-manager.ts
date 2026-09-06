@@ -13,6 +13,7 @@ import type {
   DemoGenerator,
   ScreenshotRanker,
   RecordingProfileSettings,
+  CaptureMode,
 } from "../../../../packages/shared/types/index.js";
 import type { SessionService } from "./session-service.js";
 import type { ProjectService } from "./project-service.js";
@@ -28,6 +29,8 @@ interface SessionManagerConfig {
   width: number;
   height: number;
   audio: AudioMode;
+  captureMode?: CaptureMode;
+  windowTitle?: string;
 }
 
 const DEFAULT_CONFIG: SessionManagerConfig = {
@@ -120,6 +123,8 @@ export class SessionManager {
       width: effectiveWidth,
       height: effectiveHeight,
       audio: effectiveAudio,
+      captureMode: profileSettings?.captureMode ?? this.config.captureMode,
+      windowTitle: profileSettings?.windowTitle ?? this.config.windowTitle,
     };
 
     try {

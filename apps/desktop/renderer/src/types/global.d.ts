@@ -39,6 +39,7 @@ import type {
   DeployResult,
   DeployTarget,
   DevServerInfo,
+  WindowInfo,
 } from "../../../../packages/shared/types/index.js";
 
 interface PortfolioProjectsAPI {
@@ -154,6 +155,10 @@ interface PortfolioDevServerAPI {
   stop: () => Promise<void>;
 }
 
+interface PortfolioWindowsAPI {
+  list: () => Promise<WindowInfo[]>;
+}
+
 interface PortfolioAPI {
   on: (channel: string, callback: (...args: unknown[]) => void) => () => void;
   projects: PortfolioProjectsAPI;
@@ -171,6 +176,7 @@ interface PortfolioAPI {
   themes: PortfolioThemesAPI;
   deploy: PortfolioDeployAPI;
   devserver: PortfolioDevServerAPI;
+  windows: PortfolioWindowsAPI;
 }
 
 declare global {

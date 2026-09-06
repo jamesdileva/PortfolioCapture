@@ -271,4 +271,87 @@ describe("FfmpegCaptureProvider", () => {
       expect(provider.getActiveSessionIds()).toHaveLength(0);
     });
   });
+
+  describe("window capture mode", () => {
+    it("uses window title in input when captureMode is window", async () => {
+      const mockProc = createMockProcess();
+      const spawnFn = vi.fn(() => mockProc);
+      const provider = new FfmpegCaptureProvider("ffmpeg", spawnFn);
+
+      const { statSync } = await import("fs");
+      vi.mocked(statSync).mockReturnValue({ size: 1024 } as any);
+
+      await provider.start(defaultOptions({
+        captureMode: "window",
+        windowTitle: "Visual Studio Code",
+      }));
+
+      const args = spawnFn.mock.calls[0][1];
+      expect(args).toContain("-i");
+      expect(args).toContain("title=Visual Studio Code");
+    });
+
+    it("uses desktop input when captureMode is desktop", async () => {
+      const mockProc = createMockProcess();
+      const spawnFn = vi.fn(() => mockProc);
+      const provider = new FfmpegCaptureProvider("ffmpeg", spawnFn);
+
+      const { statSync } = await import("fs");
+      vi.mocked(statSync).mockReturnValue({ size: 1024 } as any);
+
+      await provider.start(defaultOptions({ captureMode: "desktop" }));
+
+      const args = spawnFn.mock.calls[0][1];
+      expect(args).toContain("-i");
+      expect(args).toContain("desktop");
+    });
+
+    it("falls back to desktop when captureMode is window but no windowTitle", async () => {
+      const mockProc = createMockProcess();
+      const spawnFn = vi.fn(() => mockProc);
+      const provider = new FfmpegCaptureProvider("ffmpeg", spawnFn);
+
+      const { statSync } = await import("fs");
+      vi.mocked(statSync).mockReturnValue({ size: 1024 } as any);
+
+      await provider.start(defaultOptions({ captureMode: "window" }));
+
+      const args = spawnFn.mock.calls[0][1];
+      expect(args).toContain("-i");
+      expect(args).toContain("desktop");
+    });
+
+    it("uses displayId when provided regardless of captureMode", async () => {
+      const mockProc = createMockProcess();
+      const spawnFn = vi.fn(() => mockProc);
+      const provider = new FfmpegCaptureProvider("ffmpeg", spawnFn);
+
+      const { statSync } = await import("fs");
+      vi.mocked(statSync).mockReturnValue({ size: 1024 } as any);
+
+      await provider.start(defaultOptions({
+        displayId: "1",
+        captureMode: "desktop",
+      }));
+
+      const args = spawnFn.mock.calls[0][1];
+      expect(args).toContain("-i");
+      expect(args).toContain("1");
+    });
+
+    it("defaults to desktop when no captureMode specified", async () => {
+      const mockProc = createMockProcess();
+      const spawnFn = vi.fn(() => mockProc);
+      const provider = new FfmpegCaptureProvider("ffmpeg", spawnFn);
+
+      const { statSync } = await import("fs");
+      vi.mocked(statSync).mockReturnValue({ size: 1024 } as any);
+
+      await provider.start(defaultOptions());
+
+      const args = spawnFn.mock.calls[0][1];
+      expect(args).toContain("-i");
+      expect(args).toContain("desktop");
+    });
+  });
 });

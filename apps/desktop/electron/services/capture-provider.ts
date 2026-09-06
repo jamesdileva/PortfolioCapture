@@ -154,7 +154,9 @@ export class FfmpegCaptureProvider implements CaptureProvider {
     args.push("-f", "gdigrab");
     args.push("-framerate", String(options.fps));
 
-    if (options.displayId) {
+    if (options.captureMode === "window" && options.windowTitle) {
+      args.push("-i", `title=${options.windowTitle}`);
+    } else if (options.displayId) {
       args.push("-i", options.displayId);
     } else {
       args.push("-i", "desktop");

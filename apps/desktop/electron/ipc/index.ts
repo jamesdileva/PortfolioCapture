@@ -13,3 +13,4 @@ export { registerPortfolioHandlers } from "./portfolio.js";
 export { registerThemeHandlers } from "./themes.js";
 export { registerDeployHandlers } from "./deploy.js";
 export { registerDevServerHandlers } from "./dev-server.js";
+export { registerWindowHandlers } from "./windows.js";

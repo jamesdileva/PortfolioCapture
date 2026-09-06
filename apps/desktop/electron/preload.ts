@@ -122,4 +122,7 @@ contextBridge.exposeInMainWorld("portfolio", {
     start: () => ipcRenderer.invoke("devserver:start"),
     stop: () => ipcRenderer.invoke("devserver:stop"),
   },
+  windows: {
+    list: () => ipcRenderer.invoke("windows:list"),
+  },
 });
