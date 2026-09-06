@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { Project, RecordingSession, CreateProjectInput, UpdateProjectInput } from "../../../packages/shared/types/index.js";
 import { Dashboard } from "./components/Dashboard";
+import { DeployPanel } from "./components/DeployPanel";
 import { ProjectList } from "./components/ProjectList";
 import { ProjectForm } from "./components/ProjectForm";
 import { SessionList } from "./components/SessionList";
@@ -102,6 +103,17 @@ export function App() {
 
   const [activeProjectIds, setActiveProjectIds] = useState<Set<string>>(new Set());
   const lastActivityRef = useRef(0);
+  const [portfolioDir, setPortfolioDir] = useState<string>("");
+
+  useEffect(() => {
+    const loadPortfolioDir = async () => {
+      try {
+        const dir = await window.portfolio.portfolio.outputDir();
+        setPortfolioDir(dir);
+      } catch {}
+    };
+    loadPortfolioDir();
+  }, []);
 
   useEffect(() => {
     const unsub1 = window.portfolio.on("portfolio:session-started", (data: unknown) => {
@@ -169,19 +181,22 @@ export function App() {
       {loading ? (
         <p style={{ color: "#888" }}>Loading...</p>
       ) : tab === "dashboard" ? (
-        <Dashboard
-          projects={projects}
-          sessions={sessions}
-          onProjectClick={(p) => {
-            setEditing(p);
-            setProjectView("edit");
-            setTab("projects");
-          }}
-          onSessionClick={(s) => {
-            setSelectedSession(s);
-            setTab("recordings");
-          }}
-        />
+        <>
+          <Dashboard
+            projects={projects}
+            sessions={sessions}
+            onProjectClick={(p) => {
+              setEditing(p);
+              setProjectView("edit");
+              setTab("projects");
+            }}
+            onSessionClick={(s) => {
+              setSelectedSession(s);
+              setTab("recordings");
+            }}
+          />
+          <DeployPanel portfolioDir={portfolioDir} />
+        </>
       ) : tab === "projects" ? (
         <>
           {projectView === "list" && (

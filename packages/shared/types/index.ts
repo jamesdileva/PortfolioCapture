@@ -745,3 +745,37 @@ export interface ThemeService {
   getCustomColors(): Partial<ThemeColorConfig>;
   setCustomColors(colors: Partial<ThemeColorConfig>): void;
 }
+
+export type DeployTarget = "zip" | "github-pages" | "netlify" | "vercel";
+
+export interface ZipExportConfig {
+  portfolioDir: string;
+  outputPath?: string;
+}
+
+export interface ZipExportResult {
+  outputPath: string;
+  fileSizeBytes: number;
+  fileCount: number;
+}
+
+export interface DeployConfig {
+  target: DeployTarget;
+  portfolioDir: string;
+  siteName?: string;
+  outputDir?: string;
+}
+
+export interface DeployResult {
+  success: boolean;
+  target: DeployTarget;
+  outputPath?: string;
+  message: string;
+}
+
+export interface DeployService {
+  zipExport(config: ZipExportConfig): Promise<ZipExportResult>;
+  previewLocal(portfolioDir: string): Promise<void>;
+  deploy(config: DeployConfig): Promise<DeployResult>;
+  getSupportedTargets(): DeployTarget[];
+}

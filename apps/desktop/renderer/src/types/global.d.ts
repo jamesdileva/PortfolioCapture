@@ -35,6 +35,9 @@ import type {
   PortfolioThemeConfig,
   PortfolioThemeName,
   ThemeColorConfig,
+  ZipExportResult,
+  DeployResult,
+  DeployTarget,
 } from "../../../../packages/shared/types/index.js";
 
 interface PortfolioProjectsAPI {
@@ -126,6 +129,7 @@ interface PortfolioAiAPI {
 interface PortfolioGeneratorAPI {
   generate: (config?: PortfolioGenerateConfig) => Promise<PortfolioGenerateResult>;
   data: () => Promise<PortfolioData>;
+  outputDir: () => Promise<string>;
 }
 
 interface PortfolioThemesAPI {
@@ -134,6 +138,13 @@ interface PortfolioThemesAPI {
   setActive: (name: PortfolioThemeName) => Promise<boolean>;
   getCustomColors: () => Promise<Partial<ThemeColorConfig>>;
   setCustomColors: (colors: Partial<ThemeColorConfig>) => Promise<boolean>;
+}
+
+interface PortfolioDeployAPI {
+  zip: (portfolioDir: string, outputPath?: string) => Promise<ZipExportResult>;
+  preview: (portfolioDir: string) => Promise<{ success: boolean }>;
+  run: (config: { target: DeployTarget; portfolioDir: string; outputDir?: string; siteName?: string }) => Promise<DeployResult>;
+  targets: () => Promise<DeployTarget[]>;
 }
 
 interface PortfolioAPI {
@@ -151,6 +162,7 @@ interface PortfolioAPI {
   ai: PortfolioAiAPI;
   portfolio: PortfolioGeneratorAPI;
   themes: PortfolioThemesAPI;
+  deploy: PortfolioDeployAPI;
 }
 
 declare global {

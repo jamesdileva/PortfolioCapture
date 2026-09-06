@@ -102,6 +102,7 @@ contextBridge.exposeInMainWorld("portfolio", {
     generate: (config?: { outputDir?: string; includeScreenshots?: boolean; includeDemos?: boolean; theme?: string; customColors?: Record<string, string> }) =>
       ipcRenderer.invoke("portfolio:generate", config),
     data: () => ipcRenderer.invoke("portfolio:data"),
+    outputDir: () => ipcRenderer.invoke("portfolio:outputDir"),
   },
   themes: {
     list: () => ipcRenderer.invoke("themes:list"),
@@ -109,5 +110,11 @@ contextBridge.exposeInMainWorld("portfolio", {
     setActive: (name: string) => ipcRenderer.invoke("themes:setActive", name),
     getCustomColors: () => ipcRenderer.invoke("themes:getCustomColors"),
     setCustomColors: (colors: Record<string, string>) => ipcRenderer.invoke("themes:setCustomColors", colors),
+  },
+  deploy: {
+    zip: (portfolioDir: string, outputPath?: string) => ipcRenderer.invoke("deploy:zip", portfolioDir, outputPath),
+    preview: (portfolioDir: string) => ipcRenderer.invoke("deploy:preview", portfolioDir),
+    run: (config: { target: string; portfolioDir: string; outputDir?: string; siteName?: string }) => ipcRenderer.invoke("deploy:run", config),
+    targets: () => ipcRenderer.invoke("deploy:targets"),
   },
 });

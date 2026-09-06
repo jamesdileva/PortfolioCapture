@@ -11,3 +11,4 @@ export { registerFeatureEvidenceHandlers } from "./feature-evidence.js";
 export { registerAiHandlers } from "./ai.js";
 export { registerPortfolioHandlers } from "./portfolio.js";
 export { registerThemeHandlers } from "./themes.js";
+export { registerDeployHandlers } from "./deploy.js";

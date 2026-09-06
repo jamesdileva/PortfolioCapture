@@ -1521,3 +1521,103 @@
 - Custom colors merged on top of base theme (partial override)
 - PortfolioGenerator backward compatible (themeService optional)
 - Commit: `a32f5d8`
+
+---
+
+### 2026-09-04 — Sprint 5.3 Post-fix: Review Issues Addressed
+
+**Agent:** agent-a
+**Status:** Complete
+**Triggered by:** agent-b review #116
+
+**Actions taken:**
+- Fixed `BUILTIN_THEME_FALLBACK` in `portfolio-generator.ts`: changed `fontFamily: 'system-ui, sans-serif'` → `'Cascadia Code', 'Fira Code', 'JetBrains Mono', monospace` and `borderRadius: '8px'` → `'6px'` to match actual developer theme
+
+**Verification:**
+- `npm run test` — 537 tests pass (33 test files)
+- `npm run build` — Vite + TypeScript compile clean
+- Commit: `6a65169`
+
+---
+
+### 2026-09-04 — Sprint 5.4: Auto-Update Trigger
+
+**Agent:** agent-a
+**Status:** Complete
+
+**Objectives:**
+- PortfolioUpdateTrigger: queued portfolio regeneration after session completes
+- Serializes concurrent regeneration requests (one at a time)
+- Regeneration failure preserves previous portfolio version (best-effort)
+- SessionManager: onSessionComplete callback fires after session reaches "complete"
+- IPC event `portfolio:regenerated` sent to renderer on success
+- Wired in main.ts: session complete → trigger → portfolioGenerator.generate()
+
+**Verification:**
+- `npm run test` — 548 tests pass (34 test files, 11 new)
+- `npm run build` — Vite (32 modules, 168KB) + TypeScript compile clean
+- PortfolioUpdateTrigger: zero initial queue, single request triggers generate, sequential processing, handles failure without throwing, onSuccess callback
+- SessionManager: onSessionComplete fires with projectId+sessionId, no-crash when omitted
+
+**Files created:**
+- `apps/desktop/electron/services/portfolio-update-trigger.ts` — PortfolioUpdateTriggerImpl class
+- `tests/unit/portfolio-update-trigger.test.ts` — 9 tests
+
+**Files modified:**
+- `apps/desktop/electron/services/session-manager.ts` — added onSessionComplete callback parameter and invocation
+- `apps/desktop/electron/services/index.ts` — exported PortfolioUpdateTriggerImpl
+- `apps/desktop/electron/main.ts` — wired PortfolioUpdateTriggerImpl, reordered services for correct dependency chain
+- `tests/unit/session-manager.test.ts` — 2 new tests for onSessionComplete
+- `roadmap.md` — added Sprint 5.4 heading (was missing)
+
+**Notes:**
+- PortfolioUpdateTrigger uses pending counter (not Promise queue) for simplicity
+- `processQueue` guard: if already processing, new items are picked up by the existing while loop
+- Fire-and-forget: session completion never blocks on portfolio regeneration
+- Commit: `0352ee1`
+
+---
+
+### 2026-09-05 — Sprint 5.5: Export / Deploy
+
+**Agent:** agent-a
+**Status:** Complete
+
+**Objectives:**
+- DeployService: ZIP export, local preview, deploy to github-pages/netlify/vercel
+- DeployPanel UI component with target selection, site name input, feedback display
+- IPC handlers: deploy:zip, deploy:preview, deploy:run, deploy:targets
+- Preload bridge: portfolio.deploy.* namespace
+- portfolio:outputDir IPC for renderer to discover portfolio directory
+- 19 deploy-service unit tests + 17 DeployPanel component tests
+
+**Verification:**
+- `npm run test` — 578 tests pass (36 test files, 30 new)
+- `npm run build:renderer` — Vite build succeeds (33 modules, 171KB)
+- `npx tsc --noEmit` — TypeScript compile clean
+- DeployServiceImpl: zip export, local preview, github-pages (CNAME, .nojekyll), netlify (netlify.toml), vercel (vercel.json)
+- DeployPanel: ZIP download, preview, deploy target chips, site name input, error/success feedback, busy state
+- All deploy targets generate correct config files and copy portfolio assets
+
+**Files created:**
+- `apps/desktop/electron/services/deploy-service.ts` — DeployServiceImpl with zip/preview/deploy
+- `apps/desktop/electron/ipc/deploy.ts` — IPC handlers for deploy namespace
+- `apps/desktop/renderer/src/components/DeployPanel.tsx` — Deploy UI component
+- `tests/unit/deploy-service.test.ts` — 13 tests (zip, preview, all targets, errors)
+- `tests/renderer/deploy-panel.test.tsx` — 17 tests
+
+**Files modified:**
+- `packages/shared/types/index.ts` — added DeployTarget, ZipExportConfig, ZipExportResult, DeployConfig, DeployResult, DeployService interfaces
+- `apps/desktop/electron/services/index.ts` — exported DeployServiceImpl
+- `apps/desktop/electron/ipc/index.ts` — exported registerDeployHandlers
+- `apps/desktop/electron/ipc/portfolio.ts` — added portfolio:outputDir handler
+- `apps/desktop/electron/main.ts` — wired DeployServiceImpl, registerDeployHandlers, portfolioOutputDir
+- `apps/desktop/electron/preload.ts` — added deploy namespace + portfolio.outputDir()
+- `apps/desktop/renderer/src/App.tsx` — integrated DeployPanel into Dashboard, added portfolioDir state
+- `apps/desktop/renderer/src/types/global.d.ts` — added PortfolioDeployAPI, portfolio.outputDir()
+
+**Notes:**
+- Deploy targets produce offline-ready output (config files + copied assets), not live cloud deploys
+- GitHub Pages: .nojekyll + optional CNAME; Netlify: netlify.toml with SPA redirect; Vercel: vercel.json with cleanUrls
+- Default deploy output: `portfolioDir/deploy/{target}/`
+- Commit: (pending)

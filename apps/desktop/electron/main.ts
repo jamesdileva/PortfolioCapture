@@ -2,10 +2,10 @@ import { app, BrowserWindow } from "electron";
 import * as path from "path";
 import { createDatabase, runMigrations, closeDatabase } from "../../../packages/database/index.js";
 import { ProjectRepository, SessionRepository, AssetRepository, SettingsRepository, FeatureEvidenceRepository } from "../../../packages/database/repositories/index.js";
-import { ProjectService, SessionService, AssetService, SettingsService, ProcessMonitor, FfmpegCaptureProvider, FfmpegServiceImpl, FfmpegScreenshotExtractor, IdleDetectorImpl, SmartTrimmerImpl, DemoGeneratorImpl, ExportServiceImpl, ScreenshotRankerImpl, RecordingProfileServiceImpl, ManualEditOverridesServiceImpl, GitServiceImpl, ProjectScannerImpl, FeatureEvidenceServiceImpl, LocalAiServiceImpl, PortfolioGeneratorImpl, ThemeServiceImpl } from "./services/index.js";
+import { ProjectService, SessionService, AssetService, SettingsService, ProcessMonitor, FfmpegCaptureProvider, FfmpegServiceImpl, FfmpegScreenshotExtractor, IdleDetectorImpl, SmartTrimmerImpl, DemoGeneratorImpl, ExportServiceImpl, ScreenshotRankerImpl, RecordingProfileServiceImpl, ManualEditOverridesServiceImpl, GitServiceImpl, ProjectScannerImpl, FeatureEvidenceServiceImpl, LocalAiServiceImpl, PortfolioGeneratorImpl, ThemeServiceImpl, DeployServiceImpl } from "./services/index.js";
 import { SessionManager } from "./services/session-manager.js";
 import { PortfolioUpdateTriggerImpl } from "./services/portfolio-update-trigger.js";
-import { registerProjectHandlers, registerSessionHandlers, registerAssetHandlers, registerSettingsHandlers, registerExportHandlers, registerProfileHandlers, registerManualOverridesHandlers, registerGitHandlers, registerScannerHandlers, registerFeatureEvidenceHandlers, registerAiHandlers, registerPortfolioHandlers, registerThemeHandlers } from "./ipc/index.js";
+import { registerProjectHandlers, registerSessionHandlers, registerAssetHandlers, registerSettingsHandlers, registerExportHandlers, registerProfileHandlers, registerManualOverridesHandlers, registerGitHandlers, registerScannerHandlers, registerFeatureEvidenceHandlers, registerAiHandlers, registerPortfolioHandlers, registerThemeHandlers, registerDeployHandlers } from "./ipc/index.js";
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -74,6 +74,9 @@ function initializeServices() {
   const exportService = new ExportServiceImpl(projectService, sessionService, assetService, path.join(app.getPath("userData"), "exports"));
   registerExportHandlers(exportService);
 
+  const deployService = new DeployServiceImpl();
+  registerDeployHandlers(deployService);
+
   const profileService = new RecordingProfileServiceImpl(settingsService);
   registerProfileHandlers(profileService);
 
@@ -95,8 +98,9 @@ function initializeServices() {
   const themeService = new ThemeServiceImpl(settingsService);
   registerThemeHandlers(themeService);
 
-  const portfolioGenerator = new PortfolioGeneratorImpl(projectService, sessionService, assetService, path.join(app.getPath("userData"), "portfolio"), themeService);
-  registerPortfolioHandlers(portfolioGenerator);
+  const portfolioOutputDir = path.join(app.getPath("userData"), "portfolio");
+  const portfolioGenerator = new PortfolioGeneratorImpl(projectService, sessionService, assetService, portfolioOutputDir, themeService);
+  registerPortfolioHandlers(portfolioGenerator, portfolioOutputDir);
 
   const portfolioUpdateTrigger = new PortfolioUpdateTriggerImpl(portfolioGenerator, () => {
     mainWindow?.webContents.send("portfolio:regenerated");

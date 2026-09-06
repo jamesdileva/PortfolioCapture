@@ -24,3 +24,4 @@ export { LocalAiServiceImpl, HeuristicModel } from "./local-ai-service.js";
 export { PortfolioGeneratorImpl } from "./portfolio-generator.js";
 export { ThemeServiceImpl } from "./theme-service.js";
 export { PortfolioUpdateTriggerImpl } from "./portfolio-update-trigger.js";
+export { DeployServiceImpl } from "./deploy-service.js";
