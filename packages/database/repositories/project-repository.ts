@@ -20,14 +20,15 @@ export class ProjectRepository {
       techStack: input.techStack ?? [],
       githubUrl: input.githubUrl ?? null,
       projectStatus: input.projectStatus ?? "active",
+      devServerPorts: input.devServerPorts ?? [],
       createdAt: now,
       updatedAt: now,
     };
 
     this.db
       .prepare(
-        `INSERT INTO projects (id, name, path, executable_path, launch_command, enabled, auto_record, description, features, tech_stack, github_url, project_status, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO projects (id, name, path, executable_path, launch_command, enabled, auto_record, description, features, tech_stack, github_url, project_status, dev_server_ports, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .run(
         project.id,
@@ -42,6 +43,7 @@ export class ProjectRepository {
         JSON.stringify(project.techStack),
         project.githubUrl,
         project.projectStatus,
+        JSON.stringify(project.devServerPorts),
         project.createdAt,
         project.updatedAt
       );
@@ -80,6 +82,7 @@ export class ProjectRepository {
     if (input.techStack !== undefined) { updates.push("tech_stack = ?"); values.push(JSON.stringify(input.techStack)); }
     if (input.githubUrl !== undefined) { updates.push("github_url = ?"); values.push(input.githubUrl); }
     if (input.projectStatus !== undefined) { updates.push("project_status = ?"); values.push(input.projectStatus); }
+    if (input.devServerPorts !== undefined) { updates.push("dev_server_ports = ?"); values.push(JSON.stringify(input.devServerPorts)); }
 
     if (updates.length === 0) return existing;
 
@@ -110,6 +113,7 @@ export class ProjectRepository {
       techStack: parseJsonArray(row.tech_stack as string | null),
       githubUrl: row.github_url as string | null,
       projectStatus: (row.project_status as ProjectStatus) ?? "active",
+      devServerPorts: parseJsonArray(row.dev_server_ports as string | null).map(Number).filter((n) => !isNaN(n)),
       createdAt: row.created_at as string,
       updatedAt: row.updated_at as string,
     };

@@ -188,4 +188,32 @@ describe("ProjectRepository", () => {
     expect(updated!.description).toBeNull();
     expect(updated!.githubUrl).toBeNull();
   });
+
+  it("creates project with devServerPorts", () => {
+    const created = repo.create({
+      name: "Web App",
+      path: "C:\\WebApp",
+      devServerPorts: [3000, 5173],
+    });
+    expect(created.devServerPorts).toEqual([3000, 5173]);
+
+    const found = repo.getById(created.id);
+    expect(found!.devServerPorts).toEqual([3000, 5173]);
+  });
+
+  it("defaults devServerPorts to empty array", () => {
+    const created = repo.create({ name: "No Ports", path: "C:\\NoPorts" });
+    expect(created.devServerPorts).toEqual([]);
+  });
+
+  it("updates devServerPorts", () => {
+    const created = repo.create({
+      name: "Update Ports",
+      path: "C:\\UpdatePorts",
+      devServerPorts: [3000],
+    });
+
+    const updated = repo.update(created.id, { devServerPorts: [8080, 8000] });
+    expect(updated!.devServerPorts).toEqual([8080, 8000]);
+  });
 });

@@ -2,10 +2,10 @@ import { app, BrowserWindow } from "electron";
 import * as path from "path";
 import { createDatabase, runMigrations, closeDatabase } from "../../../packages/database/index.js";
 import { ProjectRepository, SessionRepository, AssetRepository, SettingsRepository, FeatureEvidenceRepository } from "../../../packages/database/repositories/index.js";
-import { ProjectService, SessionService, AssetService, SettingsService, ProcessMonitor, FfmpegCaptureProvider, FfmpegServiceImpl, FfmpegScreenshotExtractor, IdleDetectorImpl, SmartTrimmerImpl, DemoGeneratorImpl, ExportServiceImpl, ScreenshotRankerImpl, RecordingProfileServiceImpl, ManualEditOverridesServiceImpl, GitServiceImpl, ProjectScannerImpl, FeatureEvidenceServiceImpl, LocalAiServiceImpl, PortfolioGeneratorImpl, ThemeServiceImpl, DeployServiceImpl } from "./services/index.js";
+import { ProjectService, SessionService, AssetService, SettingsService, ProcessMonitor, FfmpegCaptureProvider, FfmpegServiceImpl, FfmpegScreenshotExtractor, IdleDetectorImpl, SmartTrimmerImpl, DemoGeneratorImpl, ExportServiceImpl, ScreenshotRankerImpl, RecordingProfileServiceImpl, ManualEditOverridesServiceImpl, GitServiceImpl, ProjectScannerImpl, FeatureEvidenceServiceImpl, LocalAiServiceImpl, PortfolioGeneratorImpl, ThemeServiceImpl, DeployServiceImpl, DevServerDetectorImpl } from "./services/index.js";
 import { SessionManager } from "./services/session-manager.js";
 import { PortfolioUpdateTriggerImpl } from "./services/portfolio-update-trigger.js";
-import { registerProjectHandlers, registerSessionHandlers, registerAssetHandlers, registerSettingsHandlers, registerExportHandlers, registerProfileHandlers, registerManualOverridesHandlers, registerGitHandlers, registerScannerHandlers, registerFeatureEvidenceHandlers, registerAiHandlers, registerPortfolioHandlers, registerThemeHandlers, registerDeployHandlers } from "./ipc/index.js";
+import { registerProjectHandlers, registerSessionHandlers, registerAssetHandlers, registerSettingsHandlers, registerExportHandlers, registerProfileHandlers, registerManualOverridesHandlers, registerGitHandlers, registerScannerHandlers, registerFeatureEvidenceHandlers, registerAiHandlers, registerPortfolioHandlers, registerThemeHandlers, registerDeployHandlers, registerDevServerHandlers } from "./ipc/index.js";
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -157,6 +157,37 @@ function initializeServices() {
   });
 
   processMonitor.start().catch(() => {});
+
+  const devServerDetector = new DevServerDetectorImpl();
+  devServerDetector.setProjects(
+    projects.map((p) => ({ id: p.id, devServerPorts: p.devServerPorts, name: p.name }))
+  );
+
+  devServerDetector.onDevServerStarted(async (info, project) => {
+    if (project) {
+      await sessionManager.onProcessStarted(project);
+      const activeSession = sessionManager.getActiveSessionForProject(project.id);
+      mainWindow?.webContents.send("portfolio:devserver-started", {
+        server: info,
+        project,
+        sessionId: activeSession?.session.id,
+      });
+    }
+  });
+
+  devServerDetector.onDevServerStopped(async (info, project) => {
+    if (project) {
+      await sessionManager.onProcessStopped(project);
+      mainWindow?.webContents.send("portfolio:devserver-stopped", {
+        server: info,
+        project,
+      });
+    }
+  });
+
+  devServerDetector.start().catch(() => {});
+
+  registerDevServerHandlers(devServerDetector);
 
   return { db, projectService, sessionService, assetService, settingsService, processMonitor, sessionManager };
 }

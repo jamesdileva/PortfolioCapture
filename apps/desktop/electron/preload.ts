@@ -117,4 +117,9 @@ contextBridge.exposeInMainWorld("portfolio", {
     run: (config: { target: string; portfolioDir: string; outputDir?: string; siteName?: string }) => ipcRenderer.invoke("deploy:run", config),
     targets: () => ipcRenderer.invoke("deploy:targets"),
   },
+  devserver: {
+    status: () => ipcRenderer.invoke("devserver:status"),
+    start: () => ipcRenderer.invoke("devserver:start"),
+    stop: () => ipcRenderer.invoke("devserver:stop"),
+  },
 });

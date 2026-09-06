@@ -38,6 +38,7 @@ import type {
   ZipExportResult,
   DeployResult,
   DeployTarget,
+  DevServerInfo,
 } from "../../../../packages/shared/types/index.js";
 
 interface PortfolioProjectsAPI {
@@ -147,6 +148,12 @@ interface PortfolioDeployAPI {
   targets: () => Promise<DeployTarget[]>;
 }
 
+interface PortfolioDevServerAPI {
+  status: () => Promise<DevServerInfo[]>;
+  start: () => Promise<void>;
+  stop: () => Promise<void>;
+}
+
 interface PortfolioAPI {
   on: (channel: string, callback: (...args: unknown[]) => void) => () => void;
   projects: PortfolioProjectsAPI;
@@ -163,6 +170,7 @@ interface PortfolioAPI {
   portfolio: PortfolioGeneratorAPI;
   themes: PortfolioThemesAPI;
   deploy: PortfolioDeployAPI;
+  devserver: PortfolioDevServerAPI;
 }
 
 declare global {

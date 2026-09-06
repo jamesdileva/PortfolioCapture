@@ -11,6 +11,7 @@ export type SessionStatus =
 export type SessionTrigger =
   | "manual"
   | "process_launch"
+  | "dev_server_launch"
   | "hotkey"
   | "scheduled";
 
@@ -39,6 +40,7 @@ export interface Project {
   techStack: string[];
   githubUrl: string | null;
   projectStatus: ProjectStatus;
+  devServerPorts: number[];
   createdAt: string;
   updatedAt: string;
 }
@@ -84,6 +86,7 @@ export interface CreateProjectInput {
   techStack?: string[];
   githubUrl?: string;
   projectStatus?: ProjectStatus;
+  devServerPorts?: number[];
 }
 
 export interface UpdateProjectInput {
@@ -98,6 +101,7 @@ export interface UpdateProjectInput {
   techStack?: string[];
   githubUrl?: string | null;
   projectStatus?: ProjectStatus;
+  devServerPorts?: number[];
 }
 
 export interface CreateSessionInput {
@@ -778,4 +782,26 @@ export interface DeployService {
   previewLocal(portfolioDir: string): Promise<void>;
   deploy(config: DeployConfig): Promise<DeployResult>;
   getSupportedTargets(): DeployTarget[];
+}
+
+export interface DevServerConfig {
+  ports: number[];
+  pollIntervalMs: number;
+  requestTimeoutMs: number;
+}
+
+export interface DevServerInfo {
+  port: number;
+  url: string;
+  isRunning: boolean;
+}
+
+export interface DevServerDetector {
+  start(): Promise<void>;
+  stop(): void;
+  setProjects(projects: { id: string; devServerPorts: number[]; name: string }[]): void;
+  onDevServerStarted(callback: (info: DevServerInfo, project: { id: string; name: string } | null) => void): void;
+  onDevServerStopped(callback: (info: DevServerInfo, project: { id: string; name: string } | null) => void): void;
+  getActiveServers(): DevServerInfo[];
+  matchProject(port: number): { id: string; name: string } | null;
 }
