@@ -18,6 +18,7 @@ export function ProjectForm({ project, onSave, onCancel }: ProjectFormProps) {
   const [features, setFeatures] = useState("");
   const [techStack, setTechStack] = useState("");
   const [githubUrl, setGithubUrl] = useState("");
+  const [devServerPorts, setDevServerPorts] = useState("");
   const [projectStatus, setProjectStatus] = useState<ProjectStatus>("active");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,6 +35,7 @@ export function ProjectForm({ project, onSave, onCancel }: ProjectFormProps) {
       setFeatures(project.features.join(", "));
       setTechStack(project.techStack.join(", "));
       setGithubUrl(project.githubUrl ?? "");
+      setDevServerPorts(project.devServerPorts?.join(", ") ?? "");
       setProjectStatus(project.projectStatus);
     }
   }, [project]);
@@ -56,6 +58,9 @@ export function ProjectForm({ project, onSave, onCancel }: ProjectFormProps) {
       const parseList = (raw: string): string[] =>
         raw.split(",").map((s) => s.trim()).filter(Boolean);
 
+      const parsePorts = (raw: string): number[] =>
+        raw.split(",").map((s) => parseInt(s.trim(), 10)).filter((n) => !isNaN(n) && n > 0);
+
       if (project) {
         const input: UpdateProjectInput & { id: string } = {
           id: project.id,
@@ -69,6 +74,7 @@ export function ProjectForm({ project, onSave, onCancel }: ProjectFormProps) {
           features: parseList(features),
           techStack: parseList(techStack),
           githubUrl: githubUrl.trim() || null,
+          devServerPorts: parsePorts(devServerPorts),
           projectStatus,
         };
         await onSave(input);
@@ -84,6 +90,7 @@ export function ProjectForm({ project, onSave, onCancel }: ProjectFormProps) {
           features: parseList(features),
           techStack: parseList(techStack),
           githubUrl: githubUrl.trim() || undefined,
+          devServerPorts: parsePorts(devServerPorts),
           projectStatus,
         };
         await onSave(input);
@@ -154,6 +161,11 @@ export function ProjectForm({ project, onSave, onCancel }: ProjectFormProps) {
       <label style={labelStyle}>
         GitHub URL
         <input value={githubUrl} onChange={(e) => setGithubUrl(e.target.value)} style={inputStyle} placeholder="https://github.com/user/repo" />
+      </label>
+
+      <label style={labelStyle}>
+        Dev Server Ports (comma-separated)
+        <input value={devServerPorts} onChange={(e) => setDevServerPorts(e.target.value)} style={inputStyle} placeholder="3000, 5173, 8080" />
       </label>
 
       <label style={labelStyle}>

@@ -1677,3 +1677,85 @@
 **Notes:**
 - Resolves long-standing TODO from Sprint 1.4 (13 positional params → options object)
 - Commit: `2762847`
+
+---
+
+### 2026-09-05 — Sprint 6.1: Browser Application Detection
+
+**Agent:** agent-a
+**Status:** Complete
+
+**Objectives:**
+- DevServerDetector service: HTTP polling of configurable localhost ports
+- Detect dev server start/stop via HTTP HEAD requests
+- Associate dev servers with projects via `devServerPorts` config
+- Project `devServerPorts: number[]` field (DB migration 004)
+- SessionTrigger: `dev_server_launch`
+- IPC handlers: devserver:status, devserver:start, devserver:stop
+- Preload bridge + renderer types
+- Wire into main.ts: auto-start/stop sessions on dev server detection
+
+**Verification:**
+- `npm run test` — 595 tests pass (37 test files, 17 new)
+- `npm run build` — Vite (33 modules, 171KB) + TypeScript compile clean
+- DevServerDetectorImpl: start/stop lifecycle, polling, callbacks
+- Detects running dev server on start via `getActiveServers()`
+- Poll detects new servers (start callback) and server stops (stop callback)
+- Matches projects by `devServerPorts` config
+- Handles fetch errors gracefully (returns empty, no crash)
+- Configurable ports, poll interval, request timeout
+- ProjectRepository: create/read/update with `devServerPorts` round-trips correctly
+- Defaults `devServerPorts` to empty array when omitted
+
+**Files created:**
+- `apps/desktop/electron/services/dev-server-detector.ts` — DevServerDetectorImpl class
+- `apps/desktop/electron/ipc/dev-server.ts` — IPC handlers for devserver namespace
+- `packages/database/migrations/004_dev_server_ports.sql` — ALTER TABLE for dev_server_ports
+- `tests/unit/dev-server-detector.test.ts` — 14 tests
+
+**Files modified:**
+- `packages/shared/types/index.ts` — added DevServerConfig, DevServerInfo, DevServerDetector interfaces; added `devServerPorts` to Project/CreateProjectInput/UpdateProjectInput; added `dev_server_launch` to SessionTrigger
+- `packages/database/repositories/project-repository.ts` — create/update/rowToProject with devServerPorts
+- `apps/desktop/electron/services/index.ts` — exported DevServerDetectorImpl
+- `apps/desktop/electron/ipc/index.ts` — exported registerDevServerHandlers
+- `apps/desktop/electron/preload.ts` — added devserver namespace (status, start, stop)
+- `apps/desktop/renderer/src/types/global.d.ts` — added PortfolioDevServerAPI, DevServerInfo import
+- `apps/desktop/electron/main.ts` — wired DevServerDetectorImpl, dev server start/stop → session manager, IPC events
+- `tests/unit/project-repository.test.ts` — 3 new devServerPorts tests
+
+**Notes:**
+- Uses `fetch` (Node 18+) with HEAD method and AbortController timeout
+- HTTP-level detection confirms server is actually serving (not just port listening)
+- Same polling pattern as ProcessMonitor (snapshot initial state, detect transitions on poll)
+- Dev server detection is best-effort: errors caught and do not fail the app
+- Projects configured via `devServerPorts` array field
+- Commit: `c1f7890`
+
+---
+
+### 2026-09-05 — Sprint 6.1 Post-fix: Review Issues Addressed
+
+**Agent:** agent-a
+**Status:** Complete
+**Triggered by:** agent-b review #128, task #129
+
+**Actions taken:**
+- Fixed trigger bug: added `onDevServerStarted()`/`onDevServerStopped()` to SessionManager using `trigger: "dev_server_launch"` instead of hardcoded `"process_launch"`
+- Updated `main.ts` dev server callbacks to call new methods instead of `onProcessStarted`/`onProcessStopped`
+- Added `devServerPorts` field to ProjectForm (comma-separated numbers, parsed to `number[]`)
+- Added test: dual monitor (process + dev server) firing for same project does not create duplicate sessions
+- Added tests: `onDevServerStarted` creates session with correct trigger, `onDevServerStopped` stops active session
+
+**Verification:**
+- `npm run test` — 598 tests pass (37 test files, 3 new)
+- `npm run build` — Vite (33 modules, 172KB) + TypeScript compile clean
+
+**Files modified:**
+- `apps/desktop/electron/services/session-manager.ts` — added `onDevServerStarted()` and `onDevServerStopped()` methods
+- `apps/desktop/electron/main.ts` — changed `sessionManager.onProcessStarted` → `onDevServerStarted` in dev server callbacks
+- `apps/desktop/renderer/src/components/ProjectForm.tsx` — added `devServerPorts` state, input field, and save logic
+- `tests/unit/session-manager.test.ts` — 3 new tests (dev server start/stop, dual monitor guard)
+
+**Notes:**
+- `startSession()` guard (`activeByProject.has()`) handles both monitors firing — second call throws, caught, swallowed
+- `devServerPorts` field previously existed in DB/types but had no UI — now configurable in ProjectForm

@@ -213,6 +213,18 @@ export class SessionManager {
     await this.stopSession(project.id);
   }
 
+  async onDevServerStarted(project: { id: string; name: string }): Promise<void> {
+    try {
+      await this.startSession(project.id, "dev_server_launch");
+    } catch {
+      // swallow — project not enabled or already recording
+    }
+  }
+
+  async onDevServerStopped(project: { id: string; name: string }): Promise<void> {
+    await this.stopSession(project.id);
+  }
+
   getActiveSessionForProject(projectId: string): ActiveSession | undefined {
     return this.activeByProject.get(projectId);
   }

@@ -165,7 +165,7 @@ function initializeServices() {
 
   devServerDetector.onDevServerStarted(async (info, project) => {
     if (project) {
-      await sessionManager.onProcessStarted(project);
+      await sessionManager.onDevServerStarted(project);
       const activeSession = sessionManager.getActiveSessionForProject(project.id);
       mainWindow?.webContents.send("portfolio:devserver-started", {
         server: info,
@@ -177,7 +177,7 @@ function initializeServices() {
 
   devServerDetector.onDevServerStopped(async (info, project) => {
     if (project) {
-      await sessionManager.onProcessStopped(project);
+      await sessionManager.onDevServerStopped(project);
       mainWindow?.webContents.send("portfolio:devserver-stopped", {
         server: info,
         project,

@@ -138,6 +138,39 @@ describe("SessionManager", () => {
     expect(manager.getActiveProjectIds()).toHaveLength(0);
   });
 
+  it("onDevServerStarted creates recording session with dev_server_launch trigger", async () => {
+    const project = projectService.create({ name: "Web App", path: "/web", devServerPorts: [3000] });
+
+    await manager.onDevServerStarted({ id: project.id, name: project.name });
+
+    const sessions = sessionService.listByProject(project.id);
+    expect(sessions).toHaveLength(1);
+    expect(sessions[0].trigger).toBe("dev_server_launch");
+    expect(sessions[0].status).toBe("recording");
+  });
+
+  it("onDevServerStopped stops active session", async () => {
+    const project = projectService.create({ name: "Web App", path: "/web", devServerPorts: [3000] });
+    await manager.onDevServerStarted({ id: project.id, name: project.name });
+
+    await manager.onDevServerStopped({ id: project.id, name: project.name });
+
+    const sessions = sessionService.listByProject(project.id);
+    expect(sessions).toHaveLength(1);
+    expect(sessions[0].status).toBe("complete");
+  });
+
+  it("dual monitor (process + dev server) does not create duplicate sessions", async () => {
+    const project = projectService.create({ name: "Test", path: "/test", executablePath: "/test/app.exe", devServerPorts: [3000] });
+
+    await manager.onProcessStarted({ id: project.id, name: project.name });
+    await manager.onDevServerStarted({ id: project.id, name: project.name });
+
+    const sessions = sessionService.listByProject(project.id);
+    expect(sessions).toHaveLength(1);
+    expect(manager.getActiveSessionForProject(project.id)).toBeDefined();
+  });
+
   it("sets session rawVideoPath from capture result on stop", async () => {
     const project = projectService.create({ name: "Test", path: "/test", executablePath: "/test/app.exe" });
     captureProvider.stopResult.outputPath = "/custom/output/video.mp4";
