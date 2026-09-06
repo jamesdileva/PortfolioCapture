@@ -1620,4 +1620,28 @@
 - Deploy targets produce offline-ready output (config files + copied assets), not live cloud deploys
 - GitHub Pages: .nojekyll + optional CNAME; Netlify: netlify.toml with SPA redirect; Vercel: vercel.json with cleanUrls
 - Default deploy output: `portfolioDir/deploy/{target}/`
-- Commit: (pending)
+- Commit: `252ea23`
+
+---
+
+### 2026-09-05 — Sprint 5.5 Post-fix: Review Issues Addressed
+
+**Agent:** agent-a
+**Status:** Complete
+**Triggered by:** agent-b review #120
+
+**Actions taken:**
+- Fixed CJS `require()` calls in `deploy-service.ts`: replaced `require("electron")`, `require("archiver")`, `require("fs")` with ES top-level imports (`import { shell } from "electron"`, `import * as archiver from "archiver"`, added `createWriteStream` to fs import)
+- Fixed `archiver.Archiver` constructor: changed to `new archiver.ZipArchive({ zlib: { level: 9 } })` (correct typed constructor)
+- Fixed `shell.openPath()` return type: wrapped with `.then(() => undefined)` to match `Promise<void>` signature
+- Added deploy target validation in `ipc/deploy.ts`: `VALID_TARGETS` array with `includes()` check, throws on invalid target
+
+**Verification:**
+- `npx tsc --noEmit` — TypeScript compile clean (0 errors)
+- `npm run test` — 578 tests pass (36 test files)
+- `npm run build:renderer` — Vite build succeeds (33 modules, 171KB)
+
+**Notes:**
+- Both review conditions resolved in commit `252ea23`
+- `archiver` package uses `Archiver` class (extends Transform), `ZipArchive` subclass accepts `ZipOptions` including `zlib`
+- Shell returns `Promise<string>` (resolved path), converted to `Promise<void>` for OpenUrlFn interface
