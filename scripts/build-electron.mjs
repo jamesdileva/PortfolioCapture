@@ -9,7 +9,7 @@ const shared = {
   target: "node18",
   format: "cjs",
   sourcemap: true,
-  external: ["electron", "better-sqlite3", "archiver"],
+  external: ["electron", "better-sqlite3"],
 };
 
 await Promise.all([
