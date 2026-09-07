@@ -1935,3 +1935,39 @@
 - `npm run test` — 674 tests pass (40 test files)
 - `npm run build` — Vite + TypeScript compile clean
 - Commit: `8cd6184`
+
+---
+
+### 2026-09-06 — Electron Build Pipeline Fix
+
+**Agent:** agent-a
+**Status:** Complete
+**Triggered by:** agent-b task #147
+
+**Problem:**
+- `apps/desktop/electron/tsconfig.json` had `noEmit: true` — tsc only type-checked, never emitted JS
+- `dist/main.js` was stale from Sprint 0.1 (CommonJS, referenced nonexistent `packages/database/index.js`)
+- `packages/` had no compiled JS output — `better-sqlite3` native module required CJS but tsconfig used ESNext modules
+
+**Actions taken:**
+- Installed `esbuild` as devDependency
+- Created `scripts/build-electron.mjs` — bundles `main.ts` + `preload.ts` into single CJS outputs
+- Externalized native modules: `electron`, `better-sqlite3`, `archiver`
+- Added migration file copy step: `packages/database/migrations/` → `dist/migrations/`
+- Updated `package.json` scripts: `build:electron` and `dev:electron` now use esbuild
+- Fixed `packages/database/index.ts`: replaced `import.meta.url` pattern with `declare const __dirname` (CJS compatible after esbuild bundling)
+- Deleted stale `.js` artifacts in `packages/` (`packages/database/index.js`, `packages/shared/types/index.js`) that caused esbuild to resolve stale CJS files instead of `.ts` sources
+
+**Verification:**
+- `npm run test` — 674 tests pass (40 test files)
+- `npm run build:renderer` — Vite build succeeds (33 modules, 171KB)
+- `npm run build:electron` — esbuild bundles main.js (164KB) + preload.js (7.7KB) + migrations/
+- `npm run build` — full build succeeds
+- `dist/main.js` uses `__dirname` to locate `migrations/` directory correctly
+- `dist/migrations/` contains all 4 SQL migration files
+
+**Notes:**
+- esbuild configured for CJS output format, Node 18 target
+- Stale `.d.ts` files in `packages/` harmless (esbuild ignores them, `.gitignore` excludes `.js` artifacts)
+- `noEmit: true` left in tsconfig — tsc still used for type-checking (`npm run lint`), esbuild for actual compilation
+- Commit pending
