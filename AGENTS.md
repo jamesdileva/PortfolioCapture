@@ -1971,3 +1971,43 @@
 - Stale `.d.ts` files in `packages/` harmless (esbuild ignores them, `.gitignore` excludes `.js` artifacts)
 - `noEmit: true` left in tsconfig — tsc still used for type-checking (`npm run lint`), esbuild for actual compilation
 - Commit pending
+
+---
+
+### 2026-09-06 — Electron Packaging: .exe + Portable
+
+**Agent:** agent-a
+**Status:** Complete
+**Triggered by:** human task #153
+
+**Problem:**
+- `npm run dist` failed because `@electron/rebuild` requires Visual Studio C++ build tools to compile `better-sqlite3` from source
+- No `.exe` output was produced
+
+**Actions taken:**
+- Discovered `better-sqlite3` ships N-API prebuilt binaries in `prebuilds/win32-x64.node` (ABI-stable across Node/Electron versions)
+- Updated `electron-builder.yml`:
+  - Added `npmRebuild: false` to skip native module recompilation
+  - Added `files` entries for `better-sqlite3` prebuilts, lib, and archiver
+  - Added `portable` target alongside `nsis` for standalone .exe
+  - Removed missing `icon.ico` reference
+  - Added exclusions for source/deps/test files not needed at runtime
+
+**Verification:**
+- `npm run test` — 674 tests pass (40 test files)
+- `npm run build` — Vite + TypeScript compile clean
+- `npm run dist` — produces:
+  - `dist/Portfolio Auto Recorder Setup 0.1.0.exe` — NSIS installer (90MB)
+  - `dist/Portfolio Auto Recorder 0.1.0.exe` — portable exe (90MB)
+  - `dist/win-unpacked/` — unpacked Electron app directory
+- `better-sqlite3` native module properly included in `app.asar.unpacked/`
+- 15MB asar archive with all app code, renderer, and dependencies
+
+**Files modified:**
+- `electron-builder.yml` — npmRebuild, files, targets, icon removal
+
+**Notes:**
+- N-API v10 prebuilt binaries work across Node 22 and Electron 33 (ABI-stable)
+- No Visual Studio C++ build tools required for packaging
+- Portable exe is a single double-clickable file
+- NSIS installer provides traditional Windows install/uninstall flow
