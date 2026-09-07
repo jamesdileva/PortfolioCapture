@@ -857,3 +857,47 @@ export interface FeatureChapterGenerator {
   reorderChapters(sessionId: string, newOrder: number[]): FeatureChapterList;
   deleteChapters(sessionId: string): void;
 }
+
+export interface DemoQualityFactors {
+  visualClarity: number;
+  featureCoverage: number;
+  deadTimeRatio: number;
+  durationScore: number;
+  screenshotQuality: number;
+}
+
+export interface DemoQualityBreakdown {
+  factor: string;
+  score: number;
+  weight: number;
+  note: string | null;
+}
+
+export interface DemoQualityResult {
+  score: number;
+  factors: DemoQualityFactors;
+  breakdown: DemoQualityBreakdown[];
+  computedAt: string;
+}
+
+export interface DemoQualityScorerConfig {
+  weights: {
+    visualClarity: number;
+    featureCoverage: number;
+    deadTimeRatio: number;
+    durationScore: number;
+    screenshotQuality: number;
+  };
+  idealDurationMs: number;
+  durationToleranceMs: number;
+}
+
+export interface DemoQualityScorer {
+  score(input: {
+    videoDurationMs: number;
+    idleTimeMs: number;
+    screenshotCount: number;
+    featureCount: number;
+    fps: number;
+  }, config?: Partial<DemoQualityScorerConfig>): DemoQualityResult;
+}

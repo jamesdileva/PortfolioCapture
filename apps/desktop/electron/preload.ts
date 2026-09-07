@@ -137,4 +137,8 @@ contextBridge.exposeInMainWorld("portfolio", {
       ipcRenderer.invoke("chapters:reorder", sessionId, newOrder),
     delete: (sessionId: string) => ipcRenderer.invoke("chapters:delete", sessionId),
   },
+  quality: {
+    score: (input: { videoDurationMs: number; idleTimeMs: number; screenshotCount: number; featureCount: number; fps: number }, config?: { weights?: { visualClarity?: number; featureCoverage?: number; deadTimeRatio?: number; durationScore?: number; screenshotQuality?: number }; idealDurationMs?: number; durationToleranceMs?: number }) =>
+      ipcRenderer.invoke("quality:score", input, config),
+  },
 });

@@ -15,3 +15,4 @@ export { registerDeployHandlers } from "./deploy.js";
 export { registerDevServerHandlers } from "./dev-server.js";
 export { registerWindowHandlers } from "./windows.js";
 export { registerChapterHandlers } from "./chapters.js";
+export { registerDemoQualityHandlers } from "./demo-quality.js";

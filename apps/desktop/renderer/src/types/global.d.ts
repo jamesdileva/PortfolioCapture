@@ -43,6 +43,8 @@ import type {
   DeployTarget,
   DevServerInfo,
   WindowInfo,
+  DemoQualityResult,
+  DemoQualityScorerConfig,
 } from "../../../../packages/shared/types/index.js";
 
 interface PortfolioProjectsAPI {
@@ -171,6 +173,10 @@ interface PortfolioChaptersAPI {
   delete: (sessionId: string) => Promise<void>;
 }
 
+interface PortfolioQualityAPI {
+  score: (input: { videoDurationMs: number; idleTimeMs: number; screenshotCount: number; featureCount: number; fps: number }, config?: Partial<DemoQualityScorerConfig>) => Promise<DemoQualityResult>;
+}
+
 interface PortfolioAPI {
   on: (channel: string, callback: (...args: unknown[]) => void) => () => void;
   projects: PortfolioProjectsAPI;
@@ -190,6 +196,7 @@ interface PortfolioAPI {
   devserver: PortfolioDevServerAPI;
   windows: PortfolioWindowsAPI;
   chapters: PortfolioChaptersAPI;
+  quality: PortfolioQualityAPI;
 }
 
 declare global {
