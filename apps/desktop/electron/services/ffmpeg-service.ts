@@ -60,7 +60,12 @@ export class FfmpegServiceImpl implements FFmpegService {
       file,
     ]);
 
-    const parsed = JSON.parse(stdout);
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = JSON.parse(stdout);
+    } catch {
+      throw new Error(`Failed to parse ffprobe output for ${file}`);
+    }
 
     const videoStream = parsed.streams?.find(
       (s: { codec_type: string }) => s.codec_type === "video"

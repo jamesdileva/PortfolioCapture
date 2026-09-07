@@ -31,7 +31,16 @@ export function runMigrations(db: Database.Database): void {
     if (appliedIds.has(migrationId)) continue;
 
     const sql = fs.readFileSync(path.join(migrationsDir, file), "utf-8");
-    db.exec(sql);
+    try {
+      db.exec(sql);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes("duplicate column name")) {
+        // Column already exists — migration was partially applied or run outside the runner
+      } else {
+        throw err;
+      }
+    }
     db.prepare("INSERT INTO _migrations (id, applied_at) VALUES (?, ?)").run(
       migrationId,
       new Date().toISOString()

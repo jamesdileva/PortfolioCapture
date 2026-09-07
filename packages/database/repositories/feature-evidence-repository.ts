@@ -1,6 +1,7 @@
 import Database from "better-sqlite3";
 import { randomUUID } from "crypto";
 import type { FeatureEvidence, FeatureEvidenceStatus, FeatureEvidenceCommit, FeatureEvidenceInput, FeatureEvidenceUpdateInput } from "../../shared/types/index.js";
+import { parseJsonArray } from "../../shared/utils/parse-json-array.js";
 
 export class FeatureEvidenceRepository {
   constructor(private db: Database.Database) {}
@@ -106,15 +107,5 @@ export class FeatureEvidenceRepository {
       createdAt: row.created_at as string,
       updatedAt: row.updated_at as string,
     };
-  }
-}
-
-function parseJsonArray(raw: string | null): string[] {
-  if (!raw) return [];
-  try {
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
   }
 }
