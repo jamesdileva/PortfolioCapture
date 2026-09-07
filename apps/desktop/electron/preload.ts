@@ -125,4 +125,16 @@ contextBridge.exposeInMainWorld("portfolio", {
   windows: {
     list: () => ipcRenderer.invoke("windows:list"),
   },
+  chapters: {
+    generate: (videoPath: string, sessionId: string, featureEvidence: Array<{ id: string; projectId: string; featureName: string; description: string | null; confidence: number; status: string; commits: Array<{ sha: string; message: string; date: string }>; screenshotPaths: string[]; recordingSegmentPaths: string[]; readmeSnippet: string | null; createdAt: string; updatedAt: string }>, config?: { minChapterDurationMs?: number; mergeGapMs?: number; titleSource?: string }) =>
+      ipcRenderer.invoke("chapters:generate", videoPath, sessionId, featureEvidence, config),
+    get: (sessionId: string) => ipcRenderer.invoke("chapters:get", sessionId),
+    save: (sessionId: string, chapterList: { sessionId: string; chapters: Array<{ index: number; title: string; startMs: number; endMs: number | null; featureName: string | null; sceneScore: number }>; totalDurationMs: number; generatedAt: string }) =>
+      ipcRenderer.invoke("chapters:save", sessionId, chapterList),
+    rename: (sessionId: string, chapterIndex: number, newTitle: string) =>
+      ipcRenderer.invoke("chapters:rename", sessionId, chapterIndex, newTitle),
+    reorder: (sessionId: string, newOrder: number[]) =>
+      ipcRenderer.invoke("chapters:reorder", sessionId, newOrder),
+    delete: (sessionId: string) => ipcRenderer.invoke("chapters:delete", sessionId),
+  },
 });

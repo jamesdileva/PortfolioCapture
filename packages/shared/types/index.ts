@@ -821,3 +821,39 @@ export interface DevServerDetector {
   getActiveServers(): DevServerInfo[];
   matchProject(port: number): { id: string; name: string } | null;
 }
+
+export interface FeatureChapter {
+  index: number;
+  title: string;
+  startMs: number;
+  endMs: number | null;
+  featureName: string | null;
+  sceneScore: number;
+}
+
+export interface FeatureChapterList {
+  sessionId: string;
+  chapters: FeatureChapter[];
+  totalDurationMs: number;
+  generatedAt: string;
+}
+
+export interface FeatureChapterGeneratorConfig {
+  minChapterDurationMs: number;
+  mergeGapMs: number;
+  titleSource: "scene" | "feature" | "hybrid";
+}
+
+export interface FeatureChapterGenerator {
+  generateChapters(
+    videoPath: string,
+    sessionId: string,
+    featureEvidence: FeatureEvidence[],
+    config?: Partial<FeatureChapterGeneratorConfig>,
+  ): Promise<FeatureChapterList>;
+  getChapters(sessionId: string): FeatureChapterList | null;
+  saveChapters(sessionId: string, chapters: FeatureChapterList): void;
+  renameChapter(sessionId: string, chapterIndex: number, newTitle: string): FeatureChapter;
+  reorderChapters(sessionId: string, newOrder: number[]): FeatureChapterList;
+  deleteChapters(sessionId: string): void;
+}

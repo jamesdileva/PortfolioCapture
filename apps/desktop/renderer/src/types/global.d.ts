@@ -26,6 +26,9 @@ import type {
   FeatureEvidence,
   FeatureEvidenceInput,
   FeatureEvidenceUpdateInput,
+  FeatureChapter,
+  FeatureChapterList,
+  FeatureChapterGeneratorConfig,
   ProjectAiDescription,
   ScreenshotCaption,
   PortfolioSummary,
@@ -159,6 +162,15 @@ interface PortfolioWindowsAPI {
   list: () => Promise<WindowInfo[]>;
 }
 
+interface PortfolioChaptersAPI {
+  generate: (videoPath: string, sessionId: string, featureEvidence: FeatureEvidence[], config?: Partial<FeatureChapterGeneratorConfig>) => Promise<FeatureChapterList>;
+  get: (sessionId: string) => Promise<FeatureChapterList | null>;
+  save: (sessionId: string, chapterList: FeatureChapterList) => Promise<void>;
+  rename: (sessionId: string, chapterIndex: number, newTitle: string) => Promise<FeatureChapter>;
+  reorder: (sessionId: string, newOrder: number[]) => Promise<FeatureChapterList>;
+  delete: (sessionId: string) => Promise<void>;
+}
+
 interface PortfolioAPI {
   on: (channel: string, callback: (...args: unknown[]) => void) => () => void;
   projects: PortfolioProjectsAPI;
@@ -177,6 +189,7 @@ interface PortfolioAPI {
   deploy: PortfolioDeployAPI;
   devserver: PortfolioDevServerAPI;
   windows: PortfolioWindowsAPI;
+  chapters: PortfolioChaptersAPI;
 }
 
 declare global {

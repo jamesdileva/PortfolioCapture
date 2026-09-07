@@ -1810,3 +1810,59 @@
 - WindowEnumeratorImpl catches all errors and returns empty array (best-effort)
 - Injectable `ExecFn` for testability (same pattern as other services)
 - DisplayId still takes precedence over window title when both provided
+
+---
+
+### 2026-09-06 — Sprint 6.3: Automatic Feature Chapters
+
+**Agent:** agent-a
+**Status:** Complete
+
+**Objectives:**
+- FeatureChapterGenerator service: generate chapter markers from scene transitions + feature evidence
+- Scene-based chapter detection with configurable merge gap and min chapter duration
+- Feature-aware title derivation (hybrid, feature, or scene title modes)
+- CRUD: generate, get, save, rename, reorder, delete chapters
+- IPC handlers: chapters:generate, chapters:get, chapters:save, chapters:rename, chapters:reorder, chapters:delete
+- Preload bridge: portfolio.chapters.* namespace
+- Typed renderer API: PortfolioChaptersAPI
+
+**Verification:**
+- `npm run test` — 657 tests pass (39 test files, 44 new)
+- `npm run build:electron` — TypeScript compile clean
+- `npm run build:renderer` — Vite build (33 modules, 172KB)
+- generateChapters: no scenes → single Introduction chapter
+- generateChapters: scenes → chapters at scene boundaries
+- generateChapters: feature titles in hybrid mode, scene titles in scene mode
+- generateChapters: short chapter filtering (minChapterDurationMs)
+- generateChapters: close scene merging (mergeGapMs)
+- generateChapters: feature confidence sorting, fallback titles
+- getChapters: returns null for unknown session, throws on empty
+- saveChapters: persists and reindexes chapters
+- renameChapter: updates title, throws on missing
+- reorderChapters: reorders by original indices, preserves data
+- deleteChapters: removes chapters, no throw on nonexistent
+- formatTimestamp: zero-padded MM:SS
+- deriveTitleFromFeature: capitalizes, fallback to Feature N
+- deriveTitleFromScene: returns Chapter N
+
+**Files created:**
+- `apps/desktop/electron/services/feature-chapter-generator.ts` — FeatureChapterGeneratorImpl class
+- `apps/desktop/electron/ipc/chapters.ts` — IPC handlers for chapters namespace
+- `tests/unit/feature-chapter-generator.test.ts` — 44 tests
+
+**Files modified:**
+- `packages/shared/types/index.ts` — added FeatureChapter, FeatureChapterList, FeatureChapterGeneratorConfig, FeatureChapterGenerator interfaces
+- `apps/desktop/electron/services/index.ts` — exported FeatureChapterGeneratorImpl
+- `apps/desktop/electron/ipc/index.ts` — exported registerChapterHandlers
+- `apps/desktop/electron/main.ts` — wired FeatureChapterGeneratorImpl with SceneDetectorImpl, registerChapterHandlers
+- `apps/desktop/electron/preload.ts` — added chapters namespace (generate, get, save, rename, reorder, delete)
+- `apps/desktop/renderer/src/types/global.d.ts` — added PortfolioChaptersAPI, FeatureChapter/FeatureChapterList/FeatureChapterGeneratorConfig imports
+
+**Notes:**
+- FeatureChapterGeneratorImpl is standalone (not wired into SessionManager post-processing — UI integration deferred to future sprint)
+- Uses existing SceneDetectorImpl for scene boundary detection
+- In-memory chapter storage (Map<sessionId, FeatureChapterList>) — persistence deferred to future sprint
+- Title modes: hybrid (default) uses features when available, scene mode uses Chapter N, feature mode uses Feature N fallback
+- Short chapter filtering only skips non-last chapters (last chapter always kept)
+- Chapter indices renumbered on save/reorder for sequential ordering

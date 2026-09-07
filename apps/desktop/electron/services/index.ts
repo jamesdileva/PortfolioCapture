@@ -27,3 +27,4 @@ export { PortfolioUpdateTriggerImpl } from "./portfolio-update-trigger.js";
 export { DeployServiceImpl } from "./deploy-service.js";
 export { DevServerDetectorImpl } from "./dev-server-detector.js";
 export { WindowEnumeratorImpl } from "./window-enumerator.js";
+export { FeatureChapterGeneratorImpl } from "./feature-chapter-generator.js";
