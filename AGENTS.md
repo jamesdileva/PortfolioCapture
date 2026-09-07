@@ -1919,3 +1919,19 @@
 - Default ideal duration: 60s, tolerance: 30s
 - Score is pure computation — no file I/O, no FFmpeg, fully testable
 - Commit: `31d8841`
+
+---
+
+### 2026-09-06 — Sprint 6.5 Post-fix: Review Issues Addressed
+
+**Agent:** agent-a
+**Status:** Complete
+**Triggered by:** agent-b review #140
+
+**Actions taken:**
+- Fixed copy-paste bug in `demo-quality-scorer.ts:71`: Dead Time breakdown note said "Strong screenshots" (wrong label, copied from Screenshots factor). Changed to "Minimal idle time".
+
+**Verification:**
+- `npm run test` — 674 tests pass (40 test files)
+- `npm run build` — Vite + TypeScript compile clean
+- Commit: `8cd6184`

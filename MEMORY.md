@@ -1,50 +1,40 @@
 # MEMORY.md — Agent Working Memory
 
 ## Current Goal
-Sprint 4.4 done (aeaaf4b). 464 tests, build clean. Next: Sprint 4.5 Project Timeline.
+All sprints 0.1–6.5 complete. 674 tests, 40 files, TS clean, Vite 172KB. Phase 7 is long-term vision only (no specific sprints). Open threads to address.
 
 ## Completed
-- Sprint 0.1–4.4
-- Sprint 4.1: GitService — repo info, file metadata, IPC bridge
-- Sprint 4.2: ProjectScanner — detect project structure and technologies
-- Sprint 4.3: FeatureEvidence — generate feature candidates from git/screenshots/recordings/README
-- Sprint 4.4: Local AI — optional heuristic model with caching, IPC bridge, graceful fallback
+- Sprint 0.1–0.3: Foundation, SQLite, IPC architecture
+- Sprint 1.1–1.6: Project UI, process detection, capture, session manager, FFmpeg, recording library
+- Sprint 2.1–2.7: Screenshots, idle detection, smart trimming, demo gen, export bundle, project metadata, dashboard
+- Sprint 3.1–3.6: Highlight scoring, scene detection, timeline assembler, screenshot ranker, recording profiles, manual overrides
+- Sprint 4.1–4.5: Git service, project scanner, feature evidence, local AI, project timeline
+- Sprint 5.1–5.5: Portfolio generator, project pages, theme system, auto-update trigger, deploy/export
+- Sprint 6.1–6.5: Dev server detection, window capture, feature chapters, demo quality scoring
 
 ## Open Threads
-- execPromise duplicated in 4 files (capture-provider, smart-trimmer, demo-generator, scene-detector)
-- SessionManager constructor 11 positional params → options object
-- No UI trigger for export:project yet (Sprint 2.6+)
-- formatDuration/STATUS_COLORS duplicated across SessionList + SessionDetail
-- `npm run dev` VITE_DEV_SERVER_URL not passed to electron
-- CSP 'unsafe-inline' for scripts/styles — tighten for production
-- `npm run lint` has pre-existing tsconfig composite:true errors
-- Zod validation for IPC inputs — deferred
+- parseJsonArray duplicated in project-repository and feature-evidence-repository
+- Migration 004 ALTER TABLE not idempotent (low risk)
+- `npm run lint` pre-existing tsconfig composite:true errors
+- act() warnings in renderer tests (pre-existing, React 16)
+- FeatureChapterGenerator standalone (not wired into SessionManager post-processing)
+- DemoQualityScorer standalone (not wired into SessionManager post-processing)
+- TimelineAssembler not wired into DemoGenerator (Sprint 3.3 note)
+- Screenshot ranker injects empty interaction/segment context
+- Zod validation for IPC inputs deferred
 - probe() JSON.parse unguarded (minor)
-- selectDistributed ignores minScreenshots param (deferred)
-- Dedup tests use identical mock buffers (deferred)
-- Migration 002 ALTER TABLE not idempotent (low risk)
-- act() warnings in renderer tests (pre-existing)
-- SceneDetector not wired into SessionManager (expected, standalone)
-- TimelineAssembler not wired into SessionManager/DemoGenerator (expected, Sprint 3.5+)
-- Intro/outro behavior untested when files exist (coverage gap)
-- Screenshot ranker injects empty interaction/segment context (Sprint 3.5+)
+- CSP 'unsafe-inline' for scripts/styles (production concern)
 
 ## Key Learnings
 - `better-sqlite3` uses prebuilt binaries on Windows — no VS C++ build tools required
 - In-memory SQLite tests: use `:memory:` DB with migration SQL for fast, isolated tests
-- Timestamp-based ordering tests need manual time offset to avoid flakiness
-- Electron tsconfig needs ESNext modules to import from packages/ (monorepo structure)
-- Service layer pattern: Repository → Service → IPC handler → Preload bridge → Renderer
-- ProcessMonitor: inject execFn for testability, avoid promisify on callback exec
-- Process matching: exact path match first, then filename fallback (case-insensitive)
-- FfmpegCaptureProvider: statSync polling to detect output file created (avoids stderr parsing)
-- Vitest jsdom: `environmentMatchGlobs` for mixed node/jsdom test suites; `@renderer` alias for component imports
-- jsdom `<video>` has no ARIA role — use `container.querySelector("video")` not `getByRole("video")`
-- React 16 + @testing-library/react: `vi.stubGlobal("portfolio", ...)` to mock window.portfolio in tests
-- mockReturnValue with mutable singleton is recurring test pitfall — always use mockImplementation for factories
-- Workspace status header can be stale; always verify with git status + npm run test
-- Screenshot ranker: inject readFileBytes for testing without real PNG files, use byte sampling for similarity
-- Local AI: disabled by default, HeuristicModel extracts KEY: prefixed lines, cache by input hash (djb2)
+- Electron tsconfig needs ESNext modules for monorepo imports from packages/
+- Service layer: Repository → Service → IPC handler → Preload bridge → Renderer
+- injectable ExecFn/SpawnFn pattern for testability across all services
+- FfmpegCaptureProvider: statSync polling detects output file creation
+- Vitest jsdom: `environmentMatchGlobs` for mixed node/jsdom suites; `@renderer` alias
+- React 16: `vi.stubGlobal("portfolio", ...)` for window.portfolio mocking
+- mockReturnValue with mutable singleton is pitfall — always use mockImplementation for factories
 
 ## Directory Structure
 - apps/desktop/{electron,renderer}
