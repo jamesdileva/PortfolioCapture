@@ -68,7 +68,7 @@ function buildBreakdown(
     factor: "Dead Time",
     score: Math.round(factors.deadTimeRatio * 100),
     weight: weights.deadTimeRatio,
-    note: factors.deadTimeRatio >= 0.8 ? "Strong screenshots" : factors.deadTimeRatio < 0.5 ? `${Math.round((1 - factors.deadTimeRatio) * 100)}% idle` : null,
+    note: factors.deadTimeRatio >= 0.8 ? "Minimal idle time" : factors.deadTimeRatio < 0.5 ? `${Math.round((1 - factors.deadTimeRatio) * 100)}% idle` : null,
   });
 
   breakdown.push({
