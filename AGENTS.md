@@ -1866,3 +1866,56 @@
 - Title modes: hybrid (default) uses features when available, scene mode uses Chapter N, feature mode uses Feature N fallback
 - Short chapter filtering only skips non-last chapters (last chapter always kept)
 - Chapter indices renumbered on save/reorder for sequential ordering
+- Commit: `42f0306`
+
+---
+
+### 2026-09-06 — Sprint 6.5: Demo Quality Scoring
+
+**Agent:** agent-a
+**Status:** Complete
+
+**Objectives:**
+- DemoQualityScorerImpl: weighted-factor scoring for demo quality (0–100)
+- 5 quality factors: visual clarity (fps), feature coverage, dead time ratio, duration, screenshot quality
+- Configurable weights, ideal duration, and tolerance thresholds
+- Score breakdown with per-factor notes (human-readable)
+- Deterministic scoring for identical input; factors clamped to 0–1
+- IPC handler: quality:score
+- Preload bridge: portfolio.quality.score()
+- Typed renderer API: PortfolioQualityAPI
+
+**Verification:**
+- `npm run test` — 674 tests pass (40 test files, 17 new)
+- `npm run build:electron` — TypeScript compile clean
+- `npm run build:renderer` — Vite build (33 modules, 172KB)
+- score(): returns 0–100, all 5 breakdown factors, computedAt timestamp
+- score(): high score for ideal input (30fps, 60s, 5 features, 5 screenshots, 0 idle)
+- score(): penalizes high idle time, low fps, few features, no screenshots
+- score(): penalizes very short or very long duration
+- score(): accepts custom weights, ideal duration, tolerance
+- score(): deterministic for identical input
+- score(): handles zero video duration gracefully
+- score(): clamps factors to 0–1 range
+- score(): breakdown includes weight and notes for each factor
+- score(): idle ratio at 1.0 when no idle, decreases with more idle
+
+**Files created:**
+- `apps/desktop/electron/services/demo-quality-scorer.ts` — DemoQualityScorerImpl class
+- `apps/desktop/electron/ipc/demo-quality.ts` — IPC handler for quality:score
+- `tests/unit/demo-quality-scorer.test.ts` — 17 tests
+
+**Files modified:**
+- `packages/shared/types/index.ts` — added DemoQualityFactors, DemoQualityBreakdown, DemoQualityResult, DemoQualityScorerConfig, DemoQualityScorer interfaces
+- `apps/desktop/electron/services/index.ts` — exported DemoQualityScorerImpl
+- `apps/desktop/electron/ipc/index.ts` — exported registerDemoQualityHandlers
+- `apps/desktop/electron/main.ts` — wired DemoQualityScorerImpl, registerDemoQualityHandlers
+- `apps/desktop/electron/preload.ts` — added quality namespace (score)
+- `apps/desktop/renderer/src/types/global.d.ts` — added PortfolioQualityAPI, DemoQualityResult/DemoQualityScorerConfig imports
+
+**Notes:**
+- DemoQualityScorerImpl is standalone (not wired into SessionManager post-processing — UI integration deferred)
+- Default weights: visualClarity 0.25, featureCoverage 0.30, deadTimeRatio 0.20, durationScore 0.15, screenshotQuality 0.10
+- Default ideal duration: 60s, tolerance: 30s
+- Score is pure computation — no file I/O, no FFmpeg, fully testable
+- Commit: `31d8841`
