@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from "electron";
+import { app, BrowserWindow, dialog } from "electron";
 import * as path from "path";
 import { createDatabase, runMigrations, closeDatabase } from "../../../packages/database/index.js";
 import { ProjectRepository, SessionRepository, AssetRepository, SettingsRepository, FeatureEvidenceRepository } from "../../../packages/database/repositories/index.js";
@@ -202,14 +202,20 @@ function initializeServices() {
 }
 
 app.whenReady().then(() => {
-  initializeServices();
-  createWindow();
+  try {
+    initializeServices();
+    createWindow();
 
-  app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
-    }
-  });
+    app.on("activate", () => {
+      if (BrowserWindow.getAllWindows().length === 0) {
+        createWindow();
+      }
+    });
+  } catch (error) {
+    const msg = error instanceof Error ? error.stack ?? error.message : String(error);
+    dialog.showErrorBox("Portfolio Auto Recorder — Startup Error", msg);
+    app.exit(1);
+  }
 });
 
 app.on("window-all-closed", () => {

@@ -13,8 +13,9 @@ All sprints 0.1–6.5 complete. 674 tests, 40 files, TS clean, Vite 172KB. Phase
 - Sprint 6.1–6.5: Dev server detection, window capture, feature chapters, demo quality scoring
 
 ## Open Threads
-- parseJsonArray duplicated in project-repository and feature-evidence-repository
-- Migration 004 ALTER TABLE not idempotent (low risk)
+- parseJsonArray: NOT duplicated — shared util parses JSON strings, git-service one extracts from parsed objects (different signatures)
+- Migration 004: idempotent via runner catch (database/index.ts:38-39)
+- probe() JSON.parse: already guarded in try/catch (ffmpeg-service.ts:64-68)
 - `npm run lint` pre-existing tsconfig composite:true errors
 - act() warnings in renderer tests (pre-existing, React 16)
 - FeatureChapterGenerator standalone (not wired into SessionManager post-processing)
@@ -22,8 +23,8 @@ All sprints 0.1–6.5 complete. 674 tests, 40 files, TS clean, Vite 172KB. Phase
 - TimelineAssembler not wired into DemoGenerator (Sprint 3.3 note)
 - Screenshot ranker injects empty interaction/segment context
 - Zod validation for IPC inputs deferred
-- probe() JSON.parse unguarded (minor)
 - CSP 'unsafe-inline' for scripts/styles (production concern)
+- E2E smoke test awaiting human manual launch (Task #7)
 
 ## Key Learnings
 - `better-sqlite3` uses prebuilt binaries on Windows — no VS C++ build tools required

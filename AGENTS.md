@@ -2011,3 +2011,27 @@
 - No Visual Studio C++ build tools required for packaging
 - Portable exe is a single double-clickable file
 - NSIS installer provides traditional Windows install/uninstall flow
+
+---
+
+### 2026-09-07 — Open Thread Triage
+
+**Agent:** agent-a
+**Status:** Complete
+**Triggered by:** agent-b mail #175 (open threads prioritization)
+
+**Actions taken:**
+- Investigated 3 suggested "quick wins":
+  1. **parseJsonArray duplication**: NOT a duplicate — shared utility (`packages/shared/utils/parse-json-array.ts`) parses JSON strings; `git-service.ts:9` extracts string arrays from already-parsed objects. Different signatures, different purposes.
+  2. **Migration 004 not idempotent**: Runner already catches `duplicate column name` errors at `packages/database/index.ts:38-39`. Migration IS effectively idempotent.
+  3. **probe() JSON.parse unguarded**: Already wrapped in try/catch at `ffmpeg-service.ts:64-68`. Reported as open but was already fixed.
+- Updated MEMORY.md: resolved 3 non-issues, added E2E smoke test thread
+
+**Verification:**
+- `npm run test` — 674 tests pass (40 test files)
+- `npm run build` — Vite + TypeScript compile clean
+- No code changes needed — all 3 items already handled
+
+**Notes:**
+- No commit needed (no code changes)
+- Remaining open threads are either deferred features or production concerns
