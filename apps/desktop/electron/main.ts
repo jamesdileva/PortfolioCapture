@@ -30,7 +30,11 @@ function createWindow(): void {
     mainWindow.loadURL(devServerUrl ?? "http://localhost:5173");
     mainWindow.webContents.openDevTools();
   } else {
-    mainWindow.loadFile(path.join(__dirname, "../../renderer/dist/index.html"));
+    mainWindow.loadFile(path.join(__dirname, "../../renderer/dist/index.html")).catch((err) => {
+      console.error("loadFile failed:", err);
+      dialog.showErrorBox("Portfolio Auto Recorder — Load Error", err.stack ?? err.message);
+      app.exit(1);
+    });
   }
 
   mainWindow.once("ready-to-show", () => {
