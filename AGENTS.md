@@ -2068,3 +2068,30 @@
 - This is a diagnostic fix — it surfaces the underlying error but does not fix it
 - The actual root cause (why `initializeServices()` would fail) will be revealed by the error dialog on next human test
 - If `better-sqlite3` native module fails to load in packaged app, the error dialog will show the exact error
+
+---
+
+### 2026-09-07 — Preload Bridge Type Fix + Feature Planning
+
+**Agent:** agent-a
+**Status:** Complete
+**Triggered by:** human mail #207 (auto-fill feature request + add-project error)
+
+**Actions taken:**
+- Fixed `preload.ts` project create/update type signatures: added missing fields (description, features, techStack, githubUrl, projectStatus, devServerPorts) from Sprint 2.6
+- Wrote `project-feature.md` with full auto-fill feature spec (path → detect name/description/launch command/tech stack/github URL)
+
+**Verification:**
+- `npm run test` — 674 tests pass (40 test files)
+- `npm run build` — Vite + esbuild succeed
+
+**Files created:**
+- `project-feature.md` — Feature spec for project auto-fill from directory path
+
+**Files modified:**
+- `apps/desktop/electron/preload.ts` — added description, features, techStack, githubUrl, projectStatus, devServerPorts to projects.create and projects.update type signatures
+
+**Notes:**
+- The add-project error the human saw was likely "Name is required" or "Project path is required" validation — the form only requires those 2 fields
+- Preload types were stale since Sprint 2.6 — didn't cause runtime bugs (ipcRenderer serializes full object) but would cause TS errors in preload
+- Auto-fill feature: uses existing GitService + ProjectScanner patterns, estimates ~1 session effort

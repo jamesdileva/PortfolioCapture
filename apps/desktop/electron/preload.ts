@@ -11,9 +11,9 @@ contextBridge.exposeInMainWorld("portfolio", {
   projects: {
     list: () => ipcRenderer.invoke("projects:list"),
     get: (id: string) => ipcRenderer.invoke("projects:get", id),
-    create: (input: { name: string; path: string; executablePath?: string; launchCommand?: string; enabled?: boolean; autoRecord?: boolean }) =>
+    create: (input: { name: string; path: string; executablePath?: string; launchCommand?: string; enabled?: boolean; autoRecord?: boolean; description?: string; features?: string[]; techStack?: string[]; githubUrl?: string; projectStatus?: string; devServerPorts?: number[] }) =>
       ipcRenderer.invoke("projects:create", input),
-    update: (id: string, input: { name?: string; path?: string; executablePath?: string | null; launchCommand?: string | null; enabled?: boolean; autoRecord?: boolean }) =>
+    update: (id: string, input: { name?: string; path?: string; executablePath?: string | null; launchCommand?: string | null; enabled?: boolean; autoRecord?: boolean; description?: string | null; features?: string[]; techStack?: string[]; githubUrl?: string | null; projectStatus?: string; devServerPorts?: number[] }) =>
       ipcRenderer.invoke("projects:update", id, input),
     delete: (id: string) => ipcRenderer.invoke("projects:delete", id),
   },
