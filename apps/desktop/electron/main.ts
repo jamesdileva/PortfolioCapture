@@ -30,7 +30,7 @@ function createWindow(): void {
     mainWindow.loadURL(devServerUrl ?? "http://localhost:5173");
     mainWindow.webContents.openDevTools();
   } else {
-    mainWindow.loadFile(path.join(__dirname, "../renderer/dist/index.html"));
+    mainWindow.loadFile(path.join(__dirname, "../../renderer/dist/index.html"));
   }
 
   mainWindow.once("ready-to-show", () => {
@@ -216,6 +216,10 @@ app.whenReady().then(() => {
     dialog.showErrorBox("Portfolio Auto Recorder — Startup Error", msg);
     app.exit(1);
   }
+}).catch((err) => {
+  const msg = err instanceof Error ? err.stack ?? err.message : String(err);
+  dialog.showErrorBox("Portfolio Auto Recorder — Startup Error", msg);
+  app.exit(1);
 });
 
 app.on("window-all-closed", () => {

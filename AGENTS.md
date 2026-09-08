@@ -2035,3 +2035,36 @@
 **Notes:**
 - No commit needed (no code changes)
 - Remaining open threads are either deferred features or production concerns
+
+---
+
+### 2026-09-07 — Startup Error Handling: Fix Silent .exe Launch Failure
+
+**Agent:** agent-b
+**Status:** Complete
+**Triggered by:** human mail #187 (.exe doesn't open, no error shown)
+
+**Problem:**
+- `.exe` double-clicked: no window, no error, process not visible in Task Manager
+- Root cause: `app.whenReady().then()` in `main.ts:204` had no error handling
+- If `initializeServices()` threw (e.g. `better-sqlite3` load failure, DB migration error), the Promise rejected silently and the app exited with no feedback
+
+**Actions taken:**
+- Added `dialog` import from `electron`
+- Wrapped `initializeServices()` + `createWindow()` in try/catch
+- On error: `dialog.showErrorBox()` displays error stack, then `app.exit(1)`
+- Error dialog shows before process exits, giving human the actual startup error
+
+**Verification:**
+- `npm run test` — 674 tests pass (40 test files)
+- `npm run build` — Vite + esbuild succeed
+- `npm run dist` — portable exe + NSIS installer rebuilt
+- Commit: `83202da`
+
+**Files modified:**
+- `apps/desktop/electron/main.ts` — added try/catch + dialog.showErrorBox in app.whenReady()
+
+**Notes:**
+- This is a diagnostic fix — it surfaces the underlying error but does not fix it
+- The actual root cause (why `initializeServices()` would fail) will be revealed by the error dialog on next human test
+- If `better-sqlite3` native module fails to load in packaged app, the error dialog will show the exact error

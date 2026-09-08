@@ -1,7 +1,7 @@
 # MEMORY.md — Agent Working Memory
 
 ## Current Goal
-All sprints 0.1–6.5 complete. 674 tests, 40 files, TS clean, Vite 172KB. Phase 7 is long-term vision only (no specific sprints). Open threads to address.
+Await human E2E test of .exe (startup error dialog added, commit 83202da)
 
 ## Completed
 - Sprint 0.1–0.3: Foundation, SQLite, IPC architecture
@@ -11,6 +11,13 @@ All sprints 0.1–6.5 complete. 674 tests, 40 files, TS clean, Vite 172KB. Phase
 - Sprint 4.1–4.5: Git service, project scanner, feature evidence, local AI, project timeline
 - Sprint 5.1–5.5: Portfolio generator, project pages, theme system, auto-update trigger, deploy/export
 - Sprint 6.1–6.5: Dev server detection, window capture, feature chapters, demo quality scoring
+
+## Verified 2026-09-07
+- 674/674 tests pass (12.7s), 40 test files
+- Build: Vite 33 modules 172KB + TS clean
+- ERR_REQUIRE_ESM fixed: archiver bundled as CJS in esbuild
+- dist: portable exe + NSIS installer (90MB each)
+- Status checker false-negative: reports FAIL but exit code 0
 
 ## Open Threads
 - parseJsonArray: NOT duplicated — shared util parses JSON strings, git-service one extracts from parsed objects (different signatures)
