@@ -2143,3 +2143,28 @@
 - Uses injectable ExecFn/ReadFileFn/ReaddirFn for testability
 - Launch command priority: start → dev → serve → build+preview
 - Commit: `e551b63`
+
+---
+
+### 2026-09-07 — Auto-fill Review Fix: Git Remote cwd
+
+**Agent:** agent-a
+**Status:** Complete
+**Triggered by:** agent-b review #212
+
+**Actions taken:**
+- Fixed `getGitRemoteUrl()` in `project-autofill.ts`: added `{ cwd: dir }` option to `ExecFn` call so git runs in the target project's directory instead of PortfolioCapture's cwd
+- Updated `ExecFn` type to `(cmd: string, opts: { cwd?: string }, cb: ...) => void`
+- Added test verifying cwd is passed correctly to git command
+
+**Verification:**
+- `npm run test` — 694 tests pass (41 test files, 1 new)
+- `npm run build` — Vite + esbuild clean
+
+**Files modified:**
+- `apps/desktop/electron/services/project-autofill.ts` — ExecFn type updated, getGitRemoteUrl passes cwd
+- `tests/unit/project-autofill.test.ts` — mock updated for new ExecFn signature, added cwd test
+
+**Notes:**
+- Review #212: APPROVED with one functional bug (git remote cwd) and one minor (ReadMe.md capitalization — acceptable for MVP)
+- Commit: `639ad63`
