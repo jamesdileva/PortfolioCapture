@@ -22,6 +22,8 @@ export function ProjectForm({ project, onSave, onCancel }: ProjectFormProps) {
   const [projectStatus, setProjectStatus] = useState<ProjectStatus>("active");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [autoFilling, setAutoFilling] = useState(false);
+  const [detectStatus, setDetectStatus] = useState<string | null>(null);
 
   useEffect(() => {
     if (project) {
@@ -39,6 +41,29 @@ export function ProjectForm({ project, onSave, onCancel }: ProjectFormProps) {
       setProjectStatus(project.projectStatus);
     }
   }, [project]);
+
+  const detectFromPath = async () => {
+    const currentPath = path.trim();
+    if (!currentPath) return;
+    setAutoFilling(true);
+    setDetectStatus(null);
+    try {
+      const result = await window.portfolio.scanner.autofill(currentPath);
+      let filled = 0;
+      if (!name.trim() && result.name) { setName(result.name); filled++; }
+      if (!description.trim() && result.description) { setDescription(result.description); filled++; }
+      if (!launchCommand.trim() && result.launchCommand) { setLaunchCommand(result.launchCommand); filled++; }
+      if (!techStack.trim() && result.techStack.length > 0) { setTechStack(result.techStack.join(", ")); filled++; }
+      if (!githubUrl.trim() && result.githubUrl) { setGithubUrl(result.githubUrl); filled++; }
+      if (!executablePath.trim() && result.executablePath) { setExecutablePath(result.executablePath); filled++; }
+      setDetectStatus(filled > 0 ? `Auto-filled ${filled} field${filled > 1 ? "s" : ""}` : "No new fields to fill");
+      setTimeout(() => setDetectStatus(null), 3000);
+    } catch {
+      setDetectStatus(null);
+    } finally {
+      setAutoFilling(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -119,7 +144,13 @@ export function ProjectForm({ project, onSave, onCancel }: ProjectFormProps) {
 
       <label style={labelStyle}>
         Project Path *
-        <input value={path} onChange={(e) => setPath(e.target.value)} style={inputStyle} placeholder="C:\Projects\my-app" />
+        <div style={{ display: "flex", gap: "0.5rem" }}>
+          <input value={path} onChange={(e) => setPath(e.target.value)} onBlur={detectFromPath} style={{ ...inputStyle, flex: 1 }} placeholder="C:\Projects\my-app" />
+          <button type="button" onClick={detectFromPath} disabled={autoFilling || !path.trim()} style={{ ...btnStyle, alignSelf: "flex-start", marginTop: "0.25rem", whiteSpace: "nowrap" }}>
+            {autoFilling ? "Detecting..." : "Detect"}
+          </button>
+        </div>
+        {detectStatus && <span style={{ fontSize: "0.8em", color: "#6b8", marginTop: "0.2rem", display: "block" }}>{detectStatus}</span>}
       </label>
 
       <label style={labelStyle}>

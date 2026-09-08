@@ -16,13 +16,10 @@ Await human E2E test of .exe (startup error dialog added, commit 83202da)
 - 674/674 tests pass (12.7s), 40 test files
 - Build: Vite 33 modules 172KB + TS clean
 - ERR_REQUIRE_ESM fixed: archiver bundled as CJS in esbuild
-- dist: portable exe + NSIS installer (90MB each)
-- Status checker false-negative: reports FAIL but exit code 0
+- Renderer path fix committed: 55a157c + 6800482
+- dist: portable exe + NSIS installer (90MB each), ready for human retest
 
 ## Open Threads
-- parseJsonArray: NOT duplicated — shared util parses JSON strings, git-service one extracts from parsed objects (different signatures)
-- Migration 004: idempotent via runner catch (database/index.ts:38-39)
-- probe() JSON.parse: already guarded in try/catch (ffmpeg-service.ts:64-68)
 - `npm run lint` pre-existing tsconfig composite:true errors
 - act() warnings in renderer tests (pre-existing, React 16)
 - FeatureChapterGenerator standalone (not wired into SessionManager post-processing)
@@ -31,7 +28,7 @@ Await human E2E test of .exe (startup error dialog added, commit 83202da)
 - Screenshot ranker injects empty interaction/segment context
 - Zod validation for IPC inputs deferred
 - CSP 'unsafe-inline' for scripts/styles (production concern)
-- E2E smoke test awaiting human manual launch (Task #7)
+- E2E smoke test awaiting human retest (Task #7)
 
 ## Key Learnings
 - `better-sqlite3` uses prebuilt binaries on Windows — no VS C++ build tools required

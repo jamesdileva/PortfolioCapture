@@ -901,3 +901,16 @@ export interface DemoQualityScorer {
     fps: number;
   }, config?: Partial<DemoQualityScorerConfig>): DemoQualityResult;
 }
+
+export interface ProjectAutoFillResult {
+  name: string | null;
+  description: string | null;
+  launchCommand: string | null;
+  techStack: string[];
+  githubUrl: string | null;
+  executablePath: string | null;
+}
+
+export interface ProjectAutoFillService {
+  detect(projectPath: string): Promise<ProjectAutoFillResult>;
+}

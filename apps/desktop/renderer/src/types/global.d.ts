@@ -45,6 +45,7 @@ import type {
   WindowInfo,
   DemoQualityResult,
   DemoQualityScorerConfig,
+  ProjectAutoFillResult,
 } from "../../../../packages/shared/types/index.js";
 
 interface PortfolioProjectsAPI {
@@ -111,6 +112,7 @@ interface PortfolioGitAPI {
 
 interface PortfolioScannerAPI {
   scan: (projectPath: string) => Promise<ProjectStructure>;
+  autofill: (projectPath: string) => Promise<ProjectAutoFillResult>;
 }
 
 interface PortfolioFeatureEvidenceAPI {

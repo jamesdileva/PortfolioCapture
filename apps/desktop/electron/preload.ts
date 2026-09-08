@@ -73,6 +73,7 @@ contextBridge.exposeInMainWorld("portfolio", {
   },
   scanner: {
     scan: (projectPath: string) => ipcRenderer.invoke("scanner:scan", projectPath),
+    autofill: (projectPath: string) => ipcRenderer.invoke("scanner:autofill", projectPath),
   },
   featureEvidence: {
     generate: (projectId: string) => ipcRenderer.invoke("feature-evidence:generate", projectId),
