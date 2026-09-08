@@ -2095,3 +2095,51 @@
 - The add-project error the human saw was likely "Name is required" or "Project path is required" validation — the form only requires those 2 fields
 - Preload types were stale since Sprint 2.6 — didn't cause runtime bugs (ipcRenderer serializes full object) but would cause TS errors in preload
 - Auto-fill feature: uses existing GitService + ProjectScanner patterns, estimates ~1 session effort
+
+---
+
+### 2026-09-07 — Feature: Project Auto-Fill
+
+**Agent:** agent-a
+**Status:** Complete
+**Triggered by:** human mail #207 (auto-fill feature request)
+
+**Objectives:**
+- ProjectAutoFillServiceImpl: detect name, description, launch command, tech stack, GitHub URL, executable path from directory scan
+- IPC handler: scanner:autofill
+- Preload bridge: portfolio.scanner.autofill()
+- ProjectForm: onBlur auto-detect + manual Detect button, non-destructive fill
+- 19 unit tests covering all detection paths
+
+**Verification:**
+- `npm run test` — 693 tests pass (41 test files, 19 new)
+- `npm run build` — Vite (33 modules, 172KB) + esbuild clean
+- detect(): name from package.json or basename(dir)
+- detect(): description from README.md first paragraph
+- detect(): launch command from scripts.start → scripts.dev → scripts.serve → build+preview
+- detect(): tech stack from package.json deps + config files (tsconfig, vite, docker, etc.)
+- detect(): GitHub URL from git remote get-url origin
+- detect(): executable path from directory scan (.exe, .bat, .cmd, .msi)
+- detect(): exe path input → derives parent directory
+- detect(): malformed package.json, missing README handled gracefully
+- ProjectForm: onBlur triggers detect, Detect button triggers detect
+- ProjectForm: non-destructive — only fills empty fields, shows "Auto-filled N fields" indicator
+
+**Files created:**
+- `apps/desktop/electron/services/project-autofill.ts` — ProjectAutoFillServiceImpl class
+- `tests/unit/project-autofill.test.ts` — 19 tests
+
+**Files modified:**
+- `packages/shared/types/index.ts` — added ProjectAutoFillResult, ProjectAutoFillService interfaces
+- `apps/desktop/electron/services/index.ts` — exported ProjectAutoFillServiceImpl
+- `apps/desktop/electron/ipc/scanner.ts` — added scanner:autofill handler
+- `apps/desktop/electron/preload.ts` — added autofill to scanner namespace
+- `apps/desktop/renderer/src/types/global.d.ts` — added autofill to PortfolioScannerAPI, ProjectAutoFillResult import
+- `apps/desktop/renderer/src/components/ProjectForm.tsx` — added auto-fill UI (onBlur + Detect button + status indicator)
+- `apps/desktop/electron/main.ts` — wired ProjectAutoFillServiceImpl
+
+**Notes:**
+- Auto-fill is non-destructive: only fills empty fields, preserves user input
+- Uses injectable ExecFn/ReadFileFn/ReaddirFn for testability
+- Launch command priority: start → dev → serve → build+preview
+- Commit: `e551b63`

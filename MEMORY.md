@@ -1,22 +1,20 @@
 # MEMORY.md — Agent Working Memory
 
 ## Current Goal
-Await human E2E test of .exe (startup error dialog added, commit 83202da)
+Await human E2E retest of .exe; auto-fill feature shipped
 
 ## Completed
-- Sprint 0.1–0.3: Foundation, SQLite, IPC architecture
-- Sprint 1.1–1.6: Project UI, process detection, capture, session manager, FFmpeg, recording library
-- Sprint 2.1–2.7: Screenshots, idle detection, smart trimming, demo gen, export bundle, project metadata, dashboard
-- Sprint 3.1–3.6: Highlight scoring, scene detection, timeline assembler, screenshot ranker, recording profiles, manual overrides
-- Sprint 4.1–4.5: Git service, project scanner, feature evidence, local AI, project timeline
-- Sprint 5.1–5.5: Portfolio generator, project pages, theme system, auto-update trigger, deploy/export
-- Sprint 6.1–6.5: Dev server detection, window capture, feature chapters, demo quality scoring
+- Sprint 0.1–6.5: All sprints complete
+- ERR_REQUIRE_ESM fixed (b335889)
+- Startup error dialog added (83202da)
+- Renderer path fix committed (55a157c + 6800482)
+- Process-level crash handlers added to esbuild banner (fca420b)
+- Preload bridge type fix: added Sprint 2.6 fields (4403230)
+- Feature: Project Auto-Fill from directory path (e551b63)
 
 ## Verified 2026-09-07
-- 674/674 tests pass (12.7s), 40 test files
-- Build: Vite 33 modules 172KB + TS clean
-- ERR_REQUIRE_ESM fixed: archiver bundled as CJS in esbuild
-- Renderer path fix committed: 55a157c + 6800482
+- 693/693 tests pass (12.8s), 41 test files
+- Build: Vite 33 modules 172KB + esbuild clean
 - dist: portable exe + NSIS installer (90MB each), ready for human retest
 
 ## Open Threads
