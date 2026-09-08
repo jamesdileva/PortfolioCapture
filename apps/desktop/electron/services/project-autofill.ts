@@ -3,7 +3,7 @@ import { readFile as defaultReadFile, readdir as defaultReaddir } from "fs/promi
 import { join, basename, dirname, extname } from "path";
 import { exec as defaultExec } from "child_process";
 
-type ExecFn = (cmd: string, cb: (err: Error | null, stdout: string, stderr: string) => void) => void;
+type ExecFn = (cmd: string, opts: { cwd?: string }, cb: (err: Error | null, stdout: string, stderr: string) => void) => void;
 type ReadFileFn = (path: string, encoding: BufferEncoding) => Promise<string>;
 type ReaddirFn = (path: string) => Promise<string[]>;
 
@@ -176,7 +176,7 @@ export class ProjectAutoFillServiceImpl {
 
   private async getGitRemoteUrl(dir: string): Promise<string | null> {
     return new Promise((resolve) => {
-      this.execFn("git remote get-url origin", (err, stdout) => {
+      this.execFn("git remote get-url origin", { cwd: dir }, (err, stdout) => {
         if (err) {
           resolve(null);
           return;

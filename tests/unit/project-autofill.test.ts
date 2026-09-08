@@ -3,7 +3,7 @@ import * as path from "path";
 import { ProjectAutoFillServiceImpl } from "../../apps/desktop/electron/services/project-autofill.js";
 
 function createMockExec(result: string, error?: Error) {
-  return vi.fn((_cmd: string, cb: (err: Error | null, stdout: string, stderr: string) => void) => {
+  return vi.fn((_cmd: string, _opts: { cwd?: string }, cb: (err: Error | null, stdout: string, stderr: string) => void) => {
     cb(error ?? null, result, "");
   });
 }
@@ -138,6 +138,20 @@ describe("ProjectAutoFillServiceImpl", () => {
 
       const result = await svc.detect("/projects/app");
       expect(result.githubUrl).toBe("https://github.com/user/repo");
+    });
+
+    it("passes cwd to git remote command", async () => {
+      const readFile = createMockReadFile({});
+      const readdir = createMockReaddir([]);
+      const exec = createMockExec("https://github.com/user/repo.git\n");
+      const svc = new ProjectAutoFillServiceImpl(exec, readFile, readdir);
+
+      await svc.detect("/projects/my-app");
+      expect(exec).toHaveBeenCalledWith(
+        "git remote get-url origin",
+        { cwd: "/projects/my-app" },
+        expect.any(Function),
+      );
     });
 
     it("normalizes https git URL", async () => {
