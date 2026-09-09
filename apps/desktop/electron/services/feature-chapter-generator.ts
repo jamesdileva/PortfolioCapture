@@ -66,7 +66,7 @@ export class FeatureChapterGeneratorImpl implements FeatureChapterGenerator {
 
     const cfg = { ...DEFAULT_CONFIG, ...config };
 
-    const scenes = await this.sceneDetector.detect(videoPath);
+    const scenes = cfg.scenes ?? await this.sceneDetector.detect(videoPath);
     const sortedScenes = mergeCloseScenes(
       [...scenes].sort((a, b) => a.timestampMs - b.timestampMs),
       cfg.mergeGapMs,

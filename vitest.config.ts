@@ -14,5 +14,8 @@ export default defineConfig({
     environmentMatchGlobs: [
       ["tests/renderer/**/*.test.tsx", "jsdom"],
     ],
+    onConsoleLog(msg) {
+      if (msg.includes("not wrapped in act")) return false;
+    },
   },
 });

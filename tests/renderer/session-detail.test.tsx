@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, act } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { RecordingSession, Project, MediaAsset } from "../../../packages/shared/types/index.js";
@@ -34,18 +34,24 @@ beforeEach(() => {
 });
 
 describe("SessionDetail", () => {
-  it("renders back button", () => {
-    render(<SessionDetail session={completeSession} project={project} onBack={() => {}} onDelete={() => {}} />);
+  it("renders back button", async () => {
+    await act(async () => {
+      render(<SessionDetail session={completeSession} project={project} onBack={() => {}} onDelete={() => {}} />);
+    });
     expect(screen.getByText(/Back to recordings/)).toBeInTheDocument();
   });
 
-  it("renders project name in heading", () => {
-    render(<SessionDetail session={completeSession} project={project} onBack={() => {}} onDelete={() => {}} />);
+  it("renders project name in heading", async () => {
+    await act(async () => {
+      render(<SessionDetail session={completeSession} project={project} onBack={() => {}} onDelete={() => {}} />);
+    });
     expect(screen.getByText(/My App/)).toBeInTheDocument();
   });
 
-  it("renders Unknown Project when project is undefined", () => {
-    render(<SessionDetail session={completeSession} project={undefined} onBack={() => {}} onDelete={() => {}} />);
+  it("renders Unknown Project when project is undefined", async () => {
+    await act(async () => {
+      render(<SessionDetail session={completeSession} project={undefined} onBack={() => {}} onDelete={() => {}} />);
+    });
     expect(screen.getByText(/Unknown Project/)).toBeInTheDocument();
   });
 
@@ -81,17 +87,25 @@ describe("SessionDetail", () => {
     });
   });
 
-  it("calls onBack when back button is clicked", () => {
+  it("calls onBack when back button is clicked", async () => {
     let called = false;
-    render(<SessionDetail session={completeSession} project={project} onBack={() => { called = true; }} onDelete={() => {}} />);
-    screen.getByText(/Back to recordings/).click();
+    await act(async () => {
+      render(<SessionDetail session={completeSession} project={project} onBack={() => { called = true; }} onDelete={() => {}} />);
+    });
+    await act(async () => {
+      screen.getByText(/Back to recordings/).click();
+    });
     expect(called).toBe(true);
   });
 
-  it("calls onDelete when delete button is clicked", () => {
+  it("calls onDelete when delete button is clicked", async () => {
     let deleted: RecordingSession | null = null;
-    render(<SessionDetail session={completeSession} project={project} onBack={() => {}} onDelete={(s) => { deleted = s; }} />);
-    screen.getByText("Delete").click();
+    await act(async () => {
+      render(<SessionDetail session={completeSession} project={project} onBack={() => {}} onDelete={(s) => { deleted = s; }} />);
+    });
+    await act(async () => {
+      screen.getByText("Delete").click();
+    });
     expect(deleted).toEqual(completeSession);
   });
 });

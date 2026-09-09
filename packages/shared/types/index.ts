@@ -842,6 +842,7 @@ export interface FeatureChapterGeneratorConfig {
   minChapterDurationMs: number;
   mergeGapMs: number;
   titleSource: "scene" | "feature" | "hybrid";
+  scenes?: Scene[];
 }
 
 export interface FeatureChapterGenerator {

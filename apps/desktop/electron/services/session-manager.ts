@@ -208,9 +208,9 @@ export class SessionManager {
 
         await this.generateDemo(active.session.id, active.projectId, trimmedVideoPath, active.profileSettings);
 
-        await this.assembleTimeline(active.session.id, active.projectId, result.outputPath, timeline);
+        const scenes = await this.assembleTimeline(active.session.id, active.projectId, result.outputPath, timeline);
 
-        await this.generateChapters(active.session.id, active.projectId, result.outputPath);
+        await this.generateChapters(active.session.id, active.projectId, result.outputPath, scenes);
 
         this.scoreDemoQuality(active.session.id, active.projectId, timeline);
       } else {
@@ -405,9 +405,9 @@ export class SessionManager {
     projectId: string,
     rawVideoPath: string,
     timeline: IdleSegment[],
-  ): Promise<void> {
+  ): Promise<import("../../../../packages/shared/types/index.js").Scene[]> {
     if (!this.timelineAssembler || !this.sceneDetector || !this.settingsService) {
-      return;
+      return [];
     }
 
     try {
@@ -418,8 +418,10 @@ export class SessionManager {
 
       const result = this.timelineAssembler.assemble(scenes, [], videoDurationMs);
       this.settingsService.set(`assembled-timeline:${sessionId}`, JSON.stringify(result));
+      return scenes;
     } catch {
       // Timeline assembly is best-effort; don't fail the session
+      return [];
     }
   }
 
@@ -427,6 +429,7 @@ export class SessionManager {
     sessionId: string,
     projectId: string,
     rawVideoPath: string,
+    preDetectedScenes?: import("../../../../packages/shared/types/index.js").Scene[],
   ): Promise<void> {
     if (!this.featureChapterGenerator || !this.featureEvidenceService) {
       return;
@@ -434,7 +437,16 @@ export class SessionManager {
 
     try {
       const evidence = this.featureEvidenceService.list(projectId);
-      await this.featureChapterGenerator.generateChapters(rawVideoPath, sessionId, evidence);
+      const chapters = await this.featureChapterGenerator.generateChapters(
+        rawVideoPath,
+        sessionId,
+        evidence,
+        preDetectedScenes && preDetectedScenes.length > 0 ? { scenes: preDetectedScenes } : undefined,
+      );
+      this.featureChapterGenerator.saveChapters(sessionId, chapters);
+      if (this.settingsService) {
+        this.settingsService.set(`demo-chapters:${sessionId}`, JSON.stringify(chapters));
+      }
     } catch {
       // Chapter generation is best-effort; don't fail the session
     }
