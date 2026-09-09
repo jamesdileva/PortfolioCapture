@@ -336,4 +336,128 @@ describe("SessionManager", () => {
       await manager.stopSession(project.id);
     });
   });
+
+  describe("post-processing pipeline integration", () => {
+    let settingsService: SettingsService;
+
+    beforeEach(() => {
+      settingsService = new SettingsService(new SettingsRepository(db));
+    });
+
+    function createManagerWithPostProcessing() {
+      const assembleFn = vi.fn().mockReturnValue({ segments: [{ startMs: 0, endMs: 10000, label: "Feature 1", priority: 1 }], spanMs: 10000 });
+      const detectFn = vi.fn().mockResolvedValue([{ timestampMs: 0, score: 1 }]);
+      const generateChaptersFn = vi.fn().mockResolvedValue({ sessionId: "s1", chapters: [], totalDurationMs: 0, generatedAt: "" });
+      const scoreFn = vi.fn().mockReturnValue({ score: 75, factors: {}, breakdown: [], computedAt: "" });
+      const listEvidenceFn = vi.fn().mockReturnValue([]);
+
+      const mgr = new SessionManager({
+        sessionService,
+        captureProvider,
+        projectService,
+        config: { outputRoot: "data/recordings" },
+        settingsService,
+        timelineAssembler: { assemble: assembleFn },
+        sceneDetector: { detect: detectFn },
+        featureChapterGenerator: { generateChapters: generateChaptersFn, getChapters: vi.fn(), saveChapters: vi.fn(), renameChapter: vi.fn(), reorderChapters: vi.fn(), deleteChapters: vi.fn() },
+        demoQualityScorer: { score: scoreFn },
+        featureEvidenceService: { list: listEvidenceFn, generate: vi.fn(), getById: vi.fn(), save: vi.fn(), update: vi.fn(), accept: vi.fn(), reject: vi.fn(), delete: vi.fn() },
+      });
+
+      return { mgr, assembleFn, detectFn, generateChaptersFn, scoreFn, listEvidenceFn };
+    }
+
+    it("calls assembleTimeline after stop", async () => {
+      const { mgr, assembleFn, detectFn } = createManagerWithPostProcessing();
+      const project = projectService.create({ name: "Test", path: "/test", executablePath: "/test/app.exe" });
+
+      await mgr.startSession(project.id, "manual");
+      await mgr.stopSession(project.id);
+
+      expect(detectFn).toHaveBeenCalled();
+      expect(assembleFn).toHaveBeenCalled();
+    });
+
+    it("calls generateChapters after stop", async () => {
+      const { mgr, generateChaptersFn } = createManagerWithPostProcessing();
+      const project = projectService.create({ name: "Test", path: "/test", executablePath: "/test/app.exe" });
+
+      await mgr.startSession(project.id, "manual");
+      await mgr.stopSession(project.id);
+
+      expect(generateChaptersFn).toHaveBeenCalled();
+    });
+
+    it("calls demoQualityScorer after stop", async () => {
+      const { mgr, scoreFn } = createManagerWithPostProcessing();
+      const project = projectService.create({ name: "Test", path: "/test", executablePath: "/test/app.exe" });
+
+      await mgr.startSession(project.id, "manual");
+      await mgr.stopSession(project.id);
+
+      expect(scoreFn).toHaveBeenCalled();
+    });
+
+    it("stores assembled timeline in settings", async () => {
+      const { mgr } = createManagerWithPostProcessing();
+      const project = projectService.create({ name: "Test", path: "/test", executablePath: "/test/app.exe" });
+
+      await mgr.startSession(project.id, "manual");
+      const completed = await mgr.stopSession(project.id);
+
+      const stored = settingsService.get(`assembled-timeline:${completed!.id}`);
+      expect(stored).not.toBeNull();
+      const timeline = JSON.parse(stored!);
+      expect(timeline.segments).toBeDefined();
+    });
+
+    it("stores demo quality in settings", async () => {
+      const { mgr } = createManagerWithPostProcessing();
+      const project = projectService.create({ name: "Test", path: "/test", executablePath: "/test/app.exe" });
+
+      await mgr.startSession(project.id, "manual");
+      const completed = await mgr.stopSession(project.id);
+
+      const stored = settingsService.get(`demo-quality:${completed!.id}`);
+      expect(stored).not.toBeNull();
+      const quality = JSON.parse(stored!);
+      expect(quality.score).toBe(75);
+    });
+
+    it("does not fail session when post-processing throws", async () => {
+      const assembleFn = vi.fn().mockImplementation(() => { throw new Error("assembly failed"); });
+      const detectFn = vi.fn().mockResolvedValue([]);
+      const generateChaptersFn = vi.fn().mockImplementation(() => { throw new Error("chapters failed"); });
+      const scoreFn = vi.fn().mockImplementation(() => { throw new Error("scoring failed"); });
+
+      const mgr = new SessionManager({
+        sessionService,
+        captureProvider,
+        projectService,
+        config: { outputRoot: "data/recordings" },
+        settingsService,
+        timelineAssembler: { assemble: assembleFn },
+        sceneDetector: { detect: detectFn },
+        featureChapterGenerator: { generateChapters: generateChaptersFn, getChapters: vi.fn(), saveChapters: vi.fn(), renameChapter: vi.fn(), reorderChapters: vi.fn(), deleteChapters: vi.fn() },
+        demoQualityScorer: { score: scoreFn },
+        featureEvidenceService: { list: vi.fn(), generate: vi.fn(), getById: vi.fn(), save: vi.fn(), update: vi.fn(), accept: vi.fn(), reject: vi.fn(), delete: vi.fn() },
+      });
+
+      const project = projectService.create({ name: "Test", path: "/test", executablePath: "/test/app.exe" });
+      await mgr.startSession(project.id, "manual");
+      const completed = await mgr.stopSession(project.id);
+
+      expect(completed).not.toBeNull();
+      expect(completed!.status).toBe("complete");
+    });
+
+    it("skips post-processing when deps not provided", async () => {
+      const project = projectService.create({ name: "Test", path: "/test", executablePath: "/test/app.exe" });
+      await manager.startSession(project.id, "manual");
+      const completed = await manager.stopSession(project.id);
+
+      expect(completed).not.toBeNull();
+      expect(completed!.status).toBe("complete");
+    });
+  });
 });

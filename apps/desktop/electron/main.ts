@@ -2,7 +2,7 @@ import { app, BrowserWindow, dialog } from "electron";
 import * as path from "path";
 import { createDatabase, runMigrations, closeDatabase } from "../../../packages/database/index.js";
 import { ProjectRepository, SessionRepository, AssetRepository, SettingsRepository, FeatureEvidenceRepository } from "../../../packages/database/repositories/index.js";
-import { ProjectService, SessionService, AssetService, SettingsService, ProcessMonitor, FfmpegCaptureProvider, FfmpegServiceImpl, FfmpegScreenshotExtractor, IdleDetectorImpl, SmartTrimmerImpl, DemoGeneratorImpl, ExportServiceImpl, ScreenshotRankerImpl, RecordingProfileServiceImpl, ManualEditOverridesServiceImpl, GitServiceImpl, ProjectScannerImpl, FeatureEvidenceServiceImpl, LocalAiServiceImpl, PortfolioGeneratorImpl, ThemeServiceImpl, DeployServiceImpl, DevServerDetectorImpl, WindowEnumeratorImpl, FeatureChapterGeneratorImpl, SceneDetectorImpl, DemoQualityScorerImpl, ProjectAutoFillServiceImpl } from "./services/index.js";
+import { ProjectService, SessionService, AssetService, SettingsService, ProcessMonitor, FfmpegCaptureProvider, FfmpegServiceImpl, FfmpegScreenshotExtractor, IdleDetectorImpl, SmartTrimmerImpl, DemoGeneratorImpl, ExportServiceImpl, ScreenshotRankerImpl, TimelineAssemblerImpl, RecordingProfileServiceImpl, ManualEditOverridesServiceImpl, GitServiceImpl, ProjectScannerImpl, FeatureEvidenceServiceImpl, LocalAiServiceImpl, PortfolioGeneratorImpl, ThemeServiceImpl, DeployServiceImpl, DevServerDetectorImpl, WindowEnumeratorImpl, FeatureChapterGeneratorImpl, SceneDetectorImpl, DemoQualityScorerImpl, ProjectAutoFillServiceImpl } from "./services/index.js";
 import { SessionManager } from "./services/session-manager.js";
 import { PortfolioUpdateTriggerImpl } from "./services/portfolio-update-trigger.js";
 import { registerProjectHandlers, registerSessionHandlers, registerAssetHandlers, registerSettingsHandlers, registerExportHandlers, registerProfileHandlers, registerManualOverridesHandlers, registerGitHandlers, registerScannerHandlers, registerFeatureEvidenceHandlers, registerAiHandlers, registerPortfolioHandlers, registerThemeHandlers, registerDeployHandlers, registerDevServerHandlers, registerWindowHandlers, registerChapterHandlers, registerDemoQualityHandlers } from "./ipc/index.js";
@@ -70,6 +70,10 @@ function initializeServices() {
   const smartTrimmer = new SmartTrimmerImpl(ffmpegService);
   const demoGenerator = new DemoGeneratorImpl(ffmpegService);
   const screenshotRanker = new ScreenshotRankerImpl();
+  const timelineAssembler = new TimelineAssemblerImpl();
+  const sceneDetector = new SceneDetectorImpl();
+  const chapterGenerator = new FeatureChapterGeneratorImpl(sceneDetector);
+  const demoQualityScorer = new DemoQualityScorerImpl();
 
   registerProjectHandlers(projectService);
   registerAssetHandlers(assetService);
@@ -123,6 +127,11 @@ function initializeServices() {
     smartTrimmer,
     demoGenerator,
     screenshotRanker,
+    timelineAssembler,
+    featureChapterGenerator: chapterGenerator,
+    demoQualityScorer,
+    featureEvidenceService,
+    sceneDetector,
     onSessionComplete: () => {
       portfolioUpdateTrigger.requestUpdate();
     },
@@ -197,10 +206,8 @@ function initializeServices() {
   const windowEnumerator = new WindowEnumeratorImpl();
   registerWindowHandlers(windowEnumerator);
 
-  const chapterGenerator = new FeatureChapterGeneratorImpl(new SceneDetectorImpl());
   registerChapterHandlers(chapterGenerator);
 
-  const demoQualityScorer = new DemoQualityScorerImpl();
   registerDemoQualityHandlers(demoQualityScorer);
 
   return { db, projectService, sessionService, assetService, settingsService, processMonitor, sessionManager };

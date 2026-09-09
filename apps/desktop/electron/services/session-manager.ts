@@ -14,6 +14,11 @@ import type {
   ScreenshotRanker,
   RecordingProfileSettings,
   CaptureMode,
+  TimelineAssembler,
+  FeatureChapterGenerator,
+  DemoQualityScorer,
+  FeatureEvidenceService,
+  SceneDetector,
 } from "../../../../packages/shared/types/index.js";
 import type { SessionService } from "./session-service.js";
 import type { ProjectService } from "./project-service.js";
@@ -61,6 +66,11 @@ export interface SessionManagerOptions {
   smartTrimmer?: SmartTrimmer;
   demoGenerator?: DemoGenerator;
   screenshotRanker?: ScreenshotRanker;
+  timelineAssembler?: TimelineAssembler;
+  featureChapterGenerator?: FeatureChapterGenerator;
+  demoQualityScorer?: DemoQualityScorer;
+  featureEvidenceService?: FeatureEvidenceService;
+  sceneDetector?: SceneDetector;
   onSessionComplete?: (projectId: string, sessionId: string) => void;
 }
 
@@ -77,6 +87,11 @@ export class SessionManager {
   private smartTrimmer?: SmartTrimmer;
   private demoGenerator?: DemoGenerator;
   private screenshotRanker?: ScreenshotRanker;
+  private timelineAssembler?: TimelineAssembler;
+  private featureChapterGenerator?: FeatureChapterGenerator;
+  private demoQualityScorer?: DemoQualityScorer;
+  private featureEvidenceService?: FeatureEvidenceService;
+  private sceneDetector?: SceneDetector;
   private onSessionComplete?: (projectId: string, sessionId: string) => void;
 
   constructor(options: SessionManagerOptions) {
@@ -91,6 +106,11 @@ export class SessionManager {
     this.smartTrimmer = options.smartTrimmer;
     this.demoGenerator = options.demoGenerator;
     this.screenshotRanker = options.screenshotRanker;
+    this.timelineAssembler = options.timelineAssembler;
+    this.featureChapterGenerator = options.featureChapterGenerator;
+    this.demoQualityScorer = options.demoQualityScorer;
+    this.featureEvidenceService = options.featureEvidenceService;
+    this.sceneDetector = options.sceneDetector;
     this.onSessionComplete = options.onSessionComplete;
   }
 
@@ -187,6 +207,12 @@ export class SessionManager {
         const trimmedVideoPath = await this.trimVideo(active.session.id, active.projectId, result.outputPath, timeline);
 
         await this.generateDemo(active.session.id, active.projectId, trimmedVideoPath, active.profileSettings);
+
+        await this.assembleTimeline(active.session.id, active.projectId, result.outputPath, timeline);
+
+        await this.generateChapters(active.session.id, active.projectId, result.outputPath);
+
+        this.scoreDemoQuality(active.session.id, active.projectId, timeline);
       } else {
         await this.extractScreenshots(active.session.id, active.projectId, result.outputPath, active.profileSettings);
       }
@@ -371,6 +397,88 @@ export class SessionManager {
       });
     } catch {
       // Demo generation is best-effort; don't fail the session
+    }
+  }
+
+  private async assembleTimeline(
+    sessionId: string,
+    projectId: string,
+    rawVideoPath: string,
+    timeline: IdleSegment[],
+  ): Promise<void> {
+    if (!this.timelineAssembler || !this.sceneDetector || !this.settingsService) {
+      return;
+    }
+
+    try {
+      const scenes = await this.sceneDetector.detect(rawVideoPath);
+      const videoDurationMs = timeline.length > 0
+        ? timeline[timeline.length - 1].endMs - timeline[0].startMs
+        : 60_000;
+
+      const result = this.timelineAssembler.assemble(scenes, [], videoDurationMs);
+      this.settingsService.set(`assembled-timeline:${sessionId}`, JSON.stringify(result));
+    } catch {
+      // Timeline assembly is best-effort; don't fail the session
+    }
+  }
+
+  private async generateChapters(
+    sessionId: string,
+    projectId: string,
+    rawVideoPath: string,
+  ): Promise<void> {
+    if (!this.featureChapterGenerator || !this.featureEvidenceService) {
+      return;
+    }
+
+    try {
+      const evidence = this.featureEvidenceService.list(projectId);
+      await this.featureChapterGenerator.generateChapters(rawVideoPath, sessionId, evidence);
+    } catch {
+      // Chapter generation is best-effort; don't fail the session
+    }
+  }
+
+  private scoreDemoQuality(
+    sessionId: string,
+    projectId: string,
+    timeline: IdleSegment[],
+  ): void {
+    if (!this.demoQualityScorer || !this.settingsService) {
+      return;
+    }
+
+    try {
+      const idleTimeMs = timeline
+        .filter((s) => s.idle)
+        .reduce((sum, s) => sum + (s.endMs - s.startMs), 0);
+      const totalDurationMs = timeline.length > 0
+        ? timeline.reduce((sum, s) => sum + (s.endMs - s.startMs), 0)
+        : 60_000;
+
+      let screenshotCount = 0;
+      if (this.assetService) {
+        const assets = this.assetService.listBySession(sessionId);
+        screenshotCount = assets.filter((a) => a.type === "screenshot").length;
+      }
+
+      let featureCount = 0;
+      if (this.featureEvidenceService) {
+        const evidence = this.featureEvidenceService.list(projectId);
+        featureCount = evidence.length;
+      }
+
+      const result = this.demoQualityScorer.score({
+        videoDurationMs: totalDurationMs,
+        idleTimeMs,
+        screenshotCount,
+        featureCount,
+        fps: this.config.fps,
+      });
+      this.settingsService.set(`demo-quality:${sessionId}`, JSON.stringify(result));
+    } catch {
+      // Quality scoring is best-effort; don't fail the session
     }
   }
 }
