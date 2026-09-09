@@ -1,33 +1,21 @@
 # MEMORY.md — Agent Working Memory
 
 ## Current Goal
-Sprint 7.1 complete; awaiting next directive (7.2 Security Hardening is next)
+Sprint 7.2 complete; 7.3 Screenshot Ranker Context Fix is next
 
 ## Completed
-- Sprint 0.1–6.5: All sprints complete
-- ERR_REQUIRE_ESM fixed (b335889)
-- Startup error dialog added (83202da)
-- Renderer path fix committed (55a157c + 6800482)
-- Process-level crash handlers added to esbuild banner (fca420b)
-- Preload bridge type fix: added Sprint 2.6 fields (4403230)
-- Feature: Project Auto-Fill from directory path (e551b63)
-- Auto-fill review #212 fix: git remote cwd (639ad63)
-- Wire unwired services into SessionManager post-processing (d3527dd)
-- Diagnostic startup logging (fb163e9) — logs to userData/logs/startup.log
-- Fix act() test warnings + suppress noise (bd82304)
-- Fix double FFmpeg scene detection in chapter pipeline (#224 Note 1)
-- Persist chapters via settingsService + saveChapters (#224 Note 2)
+- Sprint 0.1–7.2: All sprints complete
+- Sprint 7.2: Security hardening (CSP, allowlist, path sanitizer, SQL audit)
 
 ## Verified 2026-09-08
-- 741/741 tests pass (12.7s), 42 test files, clean output
-- Build: Vite 33 modules 173KB + esbuild clean
-- dist: portable exe + NSIS installer rebuilt with diagnostic logging
-- Sprint 7.1: Zod input validation on all 18 IPC handlers
+- 785/785 tests pass (12.7s), 43 test files, clean output
+- Build: Vite 33 modules 172KB + esbuild clean
+- Sprint 7.2: CSP headers on BrowserWindow session, IPC allowlist 77 channels, path sanitizer, SQL audit safe
 
 ## Open Threads
 - Human must retest .exe — logs at %LOCALAPPDATA%/portfolio-auto-recorder/logs/startup.log
-- Screenshot ranker empty context → tracked as Sprint 7.3
-- Phase 7 remaining: 7.2 CSP, 7.3 ranker fix, 7.4 E2E, 7.5 crash recovery, 7.6 error boundaries
+- Screenshot ranker empty context → Sprint 7.3
+- Phase 7 remaining: 7.3 ranker fix, 7.4 E2E, 7.5 crash recovery, 7.6 error boundaries
 
 ## Key Learnings
 - `better-sqlite3` uses prebuilt binaries on Windows — no VS C++ build tools required

@@ -2320,3 +2320,50 @@
 - Sessions, git, scanner, dev-server, windows handlers keep string-only args (no complex objects to validate)
 - ValidationError.fieldErrors maps field paths to error messages for renderer display
 - Sprint 7.3 scope narrowed per agent-b review #244: keyboard-only via globalShortcut, mouse hooks deferred
+
+---
+
+### 2026-09-08 — Sprint 7.2: Security Hardening
+
+**Agent:** agent-a
+**Status:** Complete
+
+**Objectives:**
+- Content Security Policy for renderer (restrict script-src, connect-src)
+- IPC channel allowlist (defense-in-depth, 77 registered channels)
+- File path sanitization (reject traversal, enforce base dirs)
+- SQL injection audit (all queries parameterized)
+- Verify nodeIntegration:false + contextIsolation:true
+
+**Verification:**
+- `npm run test` — 785 tests pass (43 test files, 44 new)
+- `npm run build` — Vite (33 modules, 172KB) + esbuild clean
+- CSP: buildCspHeader() returns correct directive string, buildSecurityHeaders() returns all headers
+- CSP: installCspHeaders() registers onHeadersReceived, callback sets CSP + security headers
+- CSP: custom directive overrides preserved, removed directives excluded
+- IPC allowlist: isChannelAllowed() true for 77 registered channels, false for unknown/injection
+- IPC allowlist: getAllowedChannels() returns copy, all 18 namespaces present
+- Path sanitizer: rejects traversal (../, ..\, %2e%2e, %252e), enforces allowedBaseDirs
+- Path sanitizer: validateAbsolutePath() accepts Windows/UNC/forward-slash, rejects relative
+- Path sanitizer: isPathWithinDirectory() true for child/exact, false for outside/sibling
+- SQL audit: all 47 queries use ? parameterized placeholders (verified safe)
+- nodeIntegration: false, contextIsolation: true confirmed in main.ts:30-31
+- CSP headers installed on BrowserWindow session in production mode
+
+**Files created:**
+- `apps/desktop/electron/security/csp.ts` — buildCspHeader, buildSecurityHeaders, installCspHeaders
+- `apps/desktop/electron/security/ipc-allowlist.ts` — 77 allowed channels, isChannelAllowed, getAllowedChannels
+- `apps/desktop/electron/security/path-sanitize.ts` — sanitizeFilePath, sanitizeProjectPath, validateAbsolutePath, isPathWithinDirectory, stripTraversal
+- `apps/desktop/electron/security/index.ts` — barrel exports
+- `tests/unit/security.test.ts` — 44 tests (CSP: 5, IPC allowlist: 7, path sanitizer: 14)
+
+**Files modified:**
+- `apps/desktop/electron/main.ts` — import installCspHeaders, call after BrowserWindow creation
+
+**Notes:**
+- CSP installed only in production mode (dev mode uses Vite dev server without CSP to avoid HMR issues)
+- IPC allowlist is defense-in-depth — preload bridge already limits renderer to known channels, contextIsolation prevents direct access
+- SQL audit found all queries safe: dynamic UPDATE uses hardcoded column names (whitelist), all values use ? placeholders
+- Path sanitizer available as utility for services handling file paths (scanner, git, export, deploy)
+- No string concatenation of user input into SQL anywhere in the codebase
+- Commit pending

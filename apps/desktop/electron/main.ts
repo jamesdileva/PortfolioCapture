@@ -6,6 +6,7 @@ import { ProjectService, SessionService, AssetService, SettingsService, ProcessM
 import { SessionManager } from "./services/session-manager.js";
 import { PortfolioUpdateTriggerImpl } from "./services/portfolio-update-trigger.js";
 import { registerProjectHandlers, registerSessionHandlers, registerAssetHandlers, registerSettingsHandlers, registerExportHandlers, registerProfileHandlers, registerManualOverridesHandlers, registerGitHandlers, registerScannerHandlers, registerFeatureEvidenceHandlers, registerAiHandlers, registerPortfolioHandlers, registerThemeHandlers, registerDeployHandlers, registerDevServerHandlers, registerWindowHandlers, registerChapterHandlers, registerDemoQualityHandlers } from "./ipc/index.js";
+import { installCspHeaders } from "./security/index.js";
 
 const fsLog = require("fs");
 const pathLog = require("path");
@@ -33,6 +34,8 @@ function createWindow(): void {
     title: "Portfolio Auto Recorder",
     show: false,
   });
+
+  installCspHeaders(mainWindow.webContents.session);
 
   const devServerUrl = process.env.VITE_DEV_SERVER_URL;
 
