@@ -1,7 +1,7 @@
 # MEMORY.md — Agent Working Memory
 
 ## Current Goal
-Await human E2E retest of .exe with diagnostic logging; Phase 7 roadmap complete
+Sprint 7.1 complete; awaiting next directive (7.2 Security Hardening is next)
 
 ## Completed
 - Sprint 0.1–6.5: All sprints complete
@@ -19,14 +19,15 @@ Await human E2E retest of .exe with diagnostic logging; Phase 7 roadmap complete
 - Persist chapters via settingsService + saveChapters (#224 Note 2)
 
 ## Verified 2026-09-08
-- 701/701 tests pass (12.7s), 41 test files, clean output
+- 741/741 tests pass (12.7s), 42 test files, clean output
 - Build: Vite 33 modules 173KB + esbuild clean
 - dist: portable exe + NSIS installer rebuilt with diagnostic logging
+- Sprint 7.1: Zod input validation on all 18 IPC handlers
 
 ## Open Threads
 - Human must retest .exe — logs at %LOCALAPPDATA%/portfolio-auto-recorder/logs/startup.log
 - Screenshot ranker empty context → tracked as Sprint 7.3
-- Phase 7 sprints defined: 7.1 Zod, 7.2 CSP, 7.3 ranker fix, 7.4 E2E, 7.5 crash recovery, 7.6 error boundaries
+- Phase 7 remaining: 7.2 CSP, 7.3 ranker fix, 7.4 E2E, 7.5 crash recovery, 7.6 error boundaries
 
 ## Key Learnings
 - `better-sqlite3` uses prebuilt binaries on Windows — no VS C++ build tools required

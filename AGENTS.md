@@ -2273,3 +2273,50 @@
 **Files modified:**
 - `roadmap.md` — Phase 7 sprints with full objectives/deliverables/verification, Product Evolution diagram, Priority Matrix
 - `MEMORY.md` — updated current goal, open threads
+
+---
+
+### 2026-09-08 — Sprint 7.1: Input Validation Hardening
+
+**Agent:** agent-a
+**Status:** Complete
+
+**Objectives:**
+- Define Zod schemas for every IPC input type (projects, sessions, assets, settings, profiles, overrides, chapters, feature evidence, deploy, portfolio, themes, AI, git, scanner, dev-server, windows, export)
+- Wrap all IPC handlers with schema validation
+- Return structured validation errors to renderer
+- Add Zod as production dependency
+
+**Verification:**
+- `npm run test` — 741 tests pass (42 test files, 40 new)
+- `npm run build` — Vite (33 modules, 173KB) + TypeScript compile clean
+- validateInput() returns parsed data on valid input
+- validateInput() throws ValidationError with fieldErrors on invalid input
+- All schemas: valid input accepted, invalid rejected, unknown fields stripped
+- All existing 701 tests still pass (backward compatible)
+
+**Files created:**
+- `packages/shared/schemas/index.ts` — 30+ Zod schemas, ValidationError class, validateInput utility
+- `tests/unit/schemas.test.ts` — 40 tests across 15 schema groups
+
+**Files modified:**
+- `apps/desktop/electron/ipc/projects.ts` — validates create/update inputs
+- `apps/desktop/electron/ipc/assets.ts` — validates create inputs
+- `apps/desktop/electron/ipc/profiles.ts` — validates create/update inputs
+- `apps/desktop/electron/ipc/overrides.ts` — validates save overrides
+- `apps/desktop/electron/ipc/chapters.ts` — validates config and chapterList
+- `apps/desktop/electron/ipc/feature-evidence.ts` — validates save/update inputs
+- `apps/desktop/electron/ipc/deploy.ts` — validates deploy config
+- `apps/desktop/electron/ipc/portfolio.ts` — validates generate config
+- `apps/desktop/electron/ipc/themes.ts` — validates theme name and custom colors
+- `apps/desktop/electron/ipc/ai.ts` — validates AI input types
+- `apps/desktop/electron/ipc/demo-quality.ts` — validates score input and config
+- `roadmap.md` — narrowed Sprint 7.3 scope (keyboard-only v1, mouse hooks deferred)
+- `package.json` — added zod dependency
+
+**Notes:**
+- Zod 3.x uses `.nonnegative()` (not `.nonneg()` — caught during testing)
+- Validation is schema-level only — services retain their own business logic validation
+- Sessions, git, scanner, dev-server, windows handlers keep string-only args (no complex objects to validate)
+- ValidationError.fieldErrors maps field paths to error messages for renderer display
+- Sprint 7.3 scope narrowed per agent-b review #244: keyboard-only via globalShortcut, mouse hooks deferred
