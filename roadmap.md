@@ -24,6 +24,12 @@ Project Intelligence
     ↓
 Phase 5
 Automatic Portfolio Builder
+    ↓
+Phase 6
+Advanced Automation
+    ↓
+Phase 7
+Production Hardening
 ```
 
 The project should remain useful at every phase.
@@ -1325,41 +1331,242 @@ Integration:
 
 ---
 
-# Phase 7 — Long-Term Vision
+# Phase 7 — Production Hardening
 
-## Automatic Developer Portfolio Memory
+## Sprint 7.1 — Input Validation Hardening
 
-Eventually:
+Add Zod schemas for all IPC inputs to reject malformed data at the boundary.
+
+### Objectives
+
+- Define Zod schemas for every IPC input type (projects, sessions, assets, settings, profiles, overrides, chapters, feature evidence, deploy, portfolio, themes, AI, git, scanner, dev-server, windows, export)
+- Wrap all IPC handlers with schema validation
+- Return structured validation errors to renderer
+- Add Zod as production dependency
+
+### Deliverables
 
 ```text
-Everything you build
-        ↓
-        ↓
-Automatic capture
-        ↓
-        ↓
-Project understanding
-        ↓
-        ↓
-Evidence graph
-        ↓
-        ↓
-Portfolio
+packages/shared/schemas/
+    project.ts
+    session.ts
+    asset.ts
+    settings.ts
+    profile.ts
+    override.ts
+    chapter.ts
+    feature-evidence.ts
+    deploy.ts
+    portfolio.ts
+    theme.ts
+    ai.ts
+    git.ts
+    scanner.ts
+    dev-server.ts
+    windows.ts
+    export.ts
+    index.ts
 ```
 
-The system could answer:
+### Verification
 
-> What did I build this month?
+```text
+npm run test
+  → schema validation unit tests pass
+  → existing service tests still pass
 
-> Show me everything I've made with React.
+Integration:
+  → invalid project name (empty string) → 400 error, not crash
+  → invalid session ID (non-string) → 400 error, not crash
+  → missing required fields → structured error message
+  → extra unknown fields → ignored (strip mode)
+  → valid input → passes through unchanged
+```
 
-> Which project has the best demo?
+---
 
-> Generate a portfolio entry for my three strongest projects.
+## Sprint 7.2 — Security Hardening
 
-> Find the recording where I demonstrated the dashboard.
+Lock down the Electron app for production use.
 
-> What features did I add to this project?
+### Objectives
+
+- Content Security Policy for renderer (restrict script-src, connect-src)
+- IPC channel allowlist in preload (only registered channels callable)
+- File path sanitization (reject paths with `..`, absolute paths outside project)
+- SQL injection audit (all queries use parameterized statements)
+- Disable nodeIntegration, enable contextIsolation (verify current config)
+
+### Deliverables
+
+```text
+apps/desktop/electron/security/
+    csp.ts              — CSP header config
+    ipc-allowlist.ts    — registered channel list
+    path-sanitize.ts    — path traversal prevention
+```
+
+### Verification
+
+```text
+npm run test
+  → security unit tests pass
+
+Integration:
+  → renderer cannot require('fs') — nodeIntegration disabled
+  → IPC call to unregistered channel → rejected
+  → path with ../../etc/passwd → sanitized or rejected
+  → CSP headers set on BrowserWindow
+  → all SQL queries use ? placeholders (no string concat)
+```
+
+---
+
+## Sprint 7.3 — Screenshot Ranker Context Fix
+
+Inject proper interaction and segment context into ScreenshotRanker.
+
+### Objectives
+
+- Collect interaction events during recording (mouse clicks, key presses via globalShortcut or input simulation)
+- Pass idle segment timeline to ranker as segment context
+- Wire interaction events from SessionManager to ScreenshotRanker
+- Remove empty context fallback (currently injects `[]`)
+
+### Deliverables
+
+```text
+apps/desktop/electron/services/
+    interaction-collector.ts  — records interaction events during session
+```
+
+### Verification
+
+```text
+npm run test
+  → interaction collector unit tests pass
+  → screenshot ranker tests with real context pass
+
+Integration:
+  → recording session with interactions → interaction events collected
+  → screenshot ranking uses interaction proximity factor
+  → screenshots near interaction peaks ranked higher
+  → idle segments passed as segment context
+  → screenshots during active segments ranked higher than idle
+```
+
+---
+
+## Sprint 7.4 — E2E Smoke Test
+
+Automated test that the packaged .exe launches and renders.
+
+### Objectives
+
+- Playwright or Spectron-based E2E test
+- Launch .exe, wait for window, verify UI renders
+- Test basic flow: create project → verify in list
+- CI-compatible (GitHub Actions with Windows runner)
+- Detect startup crashes (the current .exe issue)
+
+### Deliverables
+
+```text
+tests/e2e/
+    smoke.test.ts        — launch + basic UI verification
+    project-flow.test.ts — create/list/edit project
+```
+
+### Verification
+
+```text
+npm run test:e2e
+  → .exe launches within 10 seconds
+  → main window visible
+  → project list renders
+  → create project → appears in list
+  → startup.log created with no errors
+
+On CI:
+  → Windows runner can run E2E tests
+  → test reports pass/fail clearly
+  → captures startup.log on failure for debugging
+```
+
+---
+
+## Sprint 7.5 — Crash Recovery
+
+Detect and recover from interrupted recordings.
+
+### Objectives
+
+- On startup, scan `data/recordings/` for orphaned sessions (status=starting|recording, no active process)
+- Present recovery dialog: resume (re-detect process) or discard (mark failed)
+- Auto-cleanup: sessions older than 7 days with no complete status → mark failed
+- Persist recovery state across restarts
+
+### Deliverables
+
+```text
+apps/desktop/electron/services/
+    crash-recovery.ts     — scan + recover orphaned sessions
+```
+
+### Verification
+
+```text
+npm run test
+  → crash recovery unit tests pass
+
+Integration:
+  → app killed during recording → restart → orphaned session detected
+  → recovery dialog shown with session details
+  → user chooses discard → session marked failed, files cleaned up
+  → user chooses resume → process re-detected, recording continues
+  → no orphans → no dialog shown
+  → orphan older than 7 days → auto-discarded
+```
+
+---
+
+## Sprint 7.6 — Error Boundaries & Polish
+
+Graceful degradation throughout the app.
+
+### Objectives
+
+- React error boundaries for renderer crashes (per-tab isolation)
+- IPC timeout handling (30s default, configurable per channel)
+- Service health checks on startup (DB writable, FFmpeg found, migrations clean)
+- User-facing error toasts (non-blocking notifications)
+- Unhandled promise rejection handler in main process
+
+### Deliverables
+
+```text
+apps/desktop/renderer/src/components/
+    ErrorBoundary.tsx     — per-tab error boundary
+    ErrorToast.tsx        — non-blocking error notification
+
+apps/desktop/electron/services/
+    health-check.ts       — startup health checks
+```
+
+### Verification
+
+```text
+npm run test
+  → error boundary unit tests pass
+  → health check unit tests pass
+
+Integration:
+  → renderer component throws → error boundary catches, shows fallback UI
+  → IPC call hangs > 30s → timeout error returned
+  → FFmpeg not found → startup warning, features degraded gracefully
+  → DB locked → startup error with clear message
+  → unhandled rejection → logged, not crashed
+```
 
 ---
 
@@ -1387,6 +1594,12 @@ The system could answer:
 | Browser detection | P2 | 6 |
 | Narration | P3 | 6 |
 | Cloud publishing | P3 | 5–6 |
+| Input validation (Zod) | P0 | 7 |
+| Security hardening (CSP) | P0 | 7 |
+| Screenshot ranker fix | P1 | 7 |
+| E2E smoke test | P1 | 7 |
+| Crash recovery UI | P0 | 7 |
+| Error boundaries | P1 | 7 |
 
 ---
 

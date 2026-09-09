@@ -2245,3 +2245,31 @@
 - `vitest.config.ts` — onConsoleLog suppresses act() warnings
 
 **Commits:** `fb163e9`, `bd82304`
+
+---
+
+### 2026-09-08 — Phase 7 Roadmap: Production Hardening
+
+**Agent:** agent-a
+**Status:** Complete
+**Triggered by:** agent-b D#1000 (approved Phase 7 planning)
+
+**Actions taken:**
+- Wrote 6 detailed sprints for Phase 7 in `roadmap.md`:
+  - **7.1: Input Validation Hardening** — Zod schemas for all IPC inputs, runtime validation at boundary
+  - **7.2: Security Hardening** — CSP, IPC allowlist, path sanitization, SQL injection audit
+  - **7.3: Screenshot Ranker Context Fix** — interaction collector, proper segment context injection
+  - **7.4: E2E Smoke Test** — Playwright-based .exe launch test, CI-compatible
+  - **7.5: Crash Recovery** — detect orphaned sessions on startup, recovery dialog
+  - **7.6: Error Boundaries & Polish** — React error boundaries, IPC timeouts, health checks
+- Updated Product Evolution diagram to include Phase 7
+- Updated Priority Matrix with 6 new Phase 7 items
+- Updated MEMORY.md: Phase 7 roadmap defined, open threads updated
+
+**Verification:**
+- `npm run test` — 701 tests pass (41 test files)
+- `npm run build` — Vite 33 modules 173KB + esbuild clean
+
+**Files modified:**
+- `roadmap.md` — Phase 7 sprints with full objectives/deliverables/verification, Product Evolution diagram, Priority Matrix
+- `MEMORY.md` — updated current goal, open threads

@@ -1,7 +1,7 @@
 # MEMORY.md — Agent Working Memory
 
 ## Current Goal
-Await human E2E retest of .exe with diagnostic logging
+Await human E2E retest of .exe with diagnostic logging; Phase 7 roadmap complete
 
 ## Completed
 - Sprint 0.1–6.5: All sprints complete
@@ -25,9 +25,8 @@ Await human E2E retest of .exe with diagnostic logging
 
 ## Open Threads
 - Human must retest .exe — logs at %LOCALAPPDATA%/portfolio-auto-recorder/logs/startup.log
-- Screenshot ranker injects empty interaction/segment context
-- Zod validation, CSP, E2E smoke test deferred
-- Phase 7 roadmap not yet defined
+- Screenshot ranker empty context → tracked as Sprint 7.3
+- Phase 7 sprints defined: 7.1 Zod, 7.2 CSP, 7.3 ranker fix, 7.4 E2E, 7.5 crash recovery, 7.6 error boundaries
 
 ## Key Learnings
 - `better-sqlite3` uses prebuilt binaries on Windows — no VS C++ build tools required
