@@ -4,7 +4,14 @@ import { rmSync, cpSync } from "fs";
 rmSync("apps/desktop/electron/dist", { recursive: true, force: true });
 
 const errorBanner = `
+var fs = require('fs'), path = require('path');
+var _logDir;
+try { _logDir = path.join(require('electron').app.getPath('userData'), 'logs'); } catch(_) { _logDir = path.join(process.env.LOCALAPPDATA || process.env.TEMP || '.', 'portfolio-auto-recorder'); }
+try { fs.mkdirSync(_logDir, { recursive: true }); } catch(_) {}
+var _logFile = path.join(_logDir, 'startup.log');
+function _logStartup(msg) { try { var t = new Date().toISOString(); fs.appendFileSync(_logFile, t + ' [main] ' + msg + '\\n'); } catch(_) {} }
 process.on('uncaughtException', function(err) {
+  _logStartup('UNCAUGHT EXCEPTION: ' + (err.stack || err.message || String(err)));
   console.error('UNCAUGHT EXCEPTION:', err);
   try {
     var dialog = require('electron').dialog;
@@ -15,6 +22,7 @@ process.on('uncaughtException', function(err) {
   process.exit(1);
 });
 process.on('unhandledRejection', function(err) {
+  _logStartup('UNHANDLED REJECTION: ' + (err && err.stack ? err.stack : String(err)));
   console.error('UNHANDLED REJECTION:', err);
   try {
     var dialog = require('electron').dialog;

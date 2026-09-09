@@ -7,9 +7,19 @@ import { SessionManager } from "./services/session-manager.js";
 import { PortfolioUpdateTriggerImpl } from "./services/portfolio-update-trigger.js";
 import { registerProjectHandlers, registerSessionHandlers, registerAssetHandlers, registerSettingsHandlers, registerExportHandlers, registerProfileHandlers, registerManualOverridesHandlers, registerGitHandlers, registerScannerHandlers, registerFeatureEvidenceHandlers, registerAiHandlers, registerPortfolioHandlers, registerThemeHandlers, registerDeployHandlers, registerDevServerHandlers, registerWindowHandlers, registerChapterHandlers, registerDemoQualityHandlers } from "./ipc/index.js";
 
+const fsLog = require("fs");
+const pathLog = require("path");
+let _logDir: string;
+try { _logDir = pathLog.join(require("electron").app.getPath("userData"), "logs"); } catch (_) { _logDir = pathLog.join(process.env.LOCALAPPDATA || process.env.TEMP || ".", "portfolio-auto-recorder"); }
+try { fsLog.mkdirSync(_logDir, { recursive: true }); } catch (_) {}
+const _logFile = pathLog.join(_logDir, "startup.log");
+function _log(msg: string) { try { fsLog.appendFileSync(_logFile, new Date().toISOString() + " [main] " + msg + "\n"); } catch (_) {} }
+_log("MODULE_LOADED: main.ts top-level");
+
 let mainWindow: BrowserWindow | null = null;
 
 function createWindow(): void {
+  _log("createWindow: START");
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
@@ -214,9 +224,13 @@ function initializeServices() {
 }
 
 app.whenReady().then(() => {
+  _log("app.whenReady: FIRED");
   try {
+    _log("initializeServices: START");
     initializeServices();
+    _log("initializeServices: DONE");
     createWindow();
+    _log("createWindow: DONE");
 
     app.on("activate", () => {
       if (BrowserWindow.getAllWindows().length === 0) {
@@ -224,11 +238,13 @@ app.whenReady().then(() => {
       }
     });
   } catch (error) {
+    _log("STARTUP_ERROR: " + (error instanceof Error ? error.stack ?? error.message : String(error)));
     const msg = error instanceof Error ? error.stack ?? error.message : String(error);
     dialog.showErrorBox("Portfolio Auto Recorder — Startup Error", msg);
     app.exit(1);
   }
 }).catch((err) => {
+  _log("WHEN_READY_ERROR: " + (err instanceof Error ? err.stack ?? err.message : String(err)));
   const msg = err instanceof Error ? err.stack ?? err.message : String(err);
   dialog.showErrorBox("Portfolio Auto Recorder — Startup Error", msg);
   app.exit(1);
