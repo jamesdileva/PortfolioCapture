@@ -1,5 +1,6 @@
 import { ipcMain } from "electron";
 import type { ProjectService } from "../services/project-service.js";
+import { CreateProjectInputSchema, UpdateProjectInputSchema, validateInput } from "../../../../packages/shared/schemas/index.js";
 
 export function registerProjectHandlers(projectService: ProjectService): void {
   ipcMain.handle("projects:list", () => {
@@ -11,11 +12,13 @@ export function registerProjectHandlers(projectService: ProjectService): void {
   });
 
   ipcMain.handle("projects:create", (_event, input) => {
-    return projectService.create(input);
+    const validated = validateInput(CreateProjectInputSchema, input);
+    return projectService.create(validated);
   });
 
   ipcMain.handle("projects:update", (_event, id: string, input) => {
-    return projectService.update(id, input);
+    const validated = validateInput(UpdateProjectInputSchema, input);
+    return projectService.update(id, validated);
   });
 
   ipcMain.handle("projects:delete", (_event, id: string) => {

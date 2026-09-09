@@ -1,5 +1,6 @@
 import { ipcMain } from "electron";
 import type { RecordingProfileServiceImpl } from "../services/recording-profile-service.js";
+import { CreateProfileInputSchema, UpdateProfileInputSchema, validateInput } from "../../../../packages/shared/schemas/index.js";
 
 export function registerProfileHandlers(profileService: RecordingProfileServiceImpl): void {
   ipcMain.handle("profiles:list", () => {
@@ -11,11 +12,13 @@ export function registerProfileHandlers(profileService: RecordingProfileServiceI
   });
 
   ipcMain.handle("profiles:create", (_event, input) => {
-    return profileService.create(input);
+    const validated = validateInput(CreateProfileInputSchema, input);
+    return profileService.create(validated);
   });
 
   ipcMain.handle("profiles:update", (_event, id: string, input) => {
-    return profileService.update(id, input);
+    const validated = validateInput(UpdateProfileInputSchema, input);
+    return profileService.update(id, validated);
   });
 
   ipcMain.handle("profiles:delete", (_event, id: string) => {

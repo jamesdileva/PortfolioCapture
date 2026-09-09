@@ -1,7 +1,6 @@
 import { ipcMain } from "electron";
 import type { DeployServiceImpl } from "../services/deploy-service.js";
-
-const VALID_TARGETS = ["zip", "github-pages", "netlify", "vercel"] as const;
+import { ZipExportConfigSchema, DeployConfigSchema, validateInput } from "../../../../packages/shared/schemas/index.js";
 
 export function registerDeployHandlers(deployService: DeployServiceImpl): void {
   ipcMain.handle("deploy:zip", async (_event, portfolioDir: string, outputPath?: string) => {
@@ -13,11 +12,9 @@ export function registerDeployHandlers(deployService: DeployServiceImpl): void {
     return { success: true };
   });
 
-  ipcMain.handle("deploy:run", async (_event, config: { target: string; portfolioDir: string; outputDir?: string; siteName?: string }) => {
-    if (!VALID_TARGETS.includes(config.target as typeof VALID_TARGETS[number])) {
-      throw new Error(`Invalid deploy target: ${config.target}. Must be one of: ${VALID_TARGETS.join(", ")}`);
-    }
-    return deployService.deploy(config as Parameters<DeployServiceImpl["deploy"]>[0]);
+  ipcMain.handle("deploy:run", async (_event, config: unknown) => {
+    const validated = validateInput(DeployConfigSchema, config);
+    return deployService.deploy(validated);
   });
 
   ipcMain.handle("deploy:targets", async () => {

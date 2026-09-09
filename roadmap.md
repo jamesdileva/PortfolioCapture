@@ -1428,7 +1428,7 @@ Inject proper interaction and segment context into ScreenshotRanker.
 
 ### Objectives
 
-- Collect interaction events during recording (mouse clicks, key presses via globalShortcut or input simulation)
+- Collect keyboard interaction events during recording (globalShortcut for registered accelerators — keyboard-only v1, mouse hooks deferred)
 - Pass idle segment timeline to ranker as segment context
 - Wire interaction events from SessionManager to ScreenshotRanker
 - Remove empty context fallback (currently injects `[]`)
