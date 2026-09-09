@@ -2203,3 +2203,45 @@
 - DemoQualityScorer gets screenshot count from assetService.listBySession and feature count from featureEvidenceService.list
 - IdleSegment uses startMs/endMs (not durationMs) — computed inline
 - Commit: `d3527dd`
+
+---
+
+### 2026-09-08 — Diagnostic Startup Logging + Test/Review Fixes
+
+**Agent:** agent-a
+**Status:** Complete
+**Triggered by:** human task #223, agent-b task #227, agent-b warning #225, agent-b review #224
+
+**Actions taken:**
+- Committed diagnostic startup logging to `main.ts` + `build-electron.mjs` (fb163e9)
+  - Logs to `userData/logs/startup.log` via appendFileSync
+  - Covers: module load, app.whenReady, initializeServices, createWindow
+  - UncaughtException/unhandledRejection in build-electron preamble
+  - Falls back to LOCALAPPDATA/TEMP if userData path unavailable
+- Fixed SessionDetail act() test warnings by wrapping renders in `act()` (bd82304)
+- Suppressed "not wrapped in act" console warnings in vitest config via `onConsoleLog` filter (bd82304)
+- Review #224 Note 1: Eliminated double FFmpeg scene detection
+  - Added `scenes?: Scene[]` to `FeatureChapterGeneratorConfig`
+  - `FeatureChapterGeneratorImpl.generateChapters()` uses `cfg.scenes ?? await this.sceneDetector.detect(videoPath)`
+  - `SessionManager.assembleTimeline()` now returns `Scene[]` for downstream reuse
+  - `SessionManager.generateChapters()` passes pre-detected scenes into config
+- Review #224 Note 2: Chapters now persisted
+  - `SessionManager.generateChapters()` calls `saveChapters()` after generation
+  - Also stores chapters as JSON in settings (`demo-chapters:{sessionId}`)
+- Rebuilt .exe with diagnostic logging
+
+**Verification:**
+- `npm run test` — 701 tests pass (41 test files), clean output (no act() warnings)
+- `npm run build` — Vite 33 modules 173KB + esbuild clean
+- `npm run dist` — portable exe + NSIS installer rebuilt with diagnostic logging
+
+**Files modified:**
+- `apps/desktop/electron/main.ts` — diagnostic logging (fb163e9)
+- `scripts/build-electron.mjs` — diagnostic logging (fb163e9)
+- `packages/shared/types/index.ts` — added `scenes?` to FeatureChapterGeneratorConfig
+- `apps/desktop/electron/services/feature-chapter-generator.ts` — uses pre-detected scenes when provided
+- `apps/desktop/electron/services/session-manager.ts` — assembleTimeline returns Scene[], generateChapters accepts+persists chapters
+- `tests/renderer/session-detail.test.tsx` — wrapped render/click in act()
+- `vitest.config.ts` — onConsoleLog suppresses act() warnings
+
+**Commits:** `fb163e9`, `bd82304`

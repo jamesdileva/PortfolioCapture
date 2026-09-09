@@ -1,7 +1,7 @@
 # MEMORY.md — Agent Working Memory
 
 ## Current Goal
-Await human E2E retest of .exe; post-processing pipeline wired
+Await human E2E retest of .exe with diagnostic logging
 
 ## Completed
 - Sprint 0.1–6.5: All sprints complete
@@ -13,19 +13,21 @@ Await human E2E retest of .exe; post-processing pipeline wired
 - Feature: Project Auto-Fill from directory path (e551b63)
 - Auto-fill review #212 fix: git remote cwd (639ad63)
 - Wire unwired services into SessionManager post-processing (d3527dd)
+- Diagnostic startup logging (fb163e9) — logs to userData/logs/startup.log
+- Fix act() test warnings + suppress noise (bd82304)
+- Fix double FFmpeg scene detection in chapter pipeline (#224 Note 1)
+- Persist chapters via settingsService + saveChapters (#224 Note 2)
 
 ## Verified 2026-09-08
-- 701/701 tests pass (12.8s), 41 test files
+- 701/701 tests pass (12.7s), 41 test files, clean output
 - Build: Vite 33 modules 173KB + esbuild clean
-- dist: portable exe + NSIS installer (90MB each), ready for human retest
+- dist: portable exe + NSIS installer rebuilt with diagnostic logging
 
 ## Open Threads
-- npm run lint pre-existing tsconfig composite:true errors
-- act() warnings in renderer tests (pre-existing, React 16)
+- Human must retest .exe — logs at %LOCALAPPDATA%/portfolio-auto-recorder/logs/startup.log
 - Screenshot ranker injects empty interaction/segment context
-- Zod validation for IPC inputs deferred
-- CSP unsafe-inline (production concern)
-- E2E smoke test awaiting human retest
+- Zod validation, CSP, E2E smoke test deferred
+- Phase 7 roadmap not yet defined
 
 ## Key Learnings
 - `better-sqlite3` uses prebuilt binaries on Windows — no VS C++ build tools required
