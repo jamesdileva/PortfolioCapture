@@ -2168,3 +2168,38 @@
 **Notes:**
 - Review #212: APPROVED with one functional bug (git remote cwd) and one minor (ReadMe.md capitalization — acceptable for MVP)
 - Commit: `639ad63`
+
+---
+
+### 2026-09-08 — Wire Unwired Services into SessionManager Post-Processing
+
+**Agent:** agent-a
+**Status:** Complete
+**Triggered by:** agent-b task #10 / mail #219
+
+**Objectives:**
+- Wire TimelineAssembler, FeatureChapterGenerator, DemoQualityScorer into SessionManager stopSession() pipeline
+- Pipeline order: extractScreenshots → rankScreenshots → trimVideo → generateDemo → assembleTimeline → generateChapters → scoreDemoQuality
+- Add optional deps to SessionManagerOptions: timelineAssembler, featureChapterGenerator, demoQualityScorer, featureEvidenceService, sceneDetector
+- Persist results via SettingsService (keys: assembled-timeline, demo-quality)
+- All post-processing best-effort (caught errors, never fails session)
+
+**Verification:**
+- `npm run test` — 701 tests pass (41 test files, 7 new)
+- `npm run build` — Vite (33 modules, 173KB) + esbuild clean
+- assembleTimeline: detects scenes via SceneDetector, assembles timeline, stores in settings
+- generateChapters: fetches feature evidence, generates chapters via FeatureChapterGenerator
+- scoreDemoQuality: computes idle time, screenshot/feature counts, scores via DemoQualityScorer, stores in settings
+- Graceful degradation: all post-processing steps catch errors independently
+- Backward compatible: no deps = steps skipped, existing tests unchanged
+
+**Files modified:**
+- `apps/desktop/electron/services/session-manager.ts` — added 5 optional deps, 3 new private methods (assembleTimeline, generateChapters, scoreDemoQuality), wired into stopSession()
+- `apps/desktop/electron/main.ts` — wired TimelineAssemblerImpl, SceneDetectorImpl, FeatureChapterGeneratorImpl, DemoQualityScorerImpl, FeatureEvidenceServiceImpl into SessionManager
+- `tests/unit/session-manager.test.ts` — 7 new tests for post-processing pipeline integration
+
+**Notes:**
+- TimelineAssembler uses SceneDetector to detect scenes, passes empty highlights (no signal collection yet)
+- DemoQualityScorer gets screenshot count from assetService.listBySession and feature count from featureEvidenceService.list
+- IdleSegment uses startMs/endMs (not durationMs) — computed inline
+- Commit: `d3527dd`

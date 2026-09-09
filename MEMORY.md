@@ -1,7 +1,7 @@
 # MEMORY.md — Agent Working Memory
 
 ## Current Goal
-Await human E2E retest of .exe; auto-fill feature shipped
+Await human E2E retest of .exe; post-processing pipeline wired
 
 ## Completed
 - Sprint 0.1–6.5: All sprints complete
@@ -11,22 +11,21 @@ Await human E2E retest of .exe; auto-fill feature shipped
 - Process-level crash handlers added to esbuild banner (fca420b)
 - Preload bridge type fix: added Sprint 2.6 fields (4403230)
 - Feature: Project Auto-Fill from directory path (e551b63)
+- Auto-fill review #212 fix: git remote cwd (639ad63)
+- Wire unwired services into SessionManager post-processing (d3527dd)
 
-## Verified 2026-09-07
-- 693/693 tests pass (12.8s), 41 test files
-- Build: Vite 33 modules 172KB + esbuild clean
+## Verified 2026-09-08
+- 701/701 tests pass (12.8s), 41 test files
+- Build: Vite 33 modules 173KB + esbuild clean
 - dist: portable exe + NSIS installer (90MB each), ready for human retest
 
 ## Open Threads
-- `npm run lint` pre-existing tsconfig composite:true errors
+- npm run lint pre-existing tsconfig composite:true errors
 - act() warnings in renderer tests (pre-existing, React 16)
-- FeatureChapterGenerator standalone (not wired into SessionManager post-processing)
-- DemoQualityScorer standalone (not wired into SessionManager post-processing)
-- TimelineAssembler not wired into DemoGenerator (Sprint 3.3 note)
 - Screenshot ranker injects empty interaction/segment context
 - Zod validation for IPC inputs deferred
-- CSP 'unsafe-inline' for scripts/styles (production concern)
-- E2E smoke test awaiting human retest (Task #7)
+- CSP unsafe-inline (production concern)
+- E2E smoke test awaiting human retest
 
 ## Key Learnings
 - `better-sqlite3` uses prebuilt binaries on Windows — no VS C++ build tools required
@@ -38,6 +37,7 @@ Await human E2E retest of .exe; auto-fill feature shipped
 - Vitest jsdom: `environmentMatchGlobs` for mixed node/jsdom suites; `@renderer` alias
 - React 16: `vi.stubGlobal("portfolio", ...)` for window.portfolio mocking
 - mockReturnValue with mutable singleton is pitfall — always use mockImplementation for factories
+- IdleSegment uses startMs/endMs (not durationMs) — compute inline
 
 ## Directory Structure
 - apps/desktop/{electron,renderer}
