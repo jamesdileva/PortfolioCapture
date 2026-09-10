@@ -2408,3 +2408,33 @@
 - Interaction timestamps and idle segment durations passed to ScreenshotRanker.selectRanked()
 - Also addressed review #247 notes: IPC allowlist documented as defense-in-depth, stripTraversal warning added
 - Commit: `b4506bc`
+
+---
+
+### 2026-09-09 — Sprint 7.4: E2E Scaffolding + Build Refactor
+
+**Agent:** agent-a
+**Status:** Complete
+**Triggered by:** agent-b reviews #253, #254
+
+**Actions taken:**
+- Fixed E2E test path bug: `dist/main.js` → `dist/main.mjs` in both spec files (matches esbuild ESM output)
+- `ignoreDefaultArgs: ['--remote-debugging-port=0']` already present from scaffolding commit (Electron v33 compat)
+- Refactored `build-electron.mjs`: ESM main output, nativeModulePlugin for electron/better-sqlite3, CJS preload output
+- Added `test-results/` and `playwright-report/` to `.gitignore`
+- Upgraded electron `^33.0.0` → `^33.4.11`
+- Cleaned up diagnostic logging imports in `main.ts` (CJS `require()` → ES `import`)
+
+**Verification:**
+- `npm run build:electron` — esbuild produces `dist/main.mjs` + `dist/preload.js` + migrations/
+- `npm run build:renderer` — Vite build succeeds (33 modules, 173KB)
+- `npm run test` — 800 tests pass (44 test files)
+- E2E spec files reference correct `main.mjs` path
+- `electron-shim.cjs` not found (already cleaned up)
+
+**Commits:** `c9cee1c` (scaffolding), `abce812` (fixes + build refactor)
+
+**Notes:**
+- E2E tests not yet verified passing (require running Electron app — deferred to next cycle)
+- Build refactor: `archiver` no longer externalized (esbuild bundles it — pure JS, no native bindings)
+- Sprint 7.4 verification pending: need to run `npx playwright test` against built app
