@@ -30,3 +30,4 @@ export { WindowEnumeratorImpl } from "./window-enumerator.js";
 export { FeatureChapterGeneratorImpl } from "./feature-chapter-generator.js";
 export { DemoQualityScorerImpl } from "./demo-quality-scorer.js";
 export { ProjectAutoFillServiceImpl } from "./project-autofill.js";
+export { InteractionCollectorImpl } from "./interaction-collector.js";

@@ -460,4 +460,93 @@ describe("SessionManager", () => {
       expect(completed!.status).toBe("complete");
     });
   });
+
+  describe("InteractionCollector integration", () => {
+    it("starts and stops interaction collector with session", async () => {
+      const started: string[] = [];
+      const stopped: string[] = [];
+      const collector = {
+        start: () => { started.push("start"); },
+        stop: () => { stopped.push("stop"); },
+        getEvents: () => [],
+        getTimestamps: () => [100, 200, 300],
+        reset: () => {},
+      };
+
+      const mgr = new SessionManager({
+        sessionService,
+        captureProvider,
+        projectService,
+        config: { outputRoot: "data/recordings" },
+        interactionCollectorFactory: () => collector,
+      });
+
+      const project = projectService.create({ name: "Test", path: "/test", executablePath: "/test/app.exe" });
+      await mgr.startSession(project.id, "manual");
+
+      expect(started).toEqual(["start"]);
+
+      await mgr.stopSession(project.id);
+
+      expect(stopped).toEqual(["stop"]);
+    });
+
+    it("passes interaction timestamps to screenshot ranker", async () => {
+      const timestamps = [100, 250, 400];
+      const collector = {
+        start: () => {},
+        stop: () => {},
+        getEvents: () => [],
+        getTimestamps: () => timestamps,
+        reset: () => {},
+      };
+
+      const rankerContext: { interactionTimestamps: number[]; segmentDurations: number[] }[] = [];
+
+      const mgr = new SessionManager({
+        sessionService,
+        captureProvider,
+        projectService,
+        config: { outputRoot: "data/recordings" },
+        interactionCollectorFactory: () => collector,
+        screenshotRanker: {
+          rank: vi.fn().mockReturnValue([]),
+          selectRanked: vi.fn().mockImplementation((_shots, context) => {
+            rankerContext.push(context);
+            return [];
+          }),
+        },
+        screenshotExtractor: {
+          extract: vi.fn().mockResolvedValue([
+            { path: "s1.png", timestampMs: 50, width: 1920, height: 1080 },
+            { path: "s2.png", timestampMs: 200, width: 1920, height: 1080 },
+          ]),
+        },
+        assetService: {
+          create: vi.fn(),
+          getById: vi.fn(),
+          listByProject: vi.fn().mockReturnValue([]),
+          listBySession: vi.fn().mockReturnValue([]),
+          listByType: vi.fn().mockReturnValue([]),
+          delete: vi.fn(),
+        },
+      });
+
+      const project = projectService.create({ name: "Test", path: "/test", executablePath: "/test/app.exe" });
+      await mgr.startSession(project.id, "manual");
+      await mgr.stopSession(project.id);
+
+      expect(rankerContext.length).toBeGreaterThan(0);
+      expect(rankerContext[0].interactionTimestamps).toEqual(timestamps);
+    });
+
+    it("works without interaction collector factory (optional)", async () => {
+      const project = projectService.create({ name: "Test", path: "/test", executablePath: "/test/app.exe" });
+      await manager.startSession(project.id, "manual");
+      const completed = await manager.stopSession(project.id);
+
+      expect(completed).not.toBeNull();
+      expect(completed!.status).toBe("complete");
+    });
+  });
 });

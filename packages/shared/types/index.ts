@@ -915,3 +915,22 @@ export interface ProjectAutoFillResult {
 export interface ProjectAutoFillService {
   detect(projectPath: string): Promise<ProjectAutoFillResult>;
 }
+
+export interface InteractionEvent {
+  timestampMs: number;
+  type: "keyboard";
+  accelerator: string;
+}
+
+export interface InteractionCollector {
+  start(): void;
+  stop(): void;
+  getEvents(): InteractionEvent[];
+  getTimestamps(): number[];
+  reset(): void;
+}
+
+export interface InteractionCollectorConfig {
+  accelerators?: string[];
+  nowFn?: () => number;
+}

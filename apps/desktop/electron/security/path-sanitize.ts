@@ -86,6 +86,13 @@ export function isPathWithinDirectory(
   );
 }
 
+/**
+ * Strip `..` sequences from a path string.
+ *
+ * WARNING: This is weaker than sanitizeFilePath() which normalizes paths
+ * and optionally enforces allowed base directories. Services should
+ * prefer sanitizeFilePath() for robust path validation.
+ */
 export function stripTraversal(pathStr: string): string {
   return pathStr
     .replace(/\.\.\//g, "")

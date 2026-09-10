@@ -1970,7 +1970,7 @@
 - esbuild configured for CJS output format, Node 18 target
 - Stale `.d.ts` files in `packages/` harmless (esbuild ignores them, `.gitignore` excludes `.js` artifacts)
 - `noEmit: true` left in tsconfig — tsc still used for type-checking (`npm run lint`), esbuild for actual compilation
-- Commit pending
+- Commit: `c8b47e8`
 
 ---
 
@@ -2366,4 +2366,4 @@
 - SQL audit found all queries safe: dynamic UPDATE uses hardcoded column names (whitelist), all values use ? placeholders
 - Path sanitizer available as utility for services handling file paths (scanner, git, export, deploy)
 - No string concatenation of user input into SQL anywhere in the codebase
-- Commit pending
+- Commit: `c8b47e8`

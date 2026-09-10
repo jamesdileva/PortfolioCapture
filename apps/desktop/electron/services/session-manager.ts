@@ -19,6 +19,7 @@ import type {
   DemoQualityScorer,
   FeatureEvidenceService,
   SceneDetector,
+  InteractionCollector,
 } from "../../../../packages/shared/types/index.js";
 import type { SessionService } from "./session-service.js";
 import type { ProjectService } from "./project-service.js";
@@ -51,6 +52,7 @@ interface ActiveSession {
   captureSessionId: string;
   projectId: string;
   idleDetector?: IdleDetectorImpl;
+  interactionCollector?: InteractionCollector;
   profileSettings?: Partial<RecordingProfileSettings>;
 }
 
@@ -71,6 +73,7 @@ export interface SessionManagerOptions {
   demoQualityScorer?: DemoQualityScorer;
   featureEvidenceService?: FeatureEvidenceService;
   sceneDetector?: SceneDetector;
+  interactionCollectorFactory?: () => InteractionCollector;
   onSessionComplete?: (projectId: string, sessionId: string) => void;
 }
 
@@ -92,6 +95,7 @@ export class SessionManager {
   private demoQualityScorer?: DemoQualityScorer;
   private featureEvidenceService?: FeatureEvidenceService;
   private sceneDetector?: SceneDetector;
+  private interactionCollectorFactory?: () => InteractionCollector;
   private onSessionComplete?: (projectId: string, sessionId: string) => void;
 
   constructor(options: SessionManagerOptions) {
@@ -111,6 +115,7 @@ export class SessionManager {
     this.demoQualityScorer = options.demoQualityScorer;
     this.featureEvidenceService = options.featureEvidenceService;
     this.sceneDetector = options.sceneDetector;
+    this.interactionCollectorFactory = options.interactionCollectorFactory;
     this.onSessionComplete = options.onSessionComplete;
   }
 
@@ -165,6 +170,12 @@ export class SessionManager {
         active.idleDetector = detector;
       }
 
+      if (this.interactionCollectorFactory) {
+        const collector = this.interactionCollectorFactory();
+        collector.start();
+        active.interactionCollector = collector;
+      }
+
       this.sessionService.updateStatus(session.id, "recording");
       return this.sessionService.getById(session.id)!;
     } catch (err) {
@@ -188,6 +199,12 @@ export class SessionManager {
       timeline = active.idleDetector.getTimeline();
     }
 
+    let interactionTimestamps: number[] = [];
+    if (active.interactionCollector) {
+      active.interactionCollector.stop();
+      interactionTimestamps = active.interactionCollector.getTimestamps();
+    }
+
     try {
       const result = await this.captureProvider.stop(active.captureSessionId);
 
@@ -201,8 +218,10 @@ export class SessionManager {
 
       const screenshotsOnly = active.profileSettings?.screenshotsOnly ?? false;
 
+      const segmentDurations = timeline.map((s) => s.endMs - s.startMs);
+
       if (!screenshotsOnly) {
-        await this.extractScreenshots(active.session.id, active.projectId, result.outputPath, active.profileSettings);
+        await this.extractScreenshots(active.session.id, active.projectId, result.outputPath, active.profileSettings, interactionTimestamps, segmentDurations);
 
         const trimmedVideoPath = await this.trimVideo(active.session.id, active.projectId, result.outputPath, timeline);
 
@@ -214,7 +233,7 @@ export class SessionManager {
 
         this.scoreDemoQuality(active.session.id, active.projectId, timeline);
       } else {
-        await this.extractScreenshots(active.session.id, active.projectId, result.outputPath, active.profileSettings);
+        await this.extractScreenshots(active.session.id, active.projectId, result.outputPath, active.profileSettings, interactionTimestamps, segmentDurations);
       }
 
       this.sessionService.updateStatus(active.session.id, "complete");
@@ -284,6 +303,8 @@ export class SessionManager {
     projectId: string,
     rawVideoPath: string,
     profileSettings?: Partial<RecordingProfileSettings>,
+    interactionTimestamps?: number[],
+    segmentDurations?: number[],
   ): Promise<void> {
     if (!this.screenshotExtractor || !this.assetService) {
       return;
@@ -312,8 +333,8 @@ export class SessionManager {
         const ranked = this.screenshotRanker.selectRanked(
           screenshots,
           {
-            interactionTimestamps: [],
-            segmentDurations: [],
+            interactionTimestamps: interactionTimestamps ?? [],
+            segmentDurations: segmentDurations ?? [],
             videoDurationMs,
           },
           { maxScreenshots },

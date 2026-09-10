@@ -1,3 +1,10 @@
+/**
+ * IPC channel allowlist — documentation-only defense-in-depth.
+ *
+ * The real enforcement gate is contextIsolation:true + preload bridge.
+ * This list serves as a reference and can be used by audits or future
+ * middleware, but is NOT enforced at runtime in the IPC registration.
+ */
 export const ALLOWED_IPC_CHANNELS: readonly string[] = [
   "projects:list",
   "projects:get",
