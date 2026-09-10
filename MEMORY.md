@@ -1,21 +1,20 @@
 # MEMORY.md — Agent Working Memory
 
 ## Current Goal
-Sprint 7.2 complete; 7.3 Screenshot Ranker Context Fix is next
+Sprint 7.3 complete; awaiting next directive (7.4 E2E Smoke Test is next)
 
 ## Completed
-- Sprint 0.1–7.2: All sprints complete
-- Sprint 7.2: Security hardening (CSP, allowlist, path sanitizer, SQL audit)
+- Sprint 0.1–7.3: All sprints complete
+- Sprint 7.3: InteractionCollector + screenshot ranker context fix (b4506bc)
 
-## Verified 2026-09-08
-- 785/785 tests pass (12.7s), 43 test files, clean output
-- Build: Vite 33 modules 172KB + esbuild clean
-- Sprint 7.2: CSP headers on BrowserWindow session, IPC allowlist 77 channels, path sanitizer, SQL audit safe
+## Verified 2026-09-09
+- 800/800 tests pass (44 test files), clean output
+- Build: Vite 33 modules 173KB + esbuild clean
+- Sprint 7.3: InteractionCollector captures keyboard events during recording, timestamps passed to ScreenshotRanker context
 
 ## Open Threads
 - Human must retest .exe — logs at %LOCALAPPDATA%/portfolio-auto-recorder/logs/startup.log
-- Screenshot ranker empty context → Sprint 7.3
-- Phase 7 remaining: 7.3 ranker fix, 7.4 E2E, 7.5 crash recovery, 7.6 error boundaries
+- Phase 7 remaining: 7.4 E2E, 7.5 crash recovery, 7.6 error boundaries
 
 ## Key Learnings
 - `better-sqlite3` uses prebuilt binaries on Windows — no VS C++ build tools required

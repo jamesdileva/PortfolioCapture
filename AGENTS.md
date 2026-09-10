@@ -2367,3 +2367,44 @@
 - Path sanitizer available as utility for services handling file paths (scanner, git, export, deploy)
 - No string concatenation of user input into SQL anywhere in the codebase
 - Commit: `c8b47e8`
+
+---
+
+### 2026-09-09 — Sprint 7.3: InteractionCollector + Screenshot Ranker Context Fix
+
+**Agent:** agent-a
+**Status:** Complete
+
+**Objectives:**
+- Collect keyboard interaction events during recording (globalShortcut for registered accelerators — keyboard-only v1, mouse hooks deferred)
+- Pass idle segment timeline to ranker as segment context
+- Wire interaction events from SessionManager to ScreenshotRanker
+- Remove empty context fallback (previously injected `[]`)
+
+**Verification:**
+- `npm run test` — 800 tests pass (44 test files, 3 new)
+- `npm run build` — Vite (33 modules, 173KB) + esbuild clean
+- InteractionCollector: start registers accelerators, stop unregisters, events recorded with timestamps
+- InteractionCollector: idempotent start/stop, safe stop-before-start, reset clears state
+- SessionManager: collector created on startSession, stopped on stopSession
+- ScreenshotRanker context: interactionTimestamps and segmentDurations now passed from real data
+- IdleSegment durations computed from startMs/endMs for segment context
+- Optional: no factory = no crash, existing tests unchanged
+
+**Files created:**
+- `apps/desktop/electron/services/interaction-collector.ts` — InteractionCollectorImpl class with keyboard accelerator registration
+- `tests/unit/interaction-collector.test.ts` — 12 tests
+
+**Files modified:**
+- `packages/shared/types/index.ts` — added InteractionEvent, InteractionCollector, InteractionCollectorConfig interfaces
+- `apps/desktop/electron/services/session-manager.ts` — added interactionCollectorFactory option, start/stop in session lifecycle, context passed to ranker
+- `apps/desktop/electron/services/index.ts` — exported InteractionCollectorImpl
+- `apps/desktop/electron/main.ts` — wired InteractionCollectorImpl factory into SessionManager
+- `tests/unit/session-manager.test.ts` — 3 new integration tests (collector lifecycle, context passing, optional deps)
+
+**Notes:**
+- Keyboard-only v1: uses injectable RegisterFn for globalShortcut (Electron API); mouse hooks deferred
+- InteractionCollectorFactory injected via SessionManagerOptions (backward compatible)
+- Interaction timestamps and idle segment durations passed to ScreenshotRanker.selectRanked()
+- Also addressed review #247 notes: IPC allowlist documented as defense-in-depth, stripTraversal warning added
+- Commit: `b4506bc`
