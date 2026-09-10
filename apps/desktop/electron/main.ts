@@ -8,13 +8,13 @@ import { PortfolioUpdateTriggerImpl } from "./services/portfolio-update-trigger.
 import { registerProjectHandlers, registerSessionHandlers, registerAssetHandlers, registerSettingsHandlers, registerExportHandlers, registerProfileHandlers, registerManualOverridesHandlers, registerGitHandlers, registerScannerHandlers, registerFeatureEvidenceHandlers, registerAiHandlers, registerPortfolioHandlers, registerThemeHandlers, registerDeployHandlers, registerDevServerHandlers, registerWindowHandlers, registerChapterHandlers, registerDemoQualityHandlers } from "./ipc/index.js";
 import { installCspHeaders } from "./security/index.js";
 
-const fsLog = require("fs");
-const pathLog = require("path");
+import { appendFileSync, mkdirSync } from "fs";
+
 let _logDir: string;
-try { _logDir = pathLog.join(require("electron").app.getPath("userData"), "logs"); } catch (_) { _logDir = pathLog.join(process.env.LOCALAPPDATA || process.env.TEMP || ".", "portfolio-auto-recorder"); }
-try { fsLog.mkdirSync(_logDir, { recursive: true }); } catch (_) {}
-const _logFile = pathLog.join(_logDir, "startup.log");
-function _log(msg: string) { try { fsLog.appendFileSync(_logFile, new Date().toISOString() + " [main] " + msg + "\n"); } catch (_) {} }
+try { _logDir = path.join(app.getPath("userData"), "logs"); } catch (_) { _logDir = path.join(process.env.LOCALAPPDATA || process.env.TEMP || ".", "portfolio-auto-recorder"); }
+try { mkdirSync(_logDir, { recursive: true }); } catch (_) {}
+const _logFile = path.join(_logDir, "startup.log");
+function _log(msg: string) { try { appendFileSync(_logFile, new Date().toISOString() + " [main] " + msg + "\n"); } catch (_) {} }
 _log("MODULE_LOADED: main.ts top-level");
 
 let mainWindow: BrowserWindow | null = null;

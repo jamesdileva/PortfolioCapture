@@ -1,37 +1,22 @@
 import { test, expect } from "@playwright/test";
 import { _electron as electron } from "playwright";
 import * as path from "path";
-import * as fs from "fs";
-import * as os from "os";
 
 const ROOT = path.resolve(__dirname, "../..");
-const MAIN_JS = path.join(ROOT, "apps/desktop/electron/dist/main.js");
+const ELECTRON_EXE = require("electron") as string;
+const MAIN_JS = path.join(ROOT, "apps/desktop/electron/dist/main.mjs");
 
-function makeUserDataDir(): string {
-  return fs.mkdtempSync(path.join(os.tmpdir(), "portfolio-e2e-"));
-}
-
-async function launchApp(userDataDir: string) {
+async function launchApp() {
   return electron.launch({
-    args: [MAIN_JS, "--user-data-dir", userDataDir],
+    executablePath: ELECTRON_EXE,
+    args: [MAIN_JS],
+    ignoreDefaultArgs: ["--remote-debugging-port=0"],
   });
 }
 
 test.describe("Project Flow — Create & List", () => {
-  let userDataDir: string;
-
-  test.beforeEach(() => {
-    userDataDir = makeUserDataDir();
-  });
-
-  test.afterEach(async () => {
-    try {
-      fs.rmSync(userDataDir, { recursive: true, force: true });
-    } catch {}
-  });
-
   test("create project and verify it appears in list", async () => {
-    const app = await launchApp(userDataDir);
+    const app = await launchApp();
 
     try {
       const window = await app.firstWindow();
@@ -56,7 +41,7 @@ test.describe("Project Flow — Create & List", () => {
   });
 
   test("empty project list shows prompt", async () => {
-    const app = await launchApp(userDataDir);
+    const app = await launchApp();
 
     try {
       const window = await app.firstWindow();
@@ -71,7 +56,7 @@ test.describe("Project Flow — Create & List", () => {
   });
 
   test("create and edit project", async () => {
-    const app = await launchApp(userDataDir);
+    const app = await launchApp();
 
     try {
       const window = await app.firstWindow();
@@ -99,7 +84,7 @@ test.describe("Project Flow — Create & List", () => {
   });
 
   test("delete project after creation", async () => {
-    const app = await launchApp(userDataDir);
+    const app = await launchApp();
 
     try {
       const window = await app.firstWindow();

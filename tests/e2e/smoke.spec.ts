@@ -1,34 +1,22 @@
 import { test, expect } from "@playwright/test";
 import { _electron as electron } from "playwright";
 import * as path from "path";
-import * as fs from "fs";
-import * as os from "os";
 
 const ROOT = path.resolve(__dirname, "../..");
-const MAIN_JS = path.join(ROOT, "apps/desktop/electron/dist/main.js");
+const ELECTRON_EXE = require("electron") as string;
+const MAIN_JS = path.join(ROOT, "apps/desktop/electron/dist/main.mjs");
 
-function makeUserDataDir(): string {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "portfolio-e2e-"));
-  return dir;
+async function launchApp() {
+  return electron.launch({
+    executablePath: ELECTRON_EXE,
+    args: [MAIN_JS],
+    ignoreDefaultArgs: ["--remote-debugging-port=0"],
+  });
 }
 
 test.describe("Smoke Test — App Launch", () => {
-  let userDataDir: string;
-
-  test.beforeEach(() => {
-    userDataDir = makeUserDataDir();
-  });
-
-  test.afterEach(async () => {
-    try {
-      fs.rmSync(userDataDir, { recursive: true, force: true });
-    } catch {}
-  });
-
   test("app launches and shows main window", async () => {
-    const app = await electron.launch({
-      args: [MAIN_JS, "--user-data-dir", userDataDir],
-    });
+    const app = await launchApp();
 
     try {
       const window = await app.firstWindow();
@@ -44,9 +32,7 @@ test.describe("Smoke Test — App Launch", () => {
   });
 
   test("dashboard tab renders by default", async () => {
-    const app = await electron.launch({
-      args: [MAIN_JS, "--user-data-dir", userDataDir],
-    });
+    const app = await launchApp();
 
     try {
       const window = await app.firstWindow();
@@ -61,9 +47,7 @@ test.describe("Smoke Test — App Launch", () => {
   });
 
   test("no startup errors in log", async () => {
-    const app = await electron.launch({
-      args: [MAIN_JS, "--user-data-dir", userDataDir],
-    });
+    const app = await launchApp();
 
     try {
       const window = await app.firstWindow();
