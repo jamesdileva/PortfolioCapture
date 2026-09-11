@@ -1,7 +1,7 @@
 # MEMORY.md — Agent Working Memory
 
 ## Current Goal
-Sprint 7.5 complete (466c7c4); 818/818 tests; Crash Recovery IPC bridge ready. Sprint 7.6 (Error Boundaries & Polish) next.
+Sprint 7.5 complete (50f4c31); 818/818 tests; Crash Recovery IPC bridge ready. Sprint 7.6 (Error Boundaries & Polish) next.
 
 ## Completed
 - Sprint 0.1–7.5: All sprints complete
