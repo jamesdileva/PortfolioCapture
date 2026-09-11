@@ -186,6 +186,10 @@ interface PortfolioCrashRecoveryAPI {
   autoCleanup: () => Promise<number>;
 }
 
+interface PortfolioHealthAPI {
+  check: () => Promise<{ status: "healthy" | "degraded" | "unhealthy"; checks: Array<{ name: string; status: "pass" | "warn" | "fail"; message: string }>; checkedAt: string }>;
+}
+
 interface PortfolioAPI {
   on: (channel: string, callback: (...args: unknown[]) => void) => () => void;
   projects: PortfolioProjectsAPI;
@@ -207,6 +211,7 @@ interface PortfolioAPI {
   chapters: PortfolioChaptersAPI;
   quality: PortfolioQualityAPI;
   crashRecovery: PortfolioCrashRecoveryAPI;
+  health: PortfolioHealthAPI;
 }
 
 declare global {

@@ -17,3 +17,4 @@ export { registerWindowHandlers } from "./windows.js";
 export { registerChapterHandlers } from "./chapters.js";
 export { registerDemoQualityHandlers } from "./demo-quality.js";
 export { registerCrashRecoveryHandlers } from "./crash-recovery.js";
+export { registerHealthCheckHandlers } from "./health-check.js";

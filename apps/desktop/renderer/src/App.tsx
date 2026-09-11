@@ -7,6 +7,8 @@ import { ProjectForm } from "./components/ProjectForm";
 import { SessionList } from "./components/SessionList";
 import { SessionDetail } from "./components/SessionDetail";
 import { ProjectTimeline } from "./components/ProjectTimeline";
+import { ErrorBoundary } from "./components/ErrorBoundary";
+import { ErrorToastContainer } from "./components/ErrorToast";
 
 type Tab = "dashboard" | "projects" | "recordings";
 type ProjectView = "list" | "add" | "edit";
@@ -168,6 +170,7 @@ export function App() {
 
   return (
     <div style={container}>
+      <ErrorToastContainer />
       <h1 style={{ borderBottom: "1px solid #333", paddingBottom: "0.5rem", fontSize: "1.3em" }}>
         Portfolio Auto Recorder
       </h1>
@@ -181,97 +184,103 @@ export function App() {
       {loading ? (
         <p style={{ color: "#888" }}>Loading...</p>
       ) : tab === "dashboard" ? (
-        <>
-          <Dashboard
-            projects={projects}
-            sessions={sessions}
-            onProjectClick={(p) => {
-              setEditing(p);
-              setProjectView("edit");
-              setTab("projects");
-            }}
-            onSessionClick={(s) => {
-              setSelectedSession(s);
-              setTab("recordings");
-            }}
-          />
-          <DeployPanel portfolioDir={portfolioDir} />
-        </>
+        <ErrorBoundary tabName="Dashboard">
+          <>
+            <Dashboard
+              projects={projects}
+              sessions={sessions}
+              onProjectClick={(p) => {
+                setEditing(p);
+                setProjectView("edit");
+                setTab("projects");
+              }}
+              onSessionClick={(s) => {
+                setSelectedSession(s);
+                setTab("recordings");
+              }}
+            />
+            <DeployPanel portfolioDir={portfolioDir} />
+          </>
+        </ErrorBoundary>
       ) : tab === "projects" ? (
-        <>
-          {projectView === "list" && (
-            <>
-              <ProjectList
-                projects={projects}
-                onEdit={handleEdit}
-                onDelete={(p) => setDeleteConfirm(p)}
-                onAdd={handleAdd}
-              />
-              {deleteConfirm && (
-                <div style={overlay}>
-                  <div style={modal}>
-                    <p>Delete project <strong>{deleteConfirm.name}</strong>?</p>
-                    <p style={{ color: "#aaa", fontSize: "0.85em" }}>This cannot be undone.</p>
-                    <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
-                      <button onClick={() => handleDelete(deleteConfirm)} style={{ ...btnStyle, borderColor: "#a33", color: "#f88" }}>Delete</button>
-                      <button onClick={() => setDeleteConfirm(null)} style={btnStyle}>Cancel</button>
+        <ErrorBoundary tabName="Projects">
+          <>
+            {projectView === "list" && (
+              <>
+                <ProjectList
+                  projects={projects}
+                  onEdit={handleEdit}
+                  onDelete={(p) => setDeleteConfirm(p)}
+                  onAdd={handleAdd}
+                />
+                {deleteConfirm && (
+                  <div style={overlay}>
+                    <div style={modal}>
+                      <p>Delete project <strong>{deleteConfirm.name}</strong>?</p>
+                      <p style={{ color: "#aaa", fontSize: "0.85em" }}>This cannot be undone.</p>
+                      <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
+                        <button onClick={() => handleDelete(deleteConfirm)} style={{ ...btnStyle, borderColor: "#a33", color: "#f88" }}>Delete</button>
+                        <button onClick={() => setDeleteConfirm(null)} style={btnStyle}>Cancel</button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
-            </>
-          )}
-          {(projectView === "add" || projectView === "edit") && (
-            <>
-              <ProjectForm
-                project={editing}
-                onSave={handleSave}
-                onCancel={handleCancel}
-              />
-              {projectView === "edit" && editing && (
-                <div style={{ marginTop: "1.5rem" }}>
-                  <ProjectTimeline
-                    project={editing}
-                    sessions={sessions.filter((s) => s.projectId === editing.id)}
-                    onSessionClick={(s) => {
-                      setSelectedSession(s);
-                      setTab("recordings");
-                    }}
-                  />
-                </div>
-              )}
-            </>
-          )}
-        </>
+                )}
+              </>
+            )}
+            {(projectView === "add" || projectView === "edit") && (
+              <>
+                <ProjectForm
+                  project={editing}
+                  onSave={handleSave}
+                  onCancel={handleCancel}
+                />
+                {projectView === "edit" && editing && (
+                  <div style={{ marginTop: "1.5rem" }}>
+                    <ProjectTimeline
+                      project={editing}
+                      sessions={sessions.filter((s) => s.projectId === editing.id)}
+                      onSessionClick={(s) => {
+                        setSelectedSession(s);
+                        setTab("recordings");
+                      }}
+                    />
+                  </div>
+                )}
+              </>
+            )}
+          </>
+        </ErrorBoundary>
       ) : (
-        <>
-          {selectedSession ? (
-            <SessionDetail
-              session={selectedSession}
-              project={projects.find((p) => p.id === selectedSession.projectId)}
-              onBack={handleBackToList}
-              onDelete={(s) => setDeleteSessionConfirm(s)}
-            />
-          ) : (
-            <SessionList
-              sessions={sessions}
-              projects={projects}
-              onSessionClick={handleSessionClick}
-            />
-          )}
-          {deleteSessionConfirm && (
-            <div style={overlay}>
-              <div style={modal}>
-                <p>Delete this recording?</p>
-                <p style={{ color: "#aaa", fontSize: "0.85em" }}>This will remove the session record. Raw files may remain on disk.</p>
-                <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
-                  <button onClick={() => handleDeleteSession(deleteSessionConfirm)} style={{ ...btnStyle, borderColor: "#a33", color: "#f88" }}>Delete</button>
-                  <button onClick={() => setDeleteSessionConfirm(null)} style={btnStyle}>Cancel</button>
+        <ErrorBoundary tabName="Recordings">
+          <>
+            {selectedSession ? (
+              <SessionDetail
+                session={selectedSession}
+                project={projects.find((p) => p.id === selectedSession.projectId)}
+                onBack={handleBackToList}
+                onDelete={(s) => setDeleteSessionConfirm(s)}
+              />
+            ) : (
+              <SessionList
+                sessions={sessions}
+                projects={projects}
+                onSessionClick={handleSessionClick}
+              />
+            )}
+            {deleteSessionConfirm && (
+              <div style={overlay}>
+                <div style={modal}>
+                  <p>Delete this recording?</p>
+                  <p style={{ color: "#aaa", fontSize: "0.85em" }}>This will remove the session record. Raw files may remain on disk.</p>
+                  <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
+                    <button onClick={() => handleDeleteSession(deleteSessionConfirm)} style={{ ...btnStyle, borderColor: "#a33", color: "#f88" }}>Delete</button>
+                    <button onClick={() => setDeleteSessionConfirm(null)} style={btnStyle}>Cancel</button>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
-        </>
+            )}
+          </>
+        </ErrorBoundary>
       )}
     </div>
   );

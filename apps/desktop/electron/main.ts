@@ -5,10 +5,11 @@ import { ProjectRepository, SessionRepository, AssetRepository, SettingsReposito
 import { ProjectService, SessionService, AssetService, SettingsService, ProcessMonitor, FfmpegCaptureProvider, FfmpegServiceImpl, FfmpegScreenshotExtractor, IdleDetectorImpl, SmartTrimmerImpl, DemoGeneratorImpl, ExportServiceImpl, ScreenshotRankerImpl, TimelineAssemblerImpl, RecordingProfileServiceImpl, ManualEditOverridesServiceImpl, GitServiceImpl, ProjectScannerImpl, FeatureEvidenceServiceImpl, LocalAiServiceImpl, PortfolioGeneratorImpl, ThemeServiceImpl, DeployServiceImpl, DevServerDetectorImpl, WindowEnumeratorImpl, FeatureChapterGeneratorImpl, SceneDetectorImpl, DemoQualityScorerImpl, ProjectAutoFillServiceImpl, InteractionCollectorImpl, CrashRecoveryServiceImpl } from "./services/index.js";
 import { SessionManager } from "./services/session-manager.js";
 import { PortfolioUpdateTriggerImpl } from "./services/portfolio-update-trigger.js";
-import { registerProjectHandlers, registerSessionHandlers, registerAssetHandlers, registerSettingsHandlers, registerExportHandlers, registerProfileHandlers, registerManualOverridesHandlers, registerGitHandlers, registerScannerHandlers, registerFeatureEvidenceHandlers, registerAiHandlers, registerPortfolioHandlers, registerThemeHandlers, registerDeployHandlers, registerDevServerHandlers, registerWindowHandlers, registerChapterHandlers, registerDemoQualityHandlers, registerCrashRecoveryHandlers } from "./ipc/index.js";
+import { registerProjectHandlers, registerSessionHandlers, registerAssetHandlers, registerSettingsHandlers, registerExportHandlers, registerProfileHandlers, registerManualOverridesHandlers, registerGitHandlers, registerScannerHandlers, registerFeatureEvidenceHandlers, registerAiHandlers, registerPortfolioHandlers, registerThemeHandlers, registerDeployHandlers, registerDevServerHandlers, registerWindowHandlers, registerChapterHandlers, registerDemoQualityHandlers, registerCrashRecoveryHandlers, registerHealthCheckHandlers } from "./ipc/index.js";
 import { installCspHeaders } from "./security/index.js";
 
 import { appendFileSync, mkdirSync } from "fs";
+import { runHealthChecks } from "./services/health-check.js";
 
 let _logDir: string;
 try { _logDir = path.join(app.getPath("userData"), "logs"); } catch (_) { _logDir = path.join(process.env.LOCALAPPDATA || process.env.TEMP || ".", "portfolio-auto-recorder"); }
@@ -227,15 +228,42 @@ function initializeServices() {
   const crashRecovery = new CrashRecoveryServiceImpl(sessionService);
   registerCrashRecoveryHandlers(crashRecovery, projectService);
 
+  registerHealthCheckHandlers(db, { migrationsDir: path.join(__dirname, "migrations") });
+
   return { db, projectService, sessionService, assetService, settingsService, processMonitor, sessionManager, crashRecovery };
 }
+
+process.on("unhandledRejection", (reason) => {
+  const msg = reason instanceof Error ? reason.stack ?? reason.message : String(reason);
+  _log("UNHANDLED_REJECTION: " + msg);
+});
 
 app.whenReady().then(() => {
   _log("app.whenReady: FIRED");
   try {
     _log("initializeServices: START");
-    initializeServices();
+    const services = initializeServices();
     _log("initializeServices: DONE");
+
+    _log("runHealthChecks: START");
+    runHealthChecks(services.db, { migrationsDir: path.join(__dirname, "migrations") })
+      .then((result) => {
+        _log(`Health check: ${result.status}`);
+        for (const check of result.checks) {
+          _log(`  ${check.name}: ${check.status} — ${check.message}`);
+        }
+        if (result.status === "unhealthy") {
+          dialog.showErrorBox(
+            "Portfolio Auto Recorder — Startup Warning",
+            result.checks.filter((c) => c.status === "fail").map((c) => `${c.name}: ${c.message}`).join("\n"),
+          );
+        }
+      })
+      .catch((err) => {
+        _log("Health check failed: " + (err instanceof Error ? err.message : String(err)));
+      });
+
+    _log("createWindow: START");
     createWindow();
     _log("createWindow: DONE");
 

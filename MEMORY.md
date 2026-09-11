@@ -1,25 +1,29 @@
 # MEMORY.md — Agent Working Memory
 
 ## Current Goal
-Sprint 7.5 complete (50f4c31); 818/818 tests; Crash Recovery IPC bridge ready. Sprint 7.6 (Error Boundaries & Polish) next.
+Sprint 7.6 complete; 838/838 tests; IPC allowlist 81 channels. Phase 7 complete. Next: human decides next phase.
 
 ## Completed
-- Sprint 0.1–7.5: All sprints complete
+- Sprint 0.1–7.6: All sprints complete
+- Sprint 7.6: Error Boundaries & Polish — ErrorBoundary, ErrorToast, health checks, IPC timeout, unhandled rejection handler
 - Sprint 7.5: Crash Recovery — orphan detection, discard, auto-cleanup (466c7c4)
-- Sprint 7.5 Post-fix: IPC allowlist gap fixed (80 channels)
+- Sprint 7.5 Post-fix: IPC allowlist gap fixed (81 channels)
 
 ## Verified 2026-09-10
-- 818/818 tests pass (45 test files), clean output
-- Build: Vite 33 modules 173KB + esbuild clean (main.js 323KB CJS + preload.js 7.8KB + migrations/)
-- CrashRecoveryServiceImpl: detectOrphans, discardOrphan, autoCleanup all functional
-- IPC bridge: crashRecovery.detect/discard/autoCleanup wired
-- IPC allowlist: 80 channels (includes crash-recovery:detect/discard/autoCleanup)
+- 838/838 tests pass (48 test files), clean output
+- Build: Vite 35 modules 175KB + esbuild clean (main.js + preload.js + migrations/)
+- ErrorBoundary: per-tab isolation (Dashboard, Projects, Recordings)
+- ErrorToast: auto-dismiss after 5s, manual dismiss, showToast/dismissToast/clearAllToasts API
+- Health checks: DB writable, FFmpeg found, migrations dir — via injectable ExecFn
+- IPC timeout: 30s default on all preload bridge calls via invokeWithTimeout
+- Unhandled rejection: logged to startup.log, no crash
+- health:check IPC channel registered (81 total)
 
 ## Open Threads
 - Human must retest .exe — logs at %LOCALAPPDATA%/portfolio-auto-recorder/logs/startup.log
 - E2E verification: run `npx playwright test` against built app (needs Electron running)
-- Sprint 7.6: Error Boundaries & Polish (React error boundaries, IPC timeouts, health checks)
 - Recovery dialog UI deferred — IPC bridge ready for renderer integration
+- Pre-existing TS errors in ffmpeg-service.ts, project-autofill.ts, ipc/projects.ts (unrelated to Sprint 7.6)
 
 ## Key Learnings
 - `better-sqlite3` uses prebuilt binaries on Windows — no VS C++ build tools required

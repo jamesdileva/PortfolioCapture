@@ -172,10 +172,11 @@ describe("IPC Allowlist", () => {
     expect(namespaces.has("chapters")).toBe(true);
     expect(namespaces.has("quality")).toBe(true);
     expect(namespaces.has("crash-recovery")).toBe(true);
+    expect(namespaces.has("health")).toBe(true);
   });
 
-  it("contains exactly 80 channels", () => {
-    expect(ALLOWED_IPC_CHANNELS.length).toBe(80);
+  it("contains exactly 81 channels", () => {
+    expect(ALLOWED_IPC_CHANNELS.length).toBe(81);
   });
 
   it("isChannelAllowed returns true for known channels", () => {
@@ -185,6 +186,7 @@ describe("IPC Allowlist", () => {
     expect(isChannelAllowed("crash-recovery:detect")).toBe(true);
     expect(isChannelAllowed("crash-recovery:discard")).toBe(true);
     expect(isChannelAllowed("crash-recovery:autoCleanup")).toBe(true);
+    expect(isChannelAllowed("health:check")).toBe(true);
   });
 
   it("isChannelAllowed returns false for unknown channels", () => {
@@ -202,9 +204,9 @@ describe("IPC Allowlist", () => {
 
   it("getAllowedChannels returns a copy of the list", () => {
     const channels = getAllowedChannels();
-    expect(channels.length).toBe(80);
+    expect(channels.length).toBe(81);
     channels.push("fake:channel");
-    expect(ALLOWED_IPC_CHANNELS.length).toBe(80);
+    expect(ALLOWED_IPC_CHANNELS.length).toBe(81);
   });
 
   it("ALLOWED_IPC_CHANNELS is readonly (TypeScript)", () => {
