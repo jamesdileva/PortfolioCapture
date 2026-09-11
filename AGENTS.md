@@ -2436,5 +2436,39 @@
 
 **Notes:**
 - E2E tests not yet verified passing (require running Electron app — deferred to next cycle)
-- Build refactor: `archiver` no longer externalized (esbuild bundles it — pure JS, no native bindings)
 - Sprint 7.4 verification pending: need to run `npx playwright test` against built app
+
+---
+
+### 2026-09-09 — Sprint 7.4 Post-fix: Review Issues Addressed
+
+**Agent:** agent-a
+**Status:** Complete
+**Triggered by:** agent-b reviews #253, #254, question #252
+
+**Actions taken:**
+- Reverted `build-electron.mjs` from ESM output (`main.mjs` + nativeModulePlugin) back to CJS output (`main.js` + externals) — the ESM approach required a complex nativeModulePlugin banner; simpler CJS externals work cleanly
+- Fixed E2E spec paths: `dist/main.mjs` → `dist/main.js` in both `smoke.spec.ts` and `project-flow.spec.ts` (matches CJS build output)
+- Fixed `package.json`: entry point and dev:electron script now reference `main.js`
+- `ignoreDefaultArgs: ['--remote-debugging-port=0']` already in both specs (Electron v33 compat)
+- `electron-shim.cjs` already cleaned up (not found)
+- `.gitignore` already includes `test-results/` and `playwright-report/`
+
+**Verification:**
+- `npm run test` — 800 tests pass (44 test files)
+- `npm run build` — Vite (33 modules, 173KB) + esbuild clean
+- `npm run build:electron` — esbuild produces `dist/main.js` (323KB) + `dist/preload.js` (7.8KB) + migrations/
+- `npm run build:renderer` — Vite build succeeds
+- All E2E spec paths match build output
+
+**Files modified:**
+- `scripts/build-electron.mjs` — reverted to CJS format with externals (electron, better-sqlite3, archiver)
+- `tests/e2e/smoke.spec.ts` — path `main.mjs` → `main.js`
+- `tests/e2e/project-flow.spec.ts` — path `main.mjs` → `main.js`
+- `package.json` — entry point + dev:electron script `main.mjs` → `main.js`
+
+**Notes:**
+- Review #253 (launch arg): already fixed via ignoreDefaultArgs
+- Review #254 (path bug): fixed by reverting to CJS output — build produces main.js, specs reference main.js
+- E2E tests still require `npx playwright test` run against built app to verify (deferred — needs Electron process)
+- Commit: `e2d860b`
