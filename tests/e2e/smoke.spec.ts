@@ -4,7 +4,7 @@ import * as path from "path";
 
 const ROOT = path.resolve(__dirname, "../..");
 const ELECTRON_EXE = require("electron") as string;
-const MAIN_JS = path.join(ROOT, "apps/desktop/electron/dist/main.mjs");
+const MAIN_JS = path.join(ROOT, "apps/desktop/electron/dist/main.js");
 
 async function launchApp() {
   return electron.launch({

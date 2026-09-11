@@ -3,17 +3,6 @@ import { rmSync, cpSync } from "fs";
 
 rmSync("apps/desktop/electron/dist", { recursive: true, force: true });
 
-const esmBanner = [
-  "import { fileURLToPath as __efu } from 'node:url';",
-  "import { dirname as __edirname } from 'node:path';",
-  "import { createRequire as __creq } from 'node:module';",
-  "const __filename = __efu(import.meta.url);",
-  "const __dirname = __edirname(__filename);",
-  "const require = __creq(import.meta.url);",
-  "const __electron = require('electron');",
-  "const __betterSqlite3 = require('better-sqlite3');",
-].join("\n");
-
 const cjsBanner = [
   "var fs = require('fs'), path = require('path');",
   "var _logDir;",
@@ -42,70 +31,30 @@ const cjsBanner = [
   "});",
 ].join("\n");
 
-const nativeModulePlugin = {
-  name: "native-modules-to-banner",
-  setup(build) {
-    const externals = {
-      "electron": "__electron",
-      "better-sqlite3": "__betterSqlite3",
-    };
-
-    for (const [mod, globalName] of Object.entries(externals)) {
-      const escaped = mod.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      build.onResolve({ filter: new RegExp(`^${escaped}$`) }, (args) => ({
-        path: args.path,
-        namespace: "native-module-ns",
-      }));
-      build.onLoad({ filter: /.*/, namespace: "native-module-ns" }, (args) => {
-        if (args.path === "electron") {
-          return {
-            contents: [
-              `const mod = ${globalName};`,
-              `export default mod;`,
-              `export const app = mod.app;`,
-              `export const BrowserWindow = mod.BrowserWindow;`,
-              `export const dialog = mod.dialog;`,
-              `export const ipcMain = mod.ipcMain;`,
-              `export const shell = mod.shell;`,
-              `export const globalShortcut = mod.globalShortcut;`,
-            ].join("\n"),
-            loader: "js",
-          };
-        }
-        return {
-          contents: `export default ${globalName};`,
-          loader: "js",
-        };
-      });
-    }
-  },
-};
-
 const shared = {
   bundle: true,
   platform: "node",
   target: "node18",
   sourcemap: true,
+  external: ["electron", "better-sqlite3", "archiver"],
 };
 
 await Promise.all([
   build({
     ...shared,
-    format: "esm",
-    plugins: [nativeModulePlugin],
+    format: "cjs",
     entryPoints: ["apps/desktop/electron/main.ts"],
-    outfile: "apps/desktop/electron/dist/main.mjs",
-    banner: { js: esmBanner },
+    outfile: "apps/desktop/electron/dist/main.js",
+    banner: { js: cjsBanner },
   }),
   build({
     ...shared,
     format: "cjs",
     entryPoints: ["apps/desktop/electron/preload.ts"],
     outfile: "apps/desktop/electron/dist/preload.js",
-    banner: { js: cjsBanner },
   }),
 ]);
 
 cpSync("packages/database/migrations", "apps/desktop/electron/dist/migrations", { recursive: true });
 
-console.log("Electron build complete: dist/main.mjs + dist/preload.js + migrations/");
+console.log("Electron build complete: dist/main.js + dist/preload.js + migrations/");

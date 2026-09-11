@@ -2,11 +2,11 @@
   "name": "portfolio-auto-recorder",
   "version": "0.1.0",
   "description": "Local-first desktop utility that automatically captures lightweight portfolio evidence",
-  "main": "apps/desktop/electron/dist/main.mjs",
+  "main": "apps/desktop/electron/dist/main.js",
   "scripts": {
     "dev": "concurrently \"npm run dev:renderer\" \"npm run dev:electron\"",
     "dev:renderer": "vite --config apps/desktop/renderer/vite.config.ts",
-    "dev:electron": "node scripts/build-electron.mjs && electron apps/desktop/electron/dist/main.mjs",
+    "dev:electron": "node scripts/build-electron.mjs && electron apps/desktop/electron/dist/main.js",
     "build": "npm run build:renderer && npm run build:electron",
     "build:renderer": "vite build --config apps/desktop/renderer/vite.config.ts",
     "build:electron": "node scripts/build-electron.mjs",
