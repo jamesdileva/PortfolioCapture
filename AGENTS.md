@@ -2543,3 +2543,54 @@
 
 **Notes:**
 - Defense-in-depth: preload bridge already enforces, but allowlist now consistent with Sprint 7.2 pattern
+
+---
+
+### 2026-09-10 — Sprint 7.6: Error Boundaries & Polish
+
+**Agent:** agent-a
+**Status:** Complete
+
+**Objectives:**
+- React error boundaries for renderer crashes (per-tab isolation)
+- IPC timeout handling (30s default, configurable per channel)
+- Service health checks on startup (DB writable, FFmpeg found, migrations clean)
+- User-facing error toasts (non-blocking notifications)
+- Unhandled promise rejection handler in main process
+
+**Verification:**
+- `npm run test` — 838 tests pass (48 test files, 20 new)
+- `npm run build` — Vite (35 modules, 175KB) + esbuild clean
+- ErrorBoundary: catches render errors, shows fallback UI with tab name and error message, Try Again resets state
+- ErrorBoundary: per-tab isolation (Dashboard, Projects, Recordings), does not crash sibling tabs
+- ErrorToast: showToast/dismissToast/clearAllToasts API, auto-dismiss after 5s, fixed-position toast stack
+- Health check: DB readable, FFmpeg found in PATH, migrations dir exists — via injectable ExecFn
+- Health check: unhealthy shows error dialog on startup, degraded logs warning
+- IPC timeout: invokeWithTimeout wraps all preload bridge calls with 30s Promise.race
+- Unhandled rejection: process.on("unhandledRejection") logs to startup.log
+- health:check IPC channel registered (81 total)
+
+**Files created:**
+- `apps/desktop/renderer/src/components/ErrorBoundary.tsx` — per-tab error boundary class component
+- `apps/desktop/renderer/src/components/ErrorToast.tsx` — toast notification system (showToast/dismissToast/clearAllToasts)
+- `apps/desktop/electron/services/health-check.ts` — runHealthChecks with injectable ExecFn
+- `apps/desktop/electron/ipc/health-check.ts` — IPC handler for health:check
+- `tests/renderer/error-boundary.test.tsx` — 6 tests
+- `tests/renderer/error-toast.test.tsx` — 7 tests
+- `tests/unit/health-check.test.ts` — 7 tests
+
+**Files modified:**
+- `apps/desktop/electron/preload.ts` — added invokeWithTimeout wrapper (30s default), replaced all ipcRenderer.invoke calls
+- `apps/desktop/renderer/src/App.tsx` — wrapped each tab content in ErrorBoundary, added ErrorToastContainer
+- `apps/desktop/renderer/src/types/global.d.ts` — added PortfolioHealthAPI
+- `apps/desktop/electron/ipc/index.ts` — exported registerHealthCheckHandlers
+- `apps/desktop/electron/main.ts` — imported health-check, runHealthChecks on startup, unhandledRejection handler, registerHealthCheckHandlers
+- `apps/desktop/electron/security/ipc-allowlist.ts` — added health:check (81 total)
+- `tests/unit/security.test.ts` — updated channel count 80→81, added health namespace
+
+**Notes:**
+- Health checks run async on startup — non-blocking, logged to startup.log
+- IPC timeout is renderer-side only (preload bridge); main process IPC handlers have no timeout (they run synchronously per invoke)
+- ErrorBoundary is a class component (React requirement for error boundaries — cannot use hooks)
+- ErrorToast uses module-level state (global across renders) — clearAllToasts for test isolation
+- Phase 7 complete: all 6 sprints (7.1–7.6) delivered

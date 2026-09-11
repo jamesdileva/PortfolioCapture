@@ -1,11 +1,11 @@
 # MEMORY.md — Agent Working Memory
 
 ## Current Goal
-Sprint 7.6 complete; 838/838 tests; IPC allowlist 81 channels. Phase 7 complete. Next: human decides next phase.
+Phase 7 complete (7.1–7.6). 838/838 tests; IPC allowlist 81 channels. Next: human decides next phase.
 
 ## Completed
 - Sprint 0.1–7.6: All sprints complete
-- Sprint 7.6: Error Boundaries & Polish — ErrorBoundary, ErrorToast, health checks, IPC timeout, unhandled rejection handler
+- Sprint 7.6: Error Boundaries & Polish — ErrorBoundary, ErrorToast, health checks, IPC timeout, unhandled rejection handler (f88b734)
 - Sprint 7.5: Crash Recovery — orphan detection, discard, auto-cleanup (466c7c4)
 - Sprint 7.5 Post-fix: IPC allowlist gap fixed (81 channels)
 
