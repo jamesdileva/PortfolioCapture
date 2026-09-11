@@ -142,4 +142,9 @@ contextBridge.exposeInMainWorld("portfolio", {
     score: (input: { videoDurationMs: number; idleTimeMs: number; screenshotCount: number; featureCount: number; fps: number }, config?: { weights?: { visualClarity?: number; featureCoverage?: number; deadTimeRatio?: number; durationScore?: number; screenshotQuality?: number }; idealDurationMs?: number; durationToleranceMs?: number }) =>
       ipcRenderer.invoke("quality:score", input, config),
   },
+  crashRecovery: {
+    detect: () => ipcRenderer.invoke("crash-recovery:detect"),
+    discard: (sessionId: string) => ipcRenderer.invoke("crash-recovery:discard", sessionId),
+    autoCleanup: () => ipcRenderer.invoke("crash-recovery:autoCleanup"),
+  },
 });

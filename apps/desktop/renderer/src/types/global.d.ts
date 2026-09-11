@@ -47,6 +47,7 @@ import type {
   DemoQualityScorerConfig,
   ProjectAutoFillResult,
 } from "../../../../packages/shared/types/index.js";
+import type { OrphanedSession } from "../../electron/services/crash-recovery.js";
 
 interface PortfolioProjectsAPI {
   list: () => Promise<Project[]>;
@@ -179,6 +180,12 @@ interface PortfolioQualityAPI {
   score: (input: { videoDurationMs: number; idleTimeMs: number; screenshotCount: number; featureCount: number; fps: number }, config?: Partial<DemoQualityScorerConfig>) => Promise<DemoQualityResult>;
 }
 
+interface PortfolioCrashRecoveryAPI {
+  detect: () => Promise<OrphanedSession[]>;
+  discard: (sessionId: string) => Promise<void>;
+  autoCleanup: () => Promise<number>;
+}
+
 interface PortfolioAPI {
   on: (channel: string, callback: (...args: unknown[]) => void) => () => void;
   projects: PortfolioProjectsAPI;
@@ -199,6 +206,7 @@ interface PortfolioAPI {
   windows: PortfolioWindowsAPI;
   chapters: PortfolioChaptersAPI;
   quality: PortfolioQualityAPI;
+  crashRecovery: PortfolioCrashRecoveryAPI;
 }
 
 declare global {

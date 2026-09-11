@@ -2,10 +2,10 @@ import { app, BrowserWindow, dialog } from "electron";
 import * as path from "path";
 import { createDatabase, runMigrations, closeDatabase } from "../../../packages/database/index.js";
 import { ProjectRepository, SessionRepository, AssetRepository, SettingsRepository, FeatureEvidenceRepository } from "../../../packages/database/repositories/index.js";
-import { ProjectService, SessionService, AssetService, SettingsService, ProcessMonitor, FfmpegCaptureProvider, FfmpegServiceImpl, FfmpegScreenshotExtractor, IdleDetectorImpl, SmartTrimmerImpl, DemoGeneratorImpl, ExportServiceImpl, ScreenshotRankerImpl, TimelineAssemblerImpl, RecordingProfileServiceImpl, ManualEditOverridesServiceImpl, GitServiceImpl, ProjectScannerImpl, FeatureEvidenceServiceImpl, LocalAiServiceImpl, PortfolioGeneratorImpl, ThemeServiceImpl, DeployServiceImpl, DevServerDetectorImpl, WindowEnumeratorImpl, FeatureChapterGeneratorImpl, SceneDetectorImpl, DemoQualityScorerImpl, ProjectAutoFillServiceImpl, InteractionCollectorImpl } from "./services/index.js";
+import { ProjectService, SessionService, AssetService, SettingsService, ProcessMonitor, FfmpegCaptureProvider, FfmpegServiceImpl, FfmpegScreenshotExtractor, IdleDetectorImpl, SmartTrimmerImpl, DemoGeneratorImpl, ExportServiceImpl, ScreenshotRankerImpl, TimelineAssemblerImpl, RecordingProfileServiceImpl, ManualEditOverridesServiceImpl, GitServiceImpl, ProjectScannerImpl, FeatureEvidenceServiceImpl, LocalAiServiceImpl, PortfolioGeneratorImpl, ThemeServiceImpl, DeployServiceImpl, DevServerDetectorImpl, WindowEnumeratorImpl, FeatureChapterGeneratorImpl, SceneDetectorImpl, DemoQualityScorerImpl, ProjectAutoFillServiceImpl, InteractionCollectorImpl, CrashRecoveryServiceImpl } from "./services/index.js";
 import { SessionManager } from "./services/session-manager.js";
 import { PortfolioUpdateTriggerImpl } from "./services/portfolio-update-trigger.js";
-import { registerProjectHandlers, registerSessionHandlers, registerAssetHandlers, registerSettingsHandlers, registerExportHandlers, registerProfileHandlers, registerManualOverridesHandlers, registerGitHandlers, registerScannerHandlers, registerFeatureEvidenceHandlers, registerAiHandlers, registerPortfolioHandlers, registerThemeHandlers, registerDeployHandlers, registerDevServerHandlers, registerWindowHandlers, registerChapterHandlers, registerDemoQualityHandlers } from "./ipc/index.js";
+import { registerProjectHandlers, registerSessionHandlers, registerAssetHandlers, registerSettingsHandlers, registerExportHandlers, registerProfileHandlers, registerManualOverridesHandlers, registerGitHandlers, registerScannerHandlers, registerFeatureEvidenceHandlers, registerAiHandlers, registerPortfolioHandlers, registerThemeHandlers, registerDeployHandlers, registerDevServerHandlers, registerWindowHandlers, registerChapterHandlers, registerDemoQualityHandlers, registerCrashRecoveryHandlers } from "./ipc/index.js";
 import { installCspHeaders } from "./security/index.js";
 
 import { appendFileSync, mkdirSync } from "fs";
@@ -224,7 +224,10 @@ function initializeServices() {
 
   registerDemoQualityHandlers(demoQualityScorer);
 
-  return { db, projectService, sessionService, assetService, settingsService, processMonitor, sessionManager };
+  const crashRecovery = new CrashRecoveryServiceImpl(sessionService);
+  registerCrashRecoveryHandlers(crashRecovery, projectService);
+
+  return { db, projectService, sessionService, assetService, settingsService, processMonitor, sessionManager, crashRecovery };
 }
 
 app.whenReady().then(() => {

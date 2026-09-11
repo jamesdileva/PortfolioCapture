@@ -31,3 +31,4 @@ export { FeatureChapterGeneratorImpl } from "./feature-chapter-generator.js";
 export { DemoQualityScorerImpl } from "./demo-quality-scorer.js";
 export { ProjectAutoFillServiceImpl } from "./project-autofill.js";
 export { InteractionCollectorImpl } from "./interaction-collector.js";
+export { CrashRecoveryServiceImpl, type OrphanedSession } from "./crash-recovery.js";

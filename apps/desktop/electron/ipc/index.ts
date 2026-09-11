@@ -16,3 +16,4 @@ export { registerDevServerHandlers } from "./dev-server.js";
 export { registerWindowHandlers } from "./windows.js";
 export { registerChapterHandlers } from "./chapters.js";
 export { registerDemoQualityHandlers } from "./demo-quality.js";
+export { registerCrashRecoveryHandlers } from "./crash-recovery.js";
