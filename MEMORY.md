@@ -1,7 +1,7 @@
 # MEMORY.md — Agent Working Memory
 
 ## Current Goal
-Phase 7 complete (7.1–7.6). 838/838 tests; IPC allowlist 81 channels. Next: human decides next phase.
+Phase 7 complete (7.1–7.6). Fixed archiver ESM bundle bug (ERR_REQUIRE_ESM). 838/838 tests; 81 IPC channels. Awaiting human win-unpacked retest.
 
 ## Completed
 - Sprint 0.1–7.6: All sprints complete
@@ -20,7 +20,7 @@ Phase 7 complete (7.1–7.6). 838/838 tests; IPC allowlist 81 channels. Next: hu
 - health:check IPC channel registered (81 total)
 
 ## Open Threads
-- Human must retest .exe — logs at %LOCALAPPDATA%/portfolio-auto-recorder/logs/startup.log
+- Human must retest win-unpacked exe after archiver ESM fix (mail #276)
 - E2E verification: run `npx playwright test` against built app (needs Electron running)
 - Recovery dialog UI deferred — IPC bridge ready for renderer integration
 - Pre-existing TS errors in ffmpeg-service.ts, project-autofill.ts, ipc/projects.ts (unrelated to Sprint 7.6)
@@ -36,7 +36,7 @@ Phase 7 complete (7.1–7.6). 838/838 tests; IPC allowlist 81 channels. Next: hu
 - React 16: `vi.stubGlobal("portfolio", ...)` for window.portfolio mocking
 - mockReturnValue with mutable singleton is pitfall — always use mockImplementation for factories
 - IdleSegment uses startMs/endMs (not durationMs) — compute inline
-- esbuild CJS externals simpler than nativeModulePlugin — externalize electron/better-sqlite3/archiver
+- esbuild CJS externals: electron + better-sqlite3 only — archiver v8 is ESM-only ("type":"module"), must bundle
 - Electron v33 rejects --remote-debugging-port=0 (Playwright default) — use ignoreDefaultArgs
 - ESM output for Electron main process works but CJS is simpler for native module externals
 
