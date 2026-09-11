@@ -61,15 +61,24 @@ function createWindow(): void {
 }
 
 function initializeServices() {
-  const dbPath = path.join(app.getPath("userData"), "database.sqlite");
+  _log("initializeServices: resolving userData path");
+  const userDataPath = app.getPath("userData");
+  _log("initializeServices: userData=" + userDataPath);
+
+  _log("initializeServices: creating database at " + userDataPath);
+  const dbPath = path.join(userDataPath, "database.sqlite");
   const db = createDatabase(dbPath);
+  _log("initializeServices: database created, running migrations");
+
   runMigrations(db);
+  _log("initializeServices: migrations done, creating repositories");
 
   const projectRepo = new ProjectRepository(db);
   const sessionRepo = new SessionRepository(db);
   const assetRepo = new AssetRepository(db);
   const settingsRepo = new SettingsRepository(db);
   const evidenceRepo = new FeatureEvidenceRepository(db);
+  _log("initializeServices: repositories created, building services");
 
   const projectService = new ProjectService(projectRepo);
   const sessionService = new SessionService(sessionRepo);
@@ -89,9 +98,11 @@ function initializeServices() {
   const chapterGenerator = new FeatureChapterGeneratorImpl(sceneDetector);
   const demoQualityScorer = new DemoQualityScorerImpl();
 
+  _log("initializeServices: registering core IPC handlers");
   registerProjectHandlers(projectService);
   registerAssetHandlers(assetService);
   registerSettingsHandlers(settingsService);
+  _log("initializeServices: core IPC handlers registered");
 
   const exportService = new ExportServiceImpl(projectService, sessionService, assetService, path.join(app.getPath("userData"), "exports"));
   registerExportHandlers(exportService);
@@ -230,6 +241,7 @@ function initializeServices() {
 
   registerHealthCheckHandlers(db, { migrationsDir: path.join(__dirname, "migrations") });
 
+  _log("initializeServices: all services wired, returning");
   return { db, projectService, sessionService, assetService, settingsService, processMonitor, sessionManager, crashRecovery };
 }
 
