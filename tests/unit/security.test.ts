@@ -171,16 +171,20 @@ describe("IPC Allowlist", () => {
     expect(namespaces.has("windows")).toBe(true);
     expect(namespaces.has("chapters")).toBe(true);
     expect(namespaces.has("quality")).toBe(true);
+    expect(namespaces.has("crash-recovery")).toBe(true);
   });
 
-  it("contains exactly 77 channels", () => {
-    expect(ALLOWED_IPC_CHANNELS.length).toBe(77);
+  it("contains exactly 80 channels", () => {
+    expect(ALLOWED_IPC_CHANNELS.length).toBe(80);
   });
 
   it("isChannelAllowed returns true for known channels", () => {
     expect(isChannelAllowed("projects:list")).toBe(true);
     expect(isChannelAllowed("sessions:start")).toBe(true);
     expect(isChannelAllowed("quality:score")).toBe(true);
+    expect(isChannelAllowed("crash-recovery:detect")).toBe(true);
+    expect(isChannelAllowed("crash-recovery:discard")).toBe(true);
+    expect(isChannelAllowed("crash-recovery:autoCleanup")).toBe(true);
   });
 
   it("isChannelAllowed returns false for unknown channels", () => {
@@ -198,9 +202,9 @@ describe("IPC Allowlist", () => {
 
   it("getAllowedChannels returns a copy of the list", () => {
     const channels = getAllowedChannels();
-    expect(channels.length).toBe(77);
+    expect(channels.length).toBe(80);
     channels.push("fake:channel");
-    expect(ALLOWED_IPC_CHANNELS.length).toBe(77);
+    expect(ALLOWED_IPC_CHANNELS.length).toBe(80);
   });
 
   it("ALLOWED_IPC_CHANNELS is readonly (TypeScript)", () => {

@@ -83,6 +83,9 @@ export const ALLOWED_IPC_CHANNELS: readonly string[] = [
   "chapters:reorder",
   "chapters:delete",
   "quality:score",
+  "crash-recovery:detect",
+  "crash-recovery:discard",
+  "crash-recovery:autoCleanup",
 ] as const;
 
 const ALLOWED_SET: ReadonlySet<string> = new Set(ALLOWED_IPC_CHANNELS);

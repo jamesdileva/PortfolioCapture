@@ -2472,3 +2472,74 @@
 - Review #254 (path bug): fixed by reverting to CJS output — build produces main.js, specs reference main.js
 - E2E tests still require `npx playwright test` run against built app to verify (deferred — needs Electron process)
 - Commit: `e2d860b`
+
+---
+
+### 2026-09-10 — Sprint 7.5: Crash Recovery
+
+**Agent:** agent-a
+**Status:** Complete
+
+**Objectives:**
+- CrashRecoveryServiceImpl: detect orphaned sessions (starting/recording/finalizing status)
+- discardOrphan: marks orphaned session as failed
+- autoCleanup: marks sessions older than 7 days as failed (configurable maxAgeMs)
+- IPC handlers: crash-recovery:detect, crash-recovery:discard, crash-recovery:autoCleanup
+- Preload bridge: portfolio.crashRecovery.* namespace
+- Typed renderer API: PortfolioCrashRecoveryAPI
+
+**Verification:**
+- `npm run test` — 818 tests pass (45 test files, 18 new)
+- `npm run build` — Vite (33 modules, 173KB) + esbuild clean
+- detectOrphans: returns sessions with starting/recording/finalizing status
+- detectOrphans: maps project names correctly, Unknown Project fallback
+- detectOrphans: empty when no orphans, empty when no sessions
+- discardOrphan: marks session as failed
+- discardOrphan: throws on empty ID, nonexistent session, non-orphan status
+- autoCleanup: marks old orphan sessions, skips recent orphans
+- autoCleanup: custom maxAgeMs, no false positives on non-orphan statuses
+- All 800 existing tests still pass (backward compatible)
+
+**Files created:**
+- `apps/desktop/electron/services/crash-recovery.ts` — CrashRecoveryServiceImpl class
+- `apps/desktop/electron/ipc/crash-recovery.ts` — IPC handlers for crash-recovery namespace
+- `tests/unit/crash-recovery.test.ts` — 18 tests
+
+**Files modified:**
+- `apps/desktop/electron/services/index.ts` — exported CrashRecoveryServiceImpl
+- `apps/desktop/electron/ipc/index.ts` — exported registerCrashRecoveryHandlers
+- `apps/desktop/electron/main.ts` — wired CrashRecoveryServiceImpl, registerCrashRecoveryHandlers
+- `apps/desktop/electron/preload.ts` — added crashRecovery namespace (detect, discard, autoCleanup)
+- `apps/desktop/renderer/src/types/global.d.ts` — added PortfolioCrashRecoveryAPI, OrphanedSession import
+
+**Notes:**
+- CrashRecoveryService is standalone (UI integration for recovery dialog deferred to future sprint)
+- Uses injectable nowFn for deterministic testing (age-based cleanup)
+- Orphan statuses: starting, recording, finalizing (interrupted mid-session)
+- Auto-cleanup default: 7 days, configurable via maxAgeMs parameter
+- Recovery dialog UI not yet built — IPC bridge ready for renderer integration
+- Commit: `466c7c4`
+
+---
+
+### 2026-09-10 — Sprint 7.5 Post-fix: IPC Allowlist Gap
+
+**Agent:** agent-a
+**Status:** Complete
+**Triggered by:** agent-b review #264, task #265
+
+**Actions taken:**
+- Added 3 crash-recovery channels to `ipc-allowlist.ts`: `crash-recovery:detect`, `crash-recovery:discard`, `crash-recovery:autoCleanup`
+- Updated security tests: channel count 77→80, added `crash-recovery` to namespace check, updated copy test
+
+**Verification:**
+- `npm run test` — 818 tests pass (45 test files)
+- `npm run build` — Vite + esbuild clean
+- Commit: pending (committed with AGENTS.md + MEMORY.md updates)
+
+**Files modified:**
+- `apps/desktop/electron/security/ipc-allowlist.ts` — added 3 crash-recovery channels (now 80 total)
+- `tests/unit/security.test.ts` — updated channel count assertions and namespace check
+
+**Notes:**
+- Defense-in-depth: preload bridge already enforces, but allowlist now consistent with Sprint 7.2 pattern

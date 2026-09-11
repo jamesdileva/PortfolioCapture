@@ -1,21 +1,25 @@
 # MEMORY.md — Agent Working Memory
 
 ## Current Goal
-Sprint 7.4 complete (e2d860b); E2E tests fixed but not yet verified passing (need Playwright run against built app). Sprint 7.5 next.
+Sprint 7.5 complete (466c7c4); 818/818 tests; Crash Recovery IPC bridge ready. Sprint 7.6 (Error Boundaries & Polish) next.
 
 ## Completed
-- Sprint 0.1–7.4: All sprints complete
-- Sprint 7.4: E2E scaffolding + build refactor + post-fix (c9cee1c, abce812, 42c1564, 9622598, e2d860b)
+- Sprint 0.1–7.5: All sprints complete
+- Sprint 7.5: Crash Recovery — orphan detection, discard, auto-cleanup (466c7c4)
+- Sprint 7.5 Post-fix: IPC allowlist gap fixed (80 channels)
 
-## Verified 2026-09-09
-- 800/800 tests pass (44 test files), clean output
+## Verified 2026-09-10
+- 818/818 tests pass (45 test files), clean output
 - Build: Vite 33 modules 173KB + esbuild clean (main.js 323KB CJS + preload.js 7.8KB + migrations/)
-- Sprint 7.4: E2E paths match CJS build output (main.js), ignoreDefaultArgs in specs, .gitignore has test-results/playwright-report
+- CrashRecoveryServiceImpl: detectOrphans, discardOrphan, autoCleanup all functional
+- IPC bridge: crashRecovery.detect/discard/autoCleanup wired
+- IPC allowlist: 80 channels (includes crash-recovery:detect/discard/autoCleanup)
 
 ## Open Threads
 - Human must retest .exe — logs at %LOCALAPPDATA%/portfolio-auto-recorder/logs/startup.log
 - E2E verification: run `npx playwright test` against built app (needs Electron running)
-- Phase 7 remaining: 7.5 crash recovery, 7.6 error boundaries
+- Sprint 7.6: Error Boundaries & Polish (React error boundaries, IPC timeouts, health checks)
+- Recovery dialog UI deferred — IPC bridge ready for renderer integration
 
 ## Key Learnings
 - `better-sqlite3` uses prebuilt binaries on Windows — no VS C++ build tools required
