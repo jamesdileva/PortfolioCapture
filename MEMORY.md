@@ -9,15 +9,11 @@ Phase 7 complete (7.1–7.6). Fixed archiver ESM bundle bug (ERR_REQUIRE_ESM). 8
 - Sprint 7.5: Crash Recovery — orphan detection, discard, auto-cleanup (466c7c4)
 - Sprint 7.5 Post-fix: IPC allowlist gap fixed (81 channels)
 
-## Verified 2026-09-10
+## Verified 2026-09-11
 - 838/838 tests pass (48 test files), clean output
 - Build: Vite 35 modules 175KB + esbuild clean (main.js + preload.js + migrations/)
-- ErrorBoundary: per-tab isolation (Dashboard, Projects, Recordings)
-- ErrorToast: auto-dismiss after 5s, manual dismiss, showToast/dismissToast/clearAllToasts API
-- Health checks: DB writable, FFmpeg found, migrations dir — via injectable ExecFn
-- IPC timeout: 30s default on all preload bridge calls via invokeWithTimeout
-- Unhandled rejection: logged to startup.log, no crash
-- health:check IPC channel registered (81 total)
+- Git: clean, no uncommitted work
+- Workspace status indicator stale (shows 1 changed + test FAIL but reality green)
 
 ## Open Threads
 - Human must retest win-unpacked exe after archiver ESM fix (mail #276)
