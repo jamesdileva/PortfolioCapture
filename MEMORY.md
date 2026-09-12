@@ -1,7 +1,7 @@
 # MEMORY.md — Agent Working Memory
 
 ## Current Goal
-Phase 7 complete (7.1–7.6). Fixed archiver ESM bundle bug (ERR_REQUIRE_ESM). 838/838 tests; 81 IPC channels. Awaiting human win-unpacked retest.
+Exe silent-fail root-caused to native abort in new Database(): BOTH logs stop at "calling new Database() next", 0-byte database.sqlite, writability OK. DB renamed database.sqlite→portfoliodb.sqlite in b7a165f as falsifier; docs/terminal-launch.md written (human #346). dist/win-unpacked is STALE (built 00:58, before b7a165f 01:08) — needs repack before human retest.
 
 ## Completed
 - Sprint 0.1–7.6: All sprints complete
@@ -9,17 +9,17 @@ Phase 7 complete (7.1–7.6). Fixed archiver ESM bundle bug (ERR_REQUIRE_ESM). 8
 - Sprint 7.5: Crash Recovery — orphan detection, discard, auto-cleanup (466c7c4)
 - Sprint 7.5 Post-fix: IPC allowlist gap fixed (81 channels)
 
-## Verified 2026-09-11
-- 838/838 tests pass (48 test files), clean output
-- Build: Vite 35 modules 175KB + esbuild clean (main.js + preload.js + migrations/)
-- Git: clean, no uncommitted work
-- Workspace status indicator stale (shows 1 changed + test FAIL but reality green)
+## Verified 2026-09-12
+- Tree CLEAN (SITREP 3-dirty is stale false-positive: test-db.mjs deleted, WORKLOG.md==worklog.md same file on Win, AGENTS.md mirror expected per #315)
+- exe-adjacent startup.log (dist/win-unpacked) stops at "calling new Database() next", 14 lines — native abort, no JS exception
+- userData log (%APPDATA%/portfolio-auto-recorder/logs/startup.log) stops at same line
+- database.sqlite 0 bytes (9/11), no portfoliodb.sqlite yet = dist stale, falsifier not yet tested
+- better-sqlite3 13.0.3 ships win32-x64.node in app.asar.unpacked; node 20.18.3 / electron 33.4.11 / x64; userData writable OK
+- 838/838 tests pass; build clean
 
 ## Open Threads
-- Human must retest win-unpacked exe after archiver ESM fix (mail #276)
+- REPACK dist (npm run dist) to include b7a165f portfoliodb.sqlite falsifier, then human: terminal `--no-sandbox` + 5-item paste-back per docs/terminal-launch.md (#25, human #346)
 - E2E verification: run `npx playwright test` against built app (needs Electron running)
-- Recovery dialog UI deferred — IPC bridge ready for renderer integration
-- Pre-existing TS errors in ffmpeg-service.ts, project-autofill.ts, ipc/projects.ts (unrelated to Sprint 7.6)
 
 ## Key Learnings
 - `better-sqlite3` uses prebuilt binaries on Windows — no VS C++ build tools required
