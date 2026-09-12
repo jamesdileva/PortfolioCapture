@@ -8,6 +8,7 @@ import type {
   PortfolioThemeConfig,
   ThemeColorConfig,
 } from "../../../../packages/shared/types/index.js";
+import { MIN_PORTFOLIO_SESSION_DURATION_MS } from "../../../../packages/shared/types/index.js";
 import type { ProjectService } from "./project-service.js";
 import type { SessionService } from "./session-service.js";
 import type { AssetService } from "./asset-service.js";
@@ -314,7 +315,11 @@ export class PortfolioGeneratorImpl {
 
     for (const project of projects) {
       const sessions = this.sessionService.listByProject(project.id);
-      const completeSessions = sessions.filter((s) => s.status === "complete");
+      const completeSessions = sessions.filter(
+        (s) =>
+          s.status === "complete" &&
+          (s.durationMs == null || s.durationMs >= MIN_PORTFOLIO_SESSION_DURATION_MS),
+      );
 
       let demoPath: string | null = null;
       const screenshots: PortfolioProjectData["screenshots"] = [];

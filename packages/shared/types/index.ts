@@ -109,6 +109,9 @@ export interface CreateSessionInput {
   trigger: SessionTrigger;
 }
 
+/** Sessions shorter than this are stubs (false triggers) — excluded from portfolios/exports. */
+export const MIN_PORTFOLIO_SESSION_DURATION_MS = 3000;
+
 export interface CreateAssetInput {
   sessionId: string;
   projectId: string;

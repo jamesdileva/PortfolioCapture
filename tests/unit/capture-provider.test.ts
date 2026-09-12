@@ -245,6 +245,60 @@ describe("FfmpegCaptureProvider", () => {
       expect(mockProc.kill).toHaveBeenCalledWith("SIGINT");
     });
 
+    it("quits gracefully via stdin q when stdin is available", async () => {
+      const mockProc = createMockProcess();
+      const stdinWrite = vi.fn();
+      (mockProc as unknown as Record<string, unknown>).stdin = { write: stdinWrite };
+      const spawnFn = vi.fn(() => mockProc);
+      const provider = new FfmpegCaptureProvider("ffmpeg", spawnFn);
+
+      const { statSync } = await import("fs");
+      vi.mocked(statSync).mockReturnValue({ size: 50000 } as any);
+
+      const session = await provider.start(defaultOptions());
+
+      const stopPromise = provider.stop(session.sessionId);
+      setTimeout(() => mockProc.emit("close", 0), 0);
+      await stopPromise;
+
+      expect(stdinWrite).toHaveBeenCalledWith("q");
+      expect(mockProc.kill).not.toHaveBeenCalledWith("SIGINT");
+    });
+
+    it("falls back to SIGINT when stdin write throws", async () => {
+      const mockProc = createMockProcess();
+      (mockProc as unknown as Record<string, unknown>).stdin = {
+        write: vi.fn(() => { throw new Error("EPIPE"); }),
+      };
+      const spawnFn = vi.fn(() => mockProc);
+      const provider = new FfmpegCaptureProvider("ffmpeg", spawnFn);
+
+      const { statSync } = await import("fs");
+      vi.mocked(statSync).mockReturnValue({ size: 50000 } as any);
+
+      const session = await provider.start(defaultOptions());
+
+      const stopPromise = provider.stop(session.sessionId);
+      setTimeout(() => mockProc.emit("close", 0), 0);
+      await stopPromise;
+
+      expect(mockProc.kill).toHaveBeenCalledWith("SIGINT");
+    });
+
+    it("passes faststart flag for playable output", async () => {
+      const mockProc = createMockProcess();
+      const spawnFn = vi.fn(() => mockProc);
+      const provider = new FfmpegCaptureProvider("ffmpeg", spawnFn);
+      const { statSync } = await import("fs");
+      vi.mocked(statSync).mockReturnValue({ size: 50000 } as any);
+
+      await provider.start(defaultOptions());
+
+      const args = spawnFn.mock.calls[0][1] as string[];
+      expect(args).toContain("-movflags");
+      expect(args[args.indexOf("-movflags") + 1]).toBe("+faststart");
+    });
+
     it("throws on nonexistent session", async () => {
       const provider = new FfmpegCaptureProvider("ffmpeg");
 

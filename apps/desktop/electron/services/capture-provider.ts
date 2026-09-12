@@ -116,16 +116,37 @@ export class FfmpegCaptureProvider implements CaptureProvider {
 
     await new Promise<void>((resolve) => {
       const proc = capture.process;
+      let settled = false;
+      const done = () => {
+        if (!settled) {
+          settled = true;
+          resolve();
+        }
+      };
 
-      proc.on("close", () => resolve());
+      proc.on("close", done);
 
-      proc.kill("SIGINT");
+      // Graceful quit first: "q" lets FFmpeg finalize the MP4 trailer (moov).
+      // A bare SIGINT hard-kills on Windows and leaves unplayable files.
+      try {
+        if (proc.stdin) {
+          proc.stdin.write("q");
+        } else {
+          proc.kill("SIGINT");
+        }
+      } catch {
+        try {
+          proc.kill("SIGINT");
+        } catch {
+          // ignore — SIGKILL fallback below still runs
+        }
+      }
 
       setTimeout(() => {
         try {
           proc.kill("SIGKILL");
         } catch {}
-        resolve();
+        done();
       }, 3000);
     });
 
@@ -176,6 +197,7 @@ export class FfmpegCaptureProvider implements CaptureProvider {
     args.push("-c:v", "libx264");
     args.push("-preset", "ultrafast");
     args.push("-pix_fmt", "yuv420p");
+    args.push("-movflags", "+faststart");
 
     if (options.width && options.height) {
       args.push("-vf", `scale=${options.width}:${options.height}`);

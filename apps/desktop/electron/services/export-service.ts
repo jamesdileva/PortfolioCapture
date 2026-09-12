@@ -5,6 +5,7 @@ import type {
   ExportBundleResult,
   ExportService,
 } from "../../../../packages/shared/types/index.js";
+import { MIN_PORTFOLIO_SESSION_DURATION_MS } from "../../../../packages/shared/types/index.js";
 import type { ProjectService } from "./project-service.js";
 import type { SessionService } from "./session-service.js";
 import type { AssetService } from "./asset-service.js";
@@ -47,7 +48,11 @@ export class ExportServiceImpl implements ExportService {
     }
 
     const sessions = this.sessionService.listByProject(projectId);
-    const completeSessions = sessions.filter((s) => s.status === "complete");
+    const completeSessions = sessions.filter(
+      (s) =>
+        s.status === "complete" &&
+        (s.durationMs == null || s.durationMs >= MIN_PORTFOLIO_SESSION_DURATION_MS),
+    );
 
     let demoIncluded = false;
     let screenshotCount = 0;

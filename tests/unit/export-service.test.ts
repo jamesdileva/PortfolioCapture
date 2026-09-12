@@ -33,6 +33,11 @@ describe("ExportServiceImpl", () => {
     fs.rmSync(tempDir, { recursive: true, force: true });
   });
 
+  function completeSession(id: string, durationMs = 60000): void {
+    sessionService.updateStatus(id, "complete");
+    db.prepare("UPDATE sessions SET duration_ms = ? WHERE id = ?").run(durationMs, id);
+  }
+
   it("throws when projectId is empty", async () => {
     await expect(service.exportProject("")).rejects.toThrow("Project ID is required");
   });
@@ -83,7 +88,7 @@ describe("ExportServiceImpl", () => {
   it("includes demo.mp4 when demo_video asset exists", async () => {
     const project = projectService.create({ name: "DemoProject", path: "/test" });
     const session = sessionService.create({ projectId: project.id, trigger: "manual" });
-    sessionService.updateStatus(session.id, "complete");
+    completeSession(session.id);
 
     const demoDir = path.join(tempDir, "demo-source");
     fs.mkdirSync(demoDir, { recursive: true });
@@ -107,7 +112,7 @@ describe("ExportServiceImpl", () => {
   it("copies screenshots to screenshots/ directory", async () => {
     const project = projectService.create({ name: "ShotProject", path: "/test" });
     const session = sessionService.create({ projectId: project.id, trigger: "manual" });
-    sessionService.updateStatus(session.id, "complete");
+    completeSession(session.id);
 
     const shotDir = path.join(tempDir, "shots-source");
     fs.mkdirSync(shotDir, { recursive: true });
@@ -145,12 +150,12 @@ describe("ExportServiceImpl", () => {
     const project = projectService.create({ name: "MultiSession", path: "/test" });
 
     const session1 = sessionService.create({ projectId: project.id, trigger: "manual" });
-    sessionService.updateStatus(session1.id, "complete");
+    completeSession(session1.id);
 
     db.prepare("UPDATE sessions SET started_at = '2020-01-01T00:00:00.000Z' WHERE id = ?").run(session1.id);
 
     const session2 = sessionService.create({ projectId: project.id, trigger: "process_launch" });
-    sessionService.updateStatus(session2.id, "complete");
+    completeSession(session2.id);
 
     const shotDir = path.join(tempDir, "multi-source");
     fs.mkdirSync(shotDir, { recursive: true });
@@ -202,9 +207,9 @@ describe("ExportServiceImpl", () => {
   it("counts sessions correctly in metadata", async () => {
     const project = projectService.create({ name: "CountProject", path: "/test" });
     const session1 = sessionService.create({ projectId: project.id, trigger: "manual" });
-    sessionService.updateStatus(session1.id, "complete");
+    completeSession(session1.id);
     const session2 = sessionService.create({ projectId: project.id, trigger: "process_launch" });
-    sessionService.updateStatus(session2.id, "complete");
+    completeSession(session2.id);
     const session3 = sessionService.create({ projectId: project.id, trigger: "manual" });
     sessionService.updateStatus(session3.id, "failed");
 
@@ -212,5 +217,18 @@ describe("ExportServiceImpl", () => {
     const metadata = JSON.parse(fs.readFileSync(path.join(result.exportPath, "metadata.json"), "utf-8"));
 
     expect(metadata.sessionCount).toBe(2);
+  });
+
+  it("ignores sub-3s stub sessions", async () => {
+    const project = projectService.create({ name: "StubProject", path: "/test" });
+    const stub = sessionService.create({ projectId: project.id, trigger: "process_launch" });
+    sessionService.updateStatus(stub.id, "complete");
+    db.prepare("UPDATE sessions SET duration_ms = ? WHERE id = ?").run(1000, stub.id);
+
+    const result = await service.exportProject(project.id);
+    const metadata = JSON.parse(fs.readFileSync(path.join(result.exportPath, "metadata.json"), "utf-8"));
+
+    expect(metadata.sessionCount).toBe(0);
+    expect(fs.existsSync(path.join(result.exportPath, "demo.mp4"))).toBe(false);
   });
 });

@@ -73,6 +73,12 @@ test.describe("Recording Flow — real app capture", () => {
         expect(s.rawVideoPath).toBeTruthy();
         expect(fs.existsSync(s.rawVideoPath!)).toBe(true);
         expect(fs.statSync(s.rawVideoPath!).size).toBeGreaterThan(1024);
+        // Must be a finalized, playable container (moov present) — not just bytes.
+        const probe = execSync(
+          `ffprobe -v error -show_entries stream=codec_type -of csv=p=0 "${s.rawVideoPath!}"`,
+          { encoding: "utf-8" }
+        );
+        expect(probe).toContain("video");
       }
     } finally {
       if (fixture) killTree(fixture);

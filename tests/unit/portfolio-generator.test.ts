@@ -36,6 +36,11 @@ describe("PortfolioGeneratorImpl", () => {
     fs.rmSync(tempDir, { recursive: true, force: true });
   });
 
+  function completeSession(id: string, durationMs = 60000): void {
+    sessionService.updateStatus(id, "complete");
+    db.prepare("UPDATE sessions SET duration_ms = ? WHERE id = ?").run(durationMs, id);
+  }
+
   it("generates portfolio with empty projects", async () => {
     const result = await generator.generate();
 
@@ -83,7 +88,7 @@ describe("PortfolioGeneratorImpl", () => {
   it("index.html uses assets/ path (not ../assets/) for demos and screenshots", async () => {
     const project = projectService.create({ name: "PathTest", path: "/pt" });
     const session = sessionService.create({ projectId: project.id, trigger: "manual" });
-    sessionService.updateStatus(session.id, "complete");
+    completeSession(session.id);
 
     const sourceDir = path.join(tempDir, "src");
     fs.mkdirSync(sourceDir, { recursive: true });
@@ -120,7 +125,7 @@ describe("PortfolioGeneratorImpl", () => {
   it("copies demo video to assets directory", async () => {
     const project = projectService.create({ name: "DemoProject", path: "/demo" });
     const session = sessionService.create({ projectId: project.id, trigger: "manual" });
-    sessionService.updateStatus(session.id, "complete");
+    completeSession(session.id);
 
     const sourceDir = path.join(tempDir, "source");
     fs.mkdirSync(sourceDir, { recursive: true });
@@ -138,7 +143,7 @@ describe("PortfolioGeneratorImpl", () => {
   it("copies screenshots to assets directory", async () => {
     const project = projectService.create({ name: "ShotProject", path: "/shot" });
     const session = sessionService.create({ projectId: project.id, trigger: "manual" });
-    sessionService.updateStatus(session.id, "complete");
+    completeSession(session.id);
 
     const sourceDir = path.join(tempDir, "shots");
     fs.mkdirSync(sourceDir, { recursive: true });
@@ -160,7 +165,7 @@ describe("PortfolioGeneratorImpl", () => {
   it("includes sessions in data.json", async () => {
     const project = projectService.create({ name: "SessionProject", path: "/sess" });
     const session = sessionService.create({ projectId: project.id, trigger: "manual" });
-    sessionService.updateStatus(session.id, "complete");
+    completeSession(session.id);
 
     await generator.generate();
     const data = JSON.parse(fs.readFileSync(path.join(tempDir, "data.json"), "utf-8"));
@@ -174,7 +179,7 @@ describe("PortfolioGeneratorImpl", () => {
   it("counts only complete sessions in summary", async () => {
     const project = projectService.create({ name: "CountProject", path: "/count" });
     const s1 = sessionService.create({ projectId: project.id, trigger: "manual" });
-    sessionService.updateStatus(s1.id, "complete");
+    completeSession(s1.id);
     const s2 = sessionService.create({ projectId: project.id, trigger: "manual" });
     sessionService.updateStatus(s2.id, "failed");
 
@@ -247,7 +252,7 @@ describe("PortfolioGeneratorImpl", () => {
   it("skips screenshots when includeScreenshots is false", async () => {
     const project = projectService.create({ name: "NoShots", path: "/ns" });
     const session = sessionService.create({ projectId: project.id, trigger: "manual" });
-    sessionService.updateStatus(session.id, "complete");
+    completeSession(session.id);
 
     const sourceDir = path.join(tempDir, "ns-shots");
     fs.mkdirSync(sourceDir, { recursive: true });
@@ -264,7 +269,7 @@ describe("PortfolioGeneratorImpl", () => {
   it("skips demos when includeDemos is false", async () => {
     const project = projectService.create({ name: "NoDemos", path: "/nd" });
     const session = sessionService.create({ projectId: project.id, trigger: "manual" });
-    sessionService.updateStatus(session.id, "complete");
+    completeSession(session.id);
 
     const sourceDir = path.join(tempDir, "nd-demo");
     fs.mkdirSync(sourceDir, { recursive: true });
@@ -281,7 +286,7 @@ describe("PortfolioGeneratorImpl", () => {
   it("renders hero image from first screenshot in project page", async () => {
     const project = projectService.create({ name: "HeroProject", path: "/hero" });
     const session = sessionService.create({ projectId: project.id, trigger: "manual" });
-    sessionService.updateStatus(session.id, "complete");
+    completeSession(session.id);
 
     const sourceDir = path.join(tempDir, "hero-src");
     fs.mkdirSync(sourceDir, { recursive: true });
@@ -313,7 +318,7 @@ describe("PortfolioGeneratorImpl", () => {
   it("renders timeline with recording sessions in project page", async () => {
     const project = projectService.create({ name: "TimelineProject", path: "/tl" });
     const session = sessionService.create({ projectId: project.id, trigger: "manual" });
-    sessionService.updateStatus(session.id, "complete");
+    completeSession(session.id);
     sessionService.updateRawVideoPath(session.id, "/video.mp4");
 
     await generator.generate();
@@ -337,7 +342,7 @@ describe("PortfolioGeneratorImpl", () => {
   it("timeline shows formatted duration", async () => {
     const project = projectService.create({ name: "DurationProject", path: "/dur" });
     const session = sessionService.create({ projectId: project.id, trigger: "manual" });
-    sessionService.updateStatus(session.id, "complete");
+    completeSession(session.id);
 
     await generator.generate();
     const html = fs.readFileSync(path.join(tempDir, "projects", "durationproject.html"), "utf-8");
@@ -430,6 +435,28 @@ describe("PortfolioGeneratorImpl", () => {
       const html = fs.readFileSync(path.join(tempDir, "index.html"), "utf-8");
 
       expect(html).toContain("#0d1117");
+    });
+
+    it("excludes sub-3s stub sessions but keeps unknown durations", async () => {
+      const project = projectService.create({ name: "FilterTest", path: "/ft" });
+      const stub = sessionService.create({ projectId: project.id, trigger: "process_launch" });
+      sessionService.updateStatus(stub.id, "complete");
+      db.prepare("UPDATE sessions SET duration_ms = ? WHERE id = ?").run(1136, stub.id);
+      const good = sessionService.create({ projectId: project.id, trigger: "manual" });
+      sessionService.updateStatus(good.id, "complete");
+      db.prepare("UPDATE sessions SET duration_ms = ? WHERE id = ?").run(59000, good.id);
+      const unknown = sessionService.create({ projectId: project.id, trigger: "manual" });
+      sessionService.updateStatus(unknown.id, "complete");
+      db.prepare("UPDATE sessions SET duration_ms = NULL WHERE id = ?").run(unknown.id);
+
+      await generator.generate();
+      const data = JSON.parse(fs.readFileSync(path.join(tempDir, "data.json"), "utf-8"));
+
+      const ids = data.projects[0].sessions.map((s: { id: string }) => s.id);
+      expect(ids).not.toContain(stub.id);
+      expect(ids).toContain(good.id);
+      expect(ids).toContain(unknown.id);
+      expect(data.summary.totalSessions).toBe(2);
     });
   });
 });

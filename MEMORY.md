@@ -1,7 +1,7 @@
 # MEMORY.md — Agent Working Memory
 
 ## Current Goal
-Sentinel fallout fixed 2026-09-12: deploy self-copy (excludes+refusal), viewable recordings (rawVideoPath player + asset row), duplicate-session sync guard, postprocess logging, startup orphan healing, github-push to Pages clone, recording E2E (dinner exe) green — incl. capture empty-file hang fix it exposed. Exe repacked. Pending: human retests capture→view→push on sentinel/dinner.
+Playable captures fixed 2026-09-12: FFmpeg now quits via stdin "q" (SIGINT hard-kills on Windows, left moov-less files) + faststart; 3s trivial-session filter in portfolio/export; recording E2E asserts real video stream. 866 unit + 8 e2e green, repacked. Pending: human retests viewing + records fresh playable video.
 
 ## Completed
 - Sprint 0.1–7.6: All sprints complete

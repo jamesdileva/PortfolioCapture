@@ -2643,3 +2643,25 @@
 **Cleanup done (human-approved):** nested `portfolio/deploy` removed, 2 orphans marked failed.
 
 **SAFETY INCIDENT — read before any shell delete:** `cmd /c rmdir /s /q "%APPDATA%\..."` built through PowerShell mangled the quotes (`\"` is literal in PS) so cmd received a drive-root path and started deleting C:\ recursively. Blocked by permissions (64k "Access is denied", user aborted); verified zero damage (git-clean repos, byte-exact exes, pgAdmin files intact). RULE: never route deletes through cmd; use `node fs.rmSync(p,{recursive:true,force:true})` or `Remove-Item -LiteralPath`; never inline nested quotes in `node -e` (use script files; module resolution needs absolute require or CWD).
+
+---
+
+### 2026-09-12 — Unplayable Captures: moov Never Finalized (human: video spins, never plays)
+
+**Agent:** agent-a
+**Status:** Complete, repacked + pushed
+
+**Root cause (ffprobe: "moov atom not found"):** `FfmpegCaptureProvider.stop()` shut FFmpeg down with `proc.kill("SIGINT")`. On Windows Node cannot deliver POSIX signals — it hard-kills, so FFmpeg died mid-write without finalizing the MP4 trailer. Every capture to date (59s, 1m1s, 1s) has data but no index; browsers spin then give up. Same cause behind the unverifiable dinner-menu recording.
+
+**Fix:**
+- `stop()` writes `"q"` to ffmpeg stdin first (graceful quit finalizes moov); SIGINT only when stdin is gone/throws; SIGKILL stays as 3s last resort.
+- `buildArgs()` gains `-movflags +faststart` (index at file start).
+- Old unfinalized files left as-is per human (salvage declined).
+
+**Trivial-session filter (human: 3s):** `MIN_PORTFOLIO_SESSION_DURATION_MS = 3000` in shared types; portfolio-generator + export-service skip complete sessions below it (null durations kept defensively). Existing tests updated via `completeSession(id, duration)` helper (updateStatus computes ~0ms in-test).
+
+**E2E now proves playability:** recording-flow asserts ffprobe shows a video stream in raw.mp4, not just file size.
+
+**Verification:** 866 unit pass (49 files); Playwright 7/7 default + 1/1 recording; `dist` repacked; packaged launch healthy (4 procs, health pass).
+
+**Files:** `services/capture-provider.ts`, `services/portfolio-generator.ts`, `services/export-service.ts`, `packages/shared/types/index.ts`, tests (capture-provider/deploy/export/portfolio + e2e recording), `package.json` (test:e2e split).
