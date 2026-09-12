@@ -64,6 +64,7 @@ export const DeployTargetSchema = z.enum([
   "github-pages",
   "netlify",
   "vercel",
+  "github-push",
 ]);
 
 export const FeatureEvidenceStatusSchema = z.enum([
@@ -237,6 +238,9 @@ export const DeployConfigSchema = z.object({
   portfolioDir: z.string().min(1, "Portfolio directory is required"),
   siteName: z.string().optional(),
   outputDir: z.string().optional(),
+  repoPath: z.string().min(1).optional(),
+  repoSubPath: z.string().min(1).optional(),
+  commitMessage: z.string().min(1).optional(),
 });
 
 // ─── Portfolio Schemas ──────────────────────────────────────────

@@ -1,5 +1,6 @@
-import { existsSync, mkdirSync, writeFileSync, statSync, readdirSync, copyFileSync, createWriteStream } from "fs";
-import { join } from "path";
+import { existsSync, mkdirSync, writeFileSync, statSync, readdirSync, copyFileSync, createWriteStream, rmSync } from "fs";
+import { join, resolve, relative, sep, isAbsolute } from "path";
+import { execFileSync } from "child_process";
 import { shell } from "electron";
 import * as archiver from "archiver";
 import type {
@@ -13,19 +14,23 @@ import type {
 
 export type CreateZipFn = (sourceDir: string, outPath: string) => Promise<number>;
 export type OpenUrlFn = (url: string) => Promise<void>;
+export type GitExecFn = (args: string[], cwd: string) => string;
 
 export interface DeployServiceOptions {
   createZipFn?: CreateZipFn;
   openUrl?: OpenUrlFn;
+  execGit?: GitExecFn;
 }
 
 export class DeployServiceImpl implements DeployService {
   private createZipFn: CreateZipFn;
   private openUrl: OpenUrlFn;
+  private execGit: GitExecFn;
 
   constructor(options?: DeployServiceOptions) {
     this.createZipFn = options?.createZipFn ?? defaultCreateZip;
     this.openUrl = options?.openUrl ?? defaultOpenUrl;
+    this.execGit = options?.execGit ?? defaultExecGit;
   }
 
   async zipExport(config: ZipExportConfig): Promise<ZipExportResult> {
@@ -70,6 +75,9 @@ export class DeployServiceImpl implements DeployService {
     }
 
     const destDir = outputDir ?? join(portfolioDir, "deploy", target);
+    if (isSamePath(destDir, portfolioDir)) {
+      throw new Error("Refusing to deploy a directory into itself (outputDir equals portfolioDir)");
+    }
     if (!existsSync(destDir)) {
       mkdirSync(destDir, { recursive: true });
     }
@@ -83,13 +91,15 @@ export class DeployServiceImpl implements DeployService {
         return this.deployNetlify(portfolioDir, destDir, config);
       case "vercel":
         return this.deployVercel(portfolioDir, destDir, config);
+      case "github-push":
+        return this.deployGitHubPush(portfolioDir, config);
       default:
         throw new Error(`Unsupported deploy target: ${target}`);
     }
   }
 
   getSupportedTargets(): DeployTarget[] {
-    return ["zip", "github-pages", "netlify", "vercel"];
+    return ["zip", "github-pages", "netlify", "vercel", "github-push"];
   }
 
   private async deployZip(portfolioDir: string, destDir: string): Promise<DeployResult> {
@@ -104,7 +114,7 @@ export class DeployServiceImpl implements DeployService {
   }
 
   private async deployGitHubPages(portfolioDir: string, destDir: string, config: DeployConfig): Promise<DeployResult> {
-    copyDirSync(portfolioDir, destDir);
+    copyDirSync(portfolioDir, destDir, nestedExcludes(portfolioDir, destDir));
 
     writeFileSync(join(destDir, ".nojekyll"), "", "utf-8");
 
@@ -121,7 +131,7 @@ export class DeployServiceImpl implements DeployService {
   }
 
   private async deployNetlify(portfolioDir: string, destDir: string, _config: DeployConfig): Promise<DeployResult> {
-    copyDirSync(portfolioDir, destDir);
+    copyDirSync(portfolioDir, destDir, nestedExcludes(portfolioDir, destDir));
 
     const toml = [
       "[build]",
@@ -156,8 +166,56 @@ export class DeployServiceImpl implements DeployService {
     };
   }
 
+  private async deployGitHubPush(portfolioDir: string, config: DeployConfig): Promise<DeployResult> {
+    const repoPath = config.repoPath?.trim();
+    if (!repoPath) throw new Error("A local git clone path (repoPath) is required for github-push");
+    if (!existsSync(repoPath)) throw new Error(`Repository path does not exist: ${repoPath}`);
+    if (!existsSync(join(repoPath, ".git"))) throw new Error(`Not a git repository: ${repoPath}`);
+
+    const subPath = (config.repoSubPath?.trim() || "portfolio").replace(/\\/g, "/").replace(/^\/+|\/+$/g, "");
+    if (!subPath || subPath === "." || subPath.split("/").includes("..")) {
+      throw new Error(`Refusing to publish into repo root or outside the repo (repoSubPath: ${config.repoSubPath ?? ""})`);
+    }
+    const destDir = join(repoPath, ...subPath.split("/"));
+    if (!isWithinDir(repoPath, destDir)) {
+      throw new Error(`Refusing to publish outside the repository: ${destDir}`);
+    }
+
+    rmSync(destDir, { recursive: true, force: true });
+    copyDirSync(portfolioDir, destDir, ["deploy"]);
+
+    this.execGit(["add", "-A", "--", subPath], repoPath);
+    const status = this.execGit(["status", "--porcelain", "--", subPath], repoPath).trim();
+    if (!status) {
+      return {
+        success: true,
+        target: "github-push",
+        outputPath: destDir,
+        message: `Already up to date — no changes to publish under ${subPath}/`,
+      };
+    }
+
+    const message = config.commitMessage?.trim() || `Publish portfolio ${new Date().toISOString()}`;
+    this.execGit(["commit", "-m", message, "--", subPath], repoPath);
+    const sha = this.execGit(["rev-parse", "--short", "HEAD"], repoPath).trim();
+    let pushOut: string;
+    try {
+      pushOut = this.execGit(["push"], repoPath).trim();
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : String(err);
+      throw new Error(`Committed ${sha} locally but push failed: ${detail}`);
+    }
+
+    return {
+      success: true,
+      target: "github-push",
+      outputPath: destDir,
+      message: `Pushed ${sha} (${subPath}/) — ${pushOut || "up to date on remote"}`,
+    };
+  }
+
   private async deployVercel(portfolioDir: string, destDir: string, config: DeployConfig): Promise<DeployResult> {
-    copyDirSync(portfolioDir, destDir);
+    copyDirSync(portfolioDir, destDir, nestedExcludes(portfolioDir, destDir));
 
     const vercelConfig = {
       version: 2,
@@ -183,6 +241,21 @@ function defaultOpenUrl(url: string): Promise<void> {
   return shell.openPath(url).then(() => undefined);
 }
 
+function defaultExecGit(args: string[], cwd: string): string {
+  try {
+    return execFileSync("git", args, { cwd, encoding: "utf-8", stdio: ["ignore", "pipe", "pipe"] });
+  } catch (err) {
+    const e = err as { stdout?: unknown; stderr?: unknown; message?: string };
+    const detail = [e.stdout, e.stderr].filter((x) => typeof x === "string" && x.trim()).join("\n").trim();
+    throw new Error(detail || e.message || "git command failed");
+  }
+}
+
+function isWithinDir(dir: string, target: string): boolean {
+  const rel = relative(resolve(dir), resolve(target));
+  return rel !== "" && !isAbsolute(rel) && rel !== ".." && !rel.startsWith(`..${sep}`);
+}
+
 function defaultCreateZip(sourceDir: string, outPath: string): Promise<number> {
   return new Promise((resolve, reject) => {
     const files = listFilesRecursive(sourceDir, sourceDir);
@@ -205,6 +278,7 @@ function listFilesRecursive(baseDir: string, currentDir: string): Array<{ absolu
   const entries = readdirSync(currentDir, { withFileTypes: true });
 
   for (const entry of entries) {
+    if (entry.isSymbolicLink()) continue; // never follow links
     const absolute = join(currentDir, entry.name);
     if (entry.isDirectory()) {
       if (entry.name === "deploy") continue;
@@ -218,18 +292,34 @@ function listFilesRecursive(baseDir: string, currentDir: string): Array<{ absolu
   return results;
 }
 
-function copyDirSync(src: string, dest: string): void {
+function copyDirSync(src: string, dest: string, excludeTopLevel: string[] = []): void {
   mkdirSync(dest, { recursive: true });
 
-  for (const entry of readdirSync(src)) {
-    const srcPath = join(src, entry);
-    const destPath = join(dest, entry);
-    const stat = statSync(srcPath);
+  for (const entry of readdirSync(src, { withFileTypes: true })) {
+    if (entry.isSymbolicLink()) continue; // never follow links
+    if (excludeTopLevel.includes(entry.name)) continue;
+    const srcPath = join(src, entry.name);
+    const destPath = join(dest, entry.name);
 
-    if (stat.isDirectory()) {
+    if (entry.isDirectory()) {
       copyDirSync(srcPath, destPath);
-    } else {
+    } else if (entry.isFile()) {
       copyFileSync(srcPath, destPath);
     }
   }
+}
+
+function isSamePath(a: string, b: string): boolean {
+  const norm = (p: string) => p.replace(/\\/g, "/").replace(/\/+$/, "").toLowerCase();
+  return norm(a) === norm(b);
+}
+
+/** Top-level names under `src` that must not be copied when `dest` lives inside `src`. */
+function nestedExcludes(src: string, dest: string): string[] {
+  const srcNorm = src.replace(/\\/g, "/").replace(/\/+$/, "").toLowerCase() + "/";
+  const destNorm = dest.replace(/\\/g, "/").replace(/\/+$/, "").toLowerCase();
+  if (!destNorm.startsWith(srcNorm)) return [];
+  const rest = destNorm.slice(srcNorm.length);
+  const first = rest.split("/")[0];
+  return first ? [first] : [];
 }

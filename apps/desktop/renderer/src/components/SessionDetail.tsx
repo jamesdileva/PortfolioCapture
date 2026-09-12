@@ -28,6 +28,10 @@ function formatFileSize(bytes: number | null): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function toFileUrl(fsPath: string): string {
+  return encodeURI("file:///" + fsPath.replace(/\\/g, "/").replace(/^\/+/, ""));
+}
+
 const STATUS_COLORS: Record<string, { bg: string; fg: string }> = {
   starting: { bg: "#3b3510", fg: "#facc15" },
   recording: { bg: "#450a0a", fg: "#f87171" },
@@ -59,7 +63,7 @@ export function SessionDetail({ session, project, onBack, onDelete }: SessionDet
     };
   }, [session.id]);
 
-  const videoAsset = assets.find((a) => a.type === "raw_video");
+  const rawVideoPath = session.rawVideoPath ?? assets.find((a) => a.type === "raw_video")?.path ?? null;
   const thumbnailAssets = assets.filter(
     (a) => a.type === "thumbnail" || a.type === "screenshot"
   );
@@ -77,12 +81,12 @@ export function SessionDetail({ session, project, onBack, onDelete }: SessionDet
         <button onClick={() => onDelete(session)} style={{ ...btnStyle, ...deleteBtn }}>Delete</button>
       </div>
 
-      {videoAsset ? (
+      {rawVideoPath ? (
         <div style={{ margin: "1rem 0" }}>
           <video
             controls
             style={{ width: "100%", maxHeight: "400px", background: "#000", borderRadius: "4px" }}
-            src={`file:///${videoAsset.path}`}
+            src={toFileUrl(rawVideoPath)}
           >
             Your browser does not support the video element.
           </video>
@@ -103,7 +107,7 @@ export function SessionDetail({ session, project, onBack, onDelete }: SessionDet
             {thumbnailAssets.map((a) => (
               <img
                 key={a.id}
-                src={`file:///${a.path}`}
+                src={toFileUrl(a.path)}
                 alt={a.type}
                 style={{ width: "160px", height: "90px", objectFit: "cover", borderRadius: "4px", border: "1px solid #333" }}
               />

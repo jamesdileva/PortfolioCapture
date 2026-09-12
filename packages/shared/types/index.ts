@@ -766,7 +766,7 @@ export interface ThemeService {
   setCustomColors(colors: Partial<ThemeColorConfig>): void;
 }
 
-export type DeployTarget = "zip" | "github-pages" | "netlify" | "vercel";
+export type DeployTarget = "zip" | "github-pages" | "netlify" | "vercel" | "github-push";
 
 export interface ZipExportConfig {
   portfolioDir: string;
@@ -784,6 +784,11 @@ export interface DeployConfig {
   portfolioDir: string;
   siteName?: string;
   outputDir?: string;
+  /** Local git clone to publish into (github-push target). */
+  repoPath?: string;
+  /** Subdirectory inside the clone (default "portfolio"). Never the repo root. */
+  repoSubPath?: string;
+  commitMessage?: string;
 }
 
 export interface DeployResult {

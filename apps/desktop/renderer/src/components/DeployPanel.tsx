@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { DeployTarget, ZipExportResult, DeployResult } from "../../../../packages/shared/types/index.js";
 
 interface DeployPanelProps {
@@ -10,7 +10,10 @@ const DEPLOY_LABELS: Record<DeployTarget, string> = {
   "github-pages": "GitHub Pages",
   netlify: "Netlify",
   vercel: "Vercel",
+  "github-push": "Push to GitHub",
 };
+
+const LOCAL_ONLY_TARGETS: DeployTarget[] = ["github-pages", "netlify", "vercel"];
 
 export function DeployPanel({ portfolioDir }: DeployPanelProps) {
   const [busy, setBusy] = useState(false);
@@ -18,6 +21,20 @@ export function DeployPanel({ portfolioDir }: DeployPanelProps) {
   const [result, setResult] = useState<string | null>(null);
   const [selectedTarget, setSelectedTarget] = useState<DeployTarget>("zip");
   const [siteName, setSiteName] = useState("");
+  const [repoPath, setRepoPath] = useState("");
+  const [repoSubPath, setRepoSubPath] = useState("portfolio");
+
+  useEffect(() => {
+    window.portfolio.settings?.get?.().then(
+      (list) => {
+        const savedRepo = list.find((s) => s.key === "deploy.repoPath");
+        if (savedRepo) setRepoPath(savedRepo.value);
+        const savedSub = list.find((s) => s.key === "deploy.repoSubPath");
+        if (savedSub) setRepoSubPath(savedSub.value);
+      },
+      () => {}
+    );
+  }, []);
 
   const clearFeedback = () => { setError(null); setResult(null); };
 
@@ -51,10 +68,21 @@ export function DeployPanel({ portfolioDir }: DeployPanelProps) {
     clearFeedback();
     setBusy(true);
     try {
+      if (selectedTarget === "github-push") {
+        if (!repoPath.trim()) {
+          setError("Enter the local path of your GitHub Pages clone (e.g. C:\\Projects\\user\\user.github.io)");
+          setBusy(false);
+          return;
+        }
+        await window.portfolio.settings?.set?.("deploy.repoPath", repoPath.trim())?.catch(() => {});
+        await window.portfolio.settings?.set?.("deploy.repoSubPath", repoSubPath.trim() || "portfolio")?.catch(() => {});
+      }
       const res: DeployResult = await window.portfolio.deploy.run({
         target: selectedTarget,
         portfolioDir,
         siteName: siteName || undefined,
+        repoPath: selectedTarget === "github-push" ? repoPath.trim() : undefined,
+        repoSubPath: selectedTarget === "github-push" ? repoSubPath.trim() || undefined : undefined,
       });
       setResult(res.message);
     } catch (err) {
@@ -80,7 +108,7 @@ export function DeployPanel({ portfolioDir }: DeployPanelProps) {
       <div style={{ marginTop: "1rem" }}>
         <label style={labelStyle}>Deploy Target</label>
         <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-          {(["zip", "github-pages", "netlify", "vercel"] as DeployTarget[]).map((t) => (
+          {(["zip", "github-pages", "netlify", "vercel", "github-push"] as DeployTarget[]).map((t) => (
             <button
               key={t}
               onClick={() => setSelectedTarget(t)}
@@ -97,7 +125,31 @@ export function DeployPanel({ portfolioDir }: DeployPanelProps) {
         </div>
       </div>
 
-      {(selectedTarget === "github-pages" || selectedTarget === "netlify" || selectedTarget === "vercel") && (
+      {selectedTarget === "github-push" && (
+        <div style={{ marginTop: "0.75rem" }}>
+          <label style={labelStyle}>Site Repo (local clone path)</label>
+          <input
+            type="text"
+            value={repoPath}
+            onChange={(e) => setRepoPath(e.target.value)}
+            placeholder="C:\Projects\user\user.github.io"
+            style={inputStyle}
+          />
+          <label style={{ ...labelStyle, marginTop: "0.5rem" }}>Folder Inside Repo</label>
+          <input
+            type="text"
+            value={repoSubPath}
+            onChange={(e) => setRepoSubPath(e.target.value)}
+            placeholder="portfolio"
+            style={inputStyle}
+          />
+          <p style={{ color: "#888", fontSize: "0.8em", marginTop: "0.4rem" }}>
+            Copies the portfolio into that folder, commits, and pushes. Served at username.github.io/{repoSubPath.trim() || "portfolio"}/.
+          </p>
+        </div>
+      )}
+
+      {LOCAL_ONLY_TARGETS.includes(selectedTarget) && (
         <div style={{ marginTop: "0.75rem" }}>
           <label style={labelStyle}>Site Name (optional)</label>
           <input
@@ -107,6 +159,9 @@ export function DeployPanel({ portfolioDir }: DeployPanelProps) {
             placeholder="my-portfolio.example.com"
             style={inputStyle}
           />
+          <p style={{ color: "#888", fontSize: "0.8em", marginTop: "0.4rem" }}>
+            Prepares a local folder only — upload it to your host yourself. For one-click publishing, use Push to GitHub.
+          </p>
         </div>
       )}
 

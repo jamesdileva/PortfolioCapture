@@ -549,4 +549,77 @@ describe("SessionManager", () => {
       expect(completed!.status).toBe("complete");
     });
   });
+
+  describe("startSession concurrency guard", () => {
+    it("concurrent starts create only one session", async () => {
+      const project = projectService.create({ name: "Test", path: "/test", executablePath: "/test/app.exe" });
+      let release!: () => void;
+      const gate = new Promise<void>((r) => { release = r; });
+      const innerStart = captureProvider.start.bind(captureProvider);
+      captureProvider.start = async () => {
+        await gate;
+        return innerStart();
+      };
+
+      const p1 = manager.startSession(project.id, "manual");
+      const p2 = manager.startSession(project.id, "manual");
+      release();
+      const results = await Promise.allSettled([p1, p2]);
+
+      const fulfilled = results.filter((r) => r.status === "fulfilled");
+      const rejected = results.filter((r) => r.status === "rejected");
+      expect(fulfilled).toHaveLength(1);
+      expect(rejected).toHaveLength(1);
+      expect((rejected[0] as PromiseRejectedResult).reason.message).toContain("Session already active");
+      expect(sessionService.listByProject(project.id)).toHaveLength(1);
+    });
+  });
+
+  describe("raw_video asset + postprocess logging", () => {
+    it("creates a raw_video asset on stop", async () => {
+      const { AssetRepository } = await import("../../packages/database/repositories/asset-repository.js");
+      const { AssetService } = await import("../../apps/desktop/electron/services/asset-service.js");
+      const assetService = new AssetService(new AssetRepository(db));
+      const mgr = new SessionManager({
+        sessionService,
+        captureProvider,
+        projectService,
+        assetService,
+        config: { outputRoot: "data/recordings" },
+      });
+
+      const project = projectService.create({ name: "Test", path: "/test", executablePath: "/test/app.exe" });
+      await mgr.startSession(project.id, "manual");
+      const completed = await mgr.stopSession(project.id);
+
+      const assets = assetService.listBySession(completed!.id);
+      const raw = assets.find((a) => a.type === "raw_video");
+      expect(raw).toBeDefined();
+      expect(raw!.path).toBe(completed!.rawVideoPath);
+    });
+
+    it("logs postprocess failures instead of swallowing silently", async () => {
+      const { AssetRepository } = await import("../../packages/database/repositories/asset-repository.js");
+      const { AssetService } = await import("../../apps/desktop/electron/services/asset-service.js");
+      const messages: string[] = [];
+      const mgr = new SessionManager({
+        sessionService,
+        captureProvider,
+        projectService,
+        assetService: new AssetService(new AssetRepository(db)),
+        screenshotExtractor: {
+          extract: async () => { throw new Error("ffmpeg exploded"); },
+        },
+        config: { outputRoot: "data/recordings" },
+        logger: (m: string) => { messages.push(m); },
+      });
+
+      const project = projectService.create({ name: "Test", path: "/test", executablePath: "/test/app.exe" });
+      await mgr.startSession(project.id, "manual");
+      const completed = await mgr.stopSession(project.id);
+
+      expect(completed!.status).toBe("complete");
+      expect(messages.some((m) => m.includes("extractScreenshots") && m.includes("ffmpeg exploded"))).toBe(true);
+    });
+  });
 });

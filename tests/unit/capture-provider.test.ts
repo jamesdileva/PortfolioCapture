@@ -55,6 +55,27 @@ describe("FfmpegCaptureProvider", () => {
       expect(new Date(session.startedAt).getTime()).not.toBeNaN();
     });
 
+    it("keeps polling when the output file exists but is still empty", async () => {
+      const mockProc = createMockProcess();
+      const spawnFn = vi.fn(() => mockProc);
+      const provider = new FfmpegCaptureProvider("ffmpeg", spawnFn);
+
+      vi.mock("fs", () => ({
+        statSync: vi.fn(),
+      }));
+
+      const { statSync } = await import("fs");
+      vi.mocked(statSync)
+        .mockReturnValueOnce({ size: 0 } as any)
+        .mockReturnValueOnce({ size: 0 } as any)
+        .mockReturnValue({ size: 2048 } as any);
+
+      const session = await provider.start(defaultOptions());
+
+      expect(session.sessionId).toMatch(/^capture-\d+-\d+$/);
+      expect(vi.mocked(statSync).mock.calls.length).toBeGreaterThanOrEqual(3);
+    });
+
     it("spawns FFmpeg with correct path", async () => {
       const mockProc = createMockProcess();
       const spawnFn = vi.fn(() => mockProc);

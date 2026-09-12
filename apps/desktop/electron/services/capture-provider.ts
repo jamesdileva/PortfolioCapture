@@ -91,10 +91,13 @@ export class FfmpegCaptureProvider implements CaptureProvider {
               sessionId,
             });
             resolve({ sessionId, startedAt });
+            return;
           }
+          // File exists but FFmpeg hasn't written data yet — keep polling.
         } catch {
-          setTimeout(checkReady, 100);
+          // File not created yet — keep polling.
         }
+        setTimeout(checkReady, 100);
       };
 
       setTimeout(checkReady, 50);

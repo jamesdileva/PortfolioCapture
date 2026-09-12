@@ -1,7 +1,7 @@
 # MEMORY.md — Agent Working Memory
 
 ## Current Goal
-Recording UX shipped 2026-09-12: manual Record/Stop per project row + status (Recording/Watching/Manual only/Disabled), monitors refresh on project CRUD (no restart needed), trigger guidance fieldset in form, white border killed (body bg + window backgroundColor). E2E isolated per-run (temp user-data-dir), 7/7 green. Pending: human verifies in repacked exe.
+Sentinel fallout fixed 2026-09-12: deploy self-copy (excludes+refusal), viewable recordings (rawVideoPath player + asset row), duplicate-session sync guard, postprocess logging, startup orphan healing, github-push to Pages clone, recording E2E (dinner exe) green — incl. capture empty-file hang fix it exposed. Exe repacked. Pending: human retests capture→view→push on sentinel/dinner.
 
 ## Completed
 - Sprint 0.1–7.6: All sprints complete

@@ -36,7 +36,7 @@ function setupPortfolio(): string {
 
 describe("DeployServiceImpl", () => {
   it("getSupportedTargets", () => {
-    expect(makeService().getSupportedTargets()).toEqual(["zip", "github-pages", "netlify", "vercel"]);
+    expect(makeService().getSupportedTargets()).toEqual(["zip", "github-pages", "netlify", "vercel", "github-push"]);
   });
 
   it("zipExport throws on empty dir", async () => {
@@ -120,5 +120,116 @@ describe("DeployServiceImpl", () => {
     const dir = setupPortfolio();
     await expect(makeService().deploy({ target: "bad" as never, portfolioDir: dir })).rejects.toThrow("Unsupported deploy target");
     fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("deploy into nested default dir does not recurse into itself", async () => {
+    const dir = setupPortfolio();
+    const result = await makeService().deploy({ target: "github-pages", portfolioDir: dir });
+    expect(result.success).toBe(true);
+    const nested = path.join(result.outputPath!, "deploy");
+    expect(fs.existsSync(nested)).toBe(false);
+    expect(fs.existsSync(path.join(result.outputPath!, "index.html"))).toBe(true);
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("deploy refuses outputDir equal to portfolioDir", async () => {
+    const dir = setupPortfolio();
+    await expect(makeService().deploy({ target: "netlify", portfolioDir: dir, outputDir: dir })).rejects.toThrow("into itself");
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  describe("github-push", () => {
+    function makeGitService(calls: string[][], behavior: (args: string[]) => string) {
+      return new DeployServiceImpl({
+        createZipFn: async () => 0,
+        openUrl: async () => {},
+        execGit: (args: string[], cwd: string) => {
+          calls.push([cwd, ...args]);
+          return behavior(args);
+        },
+      });
+    }
+
+    function setupRepo(): string {
+      const repo = path.join(TEMP, "repo-" + Date.now() + Math.floor(Math.random() * 10000));
+      fs.mkdirSync(repo, { recursive: true });
+      fs.mkdirSync(path.join(repo, ".git"), { recursive: true });
+      fs.writeFileSync(path.join(repo, "index.html"), "site");
+      return repo;
+    }
+
+    const okBehavior = (args: string[]) => {
+      if (args[0] === "status") return " M portfolio/index.html";
+      if (args[0] === "rev-parse" && args[1] === "--short") return "abc1234";
+      return "";
+    };
+
+    it("copies, commits and pushes into repo subfolder", async () => {
+      const dir = setupPortfolio();
+      const repo = setupRepo();
+      const calls: string[][] = [];
+      const result = await makeGitService(calls, okBehavior).deploy({
+        target: "github-push",
+        portfolioDir: dir,
+        repoPath: repo,
+      });
+      expect(result.success).toBe(true);
+      expect(result.message).toContain("abc1234");
+      expect(fs.existsSync(path.join(repo, "portfolio", "index.html"))).toBe(true);
+      expect(fs.existsSync(path.join(repo, "index.html"))).toBe(true); // site root untouched
+      const flat = calls.map((c) => c.slice(1).join(" "));
+      expect(flat).toContain("add -A -- portfolio");
+      expect(flat.some((c) => c.startsWith("commit -m"))).toBe(true);
+      expect(flat).toContain("push");
+      fs.rmSync(dir, { recursive: true, force: true });
+      fs.rmSync(repo, { recursive: true, force: true });
+    });
+
+    it("throws when repoPath missing", async () => {
+      const dir = setupPortfolio();
+      await expect(makeGitService([], okBehavior).deploy({ target: "github-push", portfolioDir: dir })).rejects.toThrow("repoPath");
+      fs.rmSync(dir, { recursive: true, force: true });
+    });
+
+    it("throws when repoPath is not a git repo", async () => {
+      const dir = setupPortfolio();
+      const notRepo = path.join(TEMP, "notrepo-" + Date.now());
+      fs.mkdirSync(notRepo, { recursive: true });
+      await expect(makeGitService([], okBehavior).deploy({ target: "github-push", portfolioDir: dir, repoPath: notRepo })).rejects.toThrow("Not a git repository");
+      fs.rmSync(dir, { recursive: true, force: true });
+      fs.rmSync(notRepo, { recursive: true, force: true });
+    });
+
+    it("refuses repo root as subpath", async () => {
+      const dir = setupPortfolio();
+      const repo = setupRepo();
+      await expect(makeGitService([], okBehavior).deploy({ target: "github-push", portfolioDir: dir, repoPath: repo, repoSubPath: "." })).rejects.toThrow("repo root");
+      fs.rmSync(dir, { recursive: true, force: true });
+      fs.rmSync(repo, { recursive: true, force: true });
+    });
+
+    it("reports up-to-date when nothing changed", async () => {
+      const dir = setupPortfolio();
+      const repo = setupRepo();
+      const result = await makeGitService([], () => "").deploy({ target: "github-push", portfolioDir: dir, repoPath: repo });
+      expect(result.success).toBe(true);
+      expect(result.message).toContain("up to date");
+      fs.rmSync(dir, { recursive: true, force: true });
+      fs.rmSync(repo, { recursive: true, force: true });
+    });
+
+    it("surfaces push failure after local commit", async () => {
+      const dir = setupPortfolio();
+      const repo = setupRepo();
+      const behavior = (args: string[]) => {
+        if (args[0] === "status") return " M portfolio/index.html";
+        if (args[0] === "rev-parse" && args[1] === "--short") return "abc1234";
+        if (args[0] === "push") throw new Error("remote: permission denied");
+        return "";
+      };
+      await expect(makeGitService([], behavior).deploy({ target: "github-push", portfolioDir: dir, repoPath: repo })).rejects.toThrow(/Committed abc1234.*push failed/);
+      fs.rmSync(dir, { recursive: true, force: true });
+      fs.rmSync(repo, { recursive: true, force: true });
+    });
   });
 });

@@ -6,6 +6,8 @@ import { DeployPanel } from "@renderer/components/DeployPanel";
 const mockZip = vi.fn();
 const mockPreview = vi.fn();
 const mockRun = vi.fn();
+const mockSettingsGet = vi.fn(async () => []);
+const mockSettingsSet = vi.fn(async () => {});
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -16,6 +18,10 @@ beforeEach(() => {
       preview: mockPreview,
       run: mockRun,
       targets: vi.fn(async () => ["zip", "github-pages", "netlify", "vercel"]),
+    },
+    settings: {
+      get: mockSettingsGet,
+      set: mockSettingsSet,
     },
   };
 });
@@ -155,5 +161,41 @@ describe("DeployPanel", () => {
     await waitFor(() => {
       expect(screen.getByText("Download ZIP")).not.toBeDisabled();
     });
+  });
+
+  it("shows repo inputs for github-push target", async () => {
+    render(<DeployPanel portfolioDir="/portfolio" />);
+    fireEvent.click(screen.getByText("Push to GitHub"));
+    expect(screen.getByPlaceholderText("C:\\Projects\\user\\user.github.io")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("portfolio")).toBeInTheDocument();
+    expect(screen.getByText("Deploy: Push to GitHub")).toBeInTheDocument();
+  });
+
+  it("requires repo path for github-push", async () => {
+    render(<DeployPanel portfolioDir="/portfolio" />);
+    fireEvent.click(screen.getByText("Push to GitHub"));
+    fireEvent.click(screen.getByText("Deploy: Push to GitHub"));
+    await waitFor(() => {
+      expect(screen.getByText(/local path of your GitHub Pages clone/)).toBeInTheDocument();
+    });
+    expect(mockRun).not.toHaveBeenCalled();
+  });
+
+  it("calls deploy run with repo path for github-push", async () => {
+    mockRun.mockResolvedValue({ success: true, target: "github-push", outputPath: "/repo/portfolio", message: "Pushed abc1234" });
+    render(<DeployPanel portfolioDir="/portfolio" />);
+    fireEvent.click(screen.getByText("Push to GitHub"));
+    fireEvent.change(screen.getByPlaceholderText("C:\\Projects\\user\\user.github.io"), { target: { value: "C:\\sites\\user.github.io" } });
+    fireEvent.click(screen.getByText("Deploy: Push to GitHub"));
+    await waitFor(() => {
+      expect(mockRun).toHaveBeenCalledWith({
+        target: "github-push",
+        portfolioDir: "/portfolio",
+        siteName: undefined,
+        repoPath: "C:\\sites\\user.github.io",
+        repoSubPath: "portfolio",
+      });
+    });
+    expect(screen.getByText("Pushed abc1234")).toBeInTheDocument();
   });
 });

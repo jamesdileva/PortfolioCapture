@@ -2616,3 +2616,30 @@
 **Verification:**
 - build:electron / build:renderer clean; 838/838 tests pass
 - Fresh dist/win-unpacked/Portfolio Auto Recorder.exe (2:09 AM) contains probe. Ready for human retest per docs/terminal-launch.md
+
+---
+
+### 2026-09-12 — Sentinel Capture Fallout: Deploy Freeze, Unviewable Video + Recording E2E (human testing follow-up)
+
+**Agent:** agent-a
+**Status:** Complete, repacked exe ready for human retest
+
+**Human symptoms:** 59s sentinel capture unviewable; Deploy to github-pages froze the app (looked like still recording); sentinel was not focused.
+
+**Findings (DB + disk evidence):**
+- F1 Deploy self-copy freeze (critical): `copyDirSync(portfolioDir, portfolioDir/deploy/<target>)` had no exclusion — recursive nesting dozens deep, synchronous on UI thread. Fixed: `nestedExcludes()` + `dest==src` refusal + symlink skip (Dirent-based, no stat-follow) in copy + zip paths.
+- F2 Unviewable (high): `raw_video` asset type never created; SessionDetail only looked up that asset. Fixed: player uses `session.rawVideoPath` (asset row as fallback) + `stopSession` now writes the `raw_video` asset row + `toFileUrl` helper (backslash/space-safe).
+- F3 Duplicate race (high): 3 sessions in 10ms — `has()` then `await capture.start()` then `set()`. Fixed: synchronous `startingProjects` claim with try/finally.
+- F4 Silent post-processing (medium): 6 empty `catch {}` + zero assets, zero diagnostics. Fixed: optional `logger` on SessionManagerOptions (wired to startup `_log` in main.ts), per-step messages.
+- F5 Orphan healing (medium): 2 sessions stuck `recording` forever. Fixed: startup `detectOrphans` + `discardOrphan` loop in main.ts (CrashRecoveryService already existed, was never invoked at boot).
+- F6 Real publishing: new `github-push` target (copy into local clone subdir default `portfolio`, root-push refused, commit, push, clean-tree fast path, push-failure transparency) + DeployPanel repo inputs persisted in settings + honest local-only captions for the other targets.
+- Bonus bug found BY the new e2e: capture `checkReady` never rescheduled when the output file existed but was size 0 (FFmpeg startup window) — promise hung forever, session stuck `starting`. Fixed + regression test.
+- Desktop capture records the whole screen regardless of window focus — expected, not a bug.
+
+**E2E:** new `tests/e2e/recording-flow.spec.ts` (fixture: dinner-menu `backend/dist/app.exe`, env-overridable `E2E_FIXTURE_EXE`, skips when absent); `test:e2e:recording` script; default `test:e2e` stays fast (smoke+project-flow). E2E specs use per-launch temp `--user-data-dir` + row-scoped locators now.
+
+**Verification:** 861 unit pass (49 files); Playwright 7/7 default + 1/1 recording (15s real capture, raw.mp4 verified on disk); `dist` repacked; packaged launch healthy.
+
+**Cleanup done (human-approved):** nested `portfolio/deploy` removed, 2 orphans marked failed.
+
+**SAFETY INCIDENT — read before any shell delete:** `cmd /c rmdir /s /q "%APPDATA%\..."` built through PowerShell mangled the quotes (`\"` is literal in PS) so cmd received a drive-root path and started deleting C:\ recursively. Blocked by permissions (64k "Access is denied", user aborted); verified zero damage (git-clean repos, byte-exact exes, pgAdmin files intact). RULE: never route deletes through cmd; use `node fs.rmSync(p,{recursive:true,force:true})` or `Remove-Item -LiteralPath`; never inline nested quotes in `node -e` (use script files; module resolution needs absolute require or CWD).

@@ -236,6 +236,7 @@ function initializeServices() {
     onSessionComplete: () => {
       portfolioUpdateTrigger.requestUpdate();
     },
+    logger: (msg: string) => _log(msg),
   });
 
   registerSessionHandlers(sessionService, sessionManager, profileService);
@@ -325,6 +326,18 @@ function initializeServices() {
 
   const crashRecovery = new CrashRecoveryServiceImpl(sessionService);
   registerCrashRecoveryHandlers(crashRecovery, projectService);
+
+  try {
+    const projectNames = new Map(projectService.list().map((p) => [p.id, p.name] as [string, string]));
+    const orphans = crashRecovery.detectOrphans(projectNames);
+    for (const orphan of orphans) {
+      crashRecovery.discardOrphan(orphan.session.id);
+      _log(`crashRecovery: healed orphan session ${orphan.session.id} (project: ${orphan.projectName})`);
+    }
+    if (orphans.length > 0) _log(`crashRecovery: healed ${orphans.length} orphan session(s)`);
+  } catch (err) {
+    _log("crashRecovery: startup healing failed: " + (err instanceof Error ? err.message : String(err)));
+  }
 
   registerHealthCheckHandlers(db, { migrationsDir: path.join(__dirname, "migrations") });
 

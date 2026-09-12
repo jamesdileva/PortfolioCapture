@@ -75,10 +75,12 @@ export interface SessionManagerOptions {
   sceneDetector?: SceneDetector;
   interactionCollectorFactory?: () => InteractionCollector;
   onSessionComplete?: (projectId: string, sessionId: string) => void;
+  logger?: (message: string) => void;
 }
 
 export class SessionManager {
   private activeByProject: Map<string, ActiveSession> = new Map();
+  private startingProjects: Set<string> = new Set();
   private config: SessionManagerConfig;
   private sessionService: SessionService;
   private captureProvider: CaptureProvider;
@@ -97,6 +99,7 @@ export class SessionManager {
   private sceneDetector?: SceneDetector;
   private interactionCollectorFactory?: () => InteractionCollector;
   private onSessionComplete?: (projectId: string, sessionId: string) => void;
+  private logger: (message: string) => void;
 
   constructor(options: SessionManagerOptions) {
     this.config = { ...DEFAULT_CONFIG, ...options.config };
@@ -117,10 +120,11 @@ export class SessionManager {
     this.sceneDetector = options.sceneDetector;
     this.interactionCollectorFactory = options.interactionCollectorFactory;
     this.onSessionComplete = options.onSessionComplete;
+    this.logger = options.logger ?? (() => {});
   }
 
   async startSession(projectId: string, trigger: SessionTrigger, profileSettings?: Partial<RecordingProfileSettings>): Promise<RecordingSession> {
-    if (this.activeByProject.has(projectId)) {
+    if (this.activeByProject.has(projectId) || this.startingProjects.has(projectId)) {
       throw new Error(`Session already active for project ${projectId}`);
     }
 
@@ -128,6 +132,18 @@ export class SessionManager {
     if (!project) {
       throw new Error(`Project ${projectId} not found`);
     }
+
+    // Claim synchronously: startSession awaits capture startup below, and
+    // concurrent triggers (e.g. rapid process polls) must not create dupes.
+    this.startingProjects.add(projectId);
+    try {
+      return await this.startSessionInner(projectId, trigger, profileSettings);
+    } finally {
+      this.startingProjects.delete(projectId);
+    }
+  }
+
+  private async startSessionInner(projectId: string, trigger: SessionTrigger, profileSettings: Partial<RecordingProfileSettings> | undefined): Promise<RecordingSession> {
 
     const session = this.sessionService.create({ projectId, trigger });
 
@@ -211,6 +227,19 @@ export class SessionManager {
       this.activeByProject.delete(projectId);
 
       this.sessionService.updateRawVideoPath(active.session.id, result.outputPath);
+
+      try {
+        await this.assetService?.create({
+          sessionId: active.session.id,
+          projectId: active.projectId,
+          type: "raw_video",
+          path: result.outputPath,
+          durationMs: result.durationMs,
+          fileSizeBytes: result.fileSizeBytes,
+        });
+      } catch {
+        // Non-fatal: the session row already carries rawVideoPath.
+      }
 
       if (timeline.length > 0) {
         this.settingsService?.set(`timeline:${active.session.id}`, JSON.stringify(timeline));
@@ -298,6 +327,15 @@ export class SessionManager {
     return [];
   }
 
+  private logPostProcessError(step: string, sessionId: string, err: unknown): void {
+    const detail = err instanceof Error ? err.message : String(err);
+    try {
+      this.logger(`postprocess session=${sessionId} step=${step} failed: ${detail}`);
+    } catch {
+      // Logging must never fail the session
+    }
+  }
+
   private async extractScreenshots(
     sessionId: string,
     projectId: string,
@@ -360,7 +398,8 @@ export class SessionManager {
           height: shot.height,
         });
       }
-    } catch {
+    } catch (err) {
+      this.logPostProcessError("extractScreenshots", sessionId, err);
       // Screenshot extraction is best-effort; don't fail the session
     }
   }
@@ -388,7 +427,8 @@ export class SessionManager {
       });
 
       return result.outputPath;
-    } catch {
+    } catch (err) {
+      this.logPostProcessError("trimVideo", sessionId, err);
       // Smart trimming is best-effort; don't fail the session
       return null;
     }
@@ -416,7 +456,8 @@ export class SessionManager {
         path: result.outputPath,
         durationMs: result.durationMs,
       });
-    } catch {
+    } catch (err) {
+      this.logPostProcessError("generateDemo", sessionId, err);
       // Demo generation is best-effort; don't fail the session
     }
   }
@@ -440,7 +481,8 @@ export class SessionManager {
       const result = this.timelineAssembler.assemble(scenes, [], videoDurationMs);
       this.settingsService.set(`assembled-timeline:${sessionId}`, JSON.stringify(result));
       return scenes;
-    } catch {
+    } catch (err) {
+      this.logPostProcessError("assembleTimeline", sessionId, err);
       // Timeline assembly is best-effort; don't fail the session
       return [];
     }
@@ -468,7 +510,8 @@ export class SessionManager {
       if (this.settingsService) {
         this.settingsService.set(`demo-chapters:${sessionId}`, JSON.stringify(chapters));
       }
-    } catch {
+    } catch (err) {
+      this.logPostProcessError("generateChapters", sessionId, err);
       // Chapter generation is best-effort; don't fail the session
     }
   }
@@ -510,7 +553,8 @@ export class SessionManager {
         fps: this.config.fps,
       });
       this.settingsService.set(`demo-quality:${sessionId}`, JSON.stringify(result));
-    } catch {
+    } catch (err) {
+      this.logPostProcessError("scoreDemoQuality", sessionId, err);
       // Quality scoring is best-effort; don't fail the session
     }
   }

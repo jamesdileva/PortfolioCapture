@@ -153,7 +153,7 @@ interface PortfolioThemesAPI {
 interface PortfolioDeployAPI {
   zip: (portfolioDir: string, outputPath?: string) => Promise<ZipExportResult>;
   preview: (portfolioDir: string) => Promise<{ success: boolean }>;
-  run: (config: { target: DeployTarget; portfolioDir: string; outputDir?: string; siteName?: string }) => Promise<DeployResult>;
+  run: (config: { target: DeployTarget; portfolioDir: string; outputDir?: string; siteName?: string; repoPath?: string; repoSubPath?: string; commitMessage?: string }) => Promise<DeployResult>;
   targets: () => Promise<DeployTarget[]>;
 }
 
