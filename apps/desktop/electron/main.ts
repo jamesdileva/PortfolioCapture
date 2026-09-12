@@ -15,8 +15,17 @@ let _logDir: string;
 try { _logDir = path.join(app.getPath("userData"), "logs"); } catch (_) { _logDir = path.join(process.env.LOCALAPPDATA || process.env.TEMP || ".", "portfolio-auto-recorder"); }
 try { mkdirSync(_logDir, { recursive: true }); } catch (_) {}
 const _logFile = path.join(_logDir, "startup.log");
-function _log(msg: string) { try { appendFileSync(_logFile, new Date().toISOString() + " [main] " + msg + "\n"); } catch (_) {} }
+let _logFileExe: string | null = null;
+try { _logFileExe = path.join(path.dirname(process.execPath), "startup.log"); } catch (_) {}
+function _log(msg: string) {
+  try {
+    const line = new Date().toISOString() + " [main] " + msg + "\n";
+    try { appendFileSync(_logFile, line); } catch (_) {}
+    try { if (_logFileExe && _logFileExe !== _logFile) appendFileSync(_logFileExe, line); } catch (_) {}
+  } catch (_) {}
+}
 _log("MODULE_LOADED: main.ts top-level");
+_log("EXE_IDENTITY: execPath=" + process.execPath + " resources=" + (process.resourcesPath ?? "?"));
 
 let mainWindow: BrowserWindow | null = null;
 
