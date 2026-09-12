@@ -76,6 +76,25 @@ function initializeServices() {
 
   _log("initializeServices: creating database at " + userDataPath);
   const dbPath = path.join(userDataPath, "database.sqlite");
+  try {
+    const vers = (process as unknown as { versions: Record<string, string> }).versions;
+    _log("initializeServices: versions node=" + vers.node + " electron=" + vers.electron + " arch=" + process.arch);
+  } catch (_) {}
+  try {
+    const bsqlPkg = require("better-sqlite3/package.json") as { version: string };
+    _log("initializeServices: better-sqlite3 version=" + bsqlPkg.version);
+  } catch (verr) {
+    _log("initializeServices: better-sqlite3 version lookup FAILED: " + String(verr));
+  }
+  try {
+    const probe = path.join(userDataPath, "write-probe.tmp");
+    require("fs").writeFileSync(probe, "ok");
+    require("fs").unlinkSync(probe);
+    _log("initializeServices: userData writable OK");
+  } catch (werr) {
+    _log("initializeServices: userData write probe FAILED: " + String(werr));
+  }
+  _log("initializeServices: calling new Database() next");
   let db: ReturnType<typeof createDatabase>;
   try {
     db = createDatabase(dbPath);
