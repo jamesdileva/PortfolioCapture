@@ -67,8 +67,16 @@ function initializeServices() {
 
   _log("initializeServices: creating database at " + userDataPath);
   const dbPath = path.join(userDataPath, "database.sqlite");
-  const db = createDatabase(dbPath);
-  _log("initializeServices: database created, running migrations");
+  let db: ReturnType<typeof createDatabase>;
+  try {
+    db = createDatabase(dbPath);
+    _log("initializeServices: database created OK");
+  } catch (dbErr) {
+    const msg = dbErr instanceof Error ? dbErr.stack ?? dbErr.message : String(dbErr);
+    _log("initializeServices: createDatabase FAILED: " + msg);
+    throw dbErr;
+  }
+  _log("initializeServices: running migrations");
 
   runMigrations(db);
   _log("initializeServices: migrations done, creating repositories");
