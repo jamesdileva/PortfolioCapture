@@ -1,7 +1,7 @@
 # MEMORY.md — Agent Working Memory
 
 ## Current Goal
-Exe silent-fail: rename falsifier NEGATIVE (fresh 1:15 AM PDT dist w/ portfoliodb.sqlite still aborts at new Database(), no portfoliodb.sqlite created — #365). Memory-DB probe added to main.ts + dist repacked 2:09 AM (asar-verified). Awaiting human retest of FRESH exe per docs/terminal-launch.md (#26).
+Exe silent-fail DECISIVE: fresh 2:42 AM PDT retest stops at "memory DB probe START" — even `:memory:` new Database() hard-aborts, no portfoliodb.sqlite created. Not a file-lock/path issue: require("better-sqlite3") v13.0.3 loads OK, constructor native-aborts. #26 done. Next: Event Viewer faulting module + exception code to identify missing CRT / ABI mismatch.
 
 ## Completed
 - Sprint 0.1–7.6: All sprints complete
@@ -10,15 +10,12 @@ Exe silent-fail: rename falsifier NEGATIVE (fresh 1:15 AM PDT dist w/ portfoliod
 - Sprint 7.5 Post-fix: IPC allowlist gap fixed (81 channels)
 
 ## Verified 2026-09-12
-- Tree CLEAN (SITREP 3-dirty is stale false-positive: test-db.mjs deleted, WORKLOG.md==worklog.md same file on Win, AGENTS.md mirror expected per #315)
-- exe-adjacent startup.log (dist/win-unpacked) stops at "calling new Database() next", 14 lines — native abort, no JS exception
-- userData log (%APPDATA%/portfolio-auto-recorder/logs/startup.log) stops at same line
-- database.sqlite 0 bytes (9/11), no portfoliodb.sqlite yet = dist stale, falsifier not yet tested
-- better-sqlite3 13.0.3 ships win32-x64.node in app.asar.unpacked; node 20.18.3 / electron 33.4.11 / x64; userData writable OK
-- 838/838 tests pass; build clean
+- Tree CLEAN (SITREP 3-dirty is stale false-positive confirmed 2nd time: git status clean — test-db.mjs deleted, WORKLOG.md==worklog.md case artifact, AGENTS.md mirror expected)
+- Memory-DB probe DECISIVE 2:42 AM PDT: log stops at "memory DB probe START", :memory: constructor aborts, no JS exception — native module hard-abort, not file/path issue
+- require("better-sqlite3") v13.0.3 succeeds; `new Database()` is the abort point for both :memory: and file paths
 
 ## Open Threads
-- REPACK dist (npm run dist) to include b7a165f portfoliodb.sqlite falsifier, then human: terminal `--no-sandbox` + 5-item paste-back per docs/terminal-launch.md (#25, human #346)
+- Event Viewer: human pastes Application-log fault entry for the crash (faulting module path, exception code e.g. 0xc0000005/0xc0000135/0xc0000409) to distinguish missing CRT vs ABI mismatch vs ASAR-unpack load failure
 - E2E verification: run `npx playwright test` against built app (needs Electron running)
 
 ## Key Learnings
