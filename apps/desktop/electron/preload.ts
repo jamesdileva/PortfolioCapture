@@ -4,7 +4,7 @@ const IPC_TIMEOUT_MS = 30_000;
 
 function invokeWithTimeout(channel: string, ...args: unknown[]): Promise<unknown> {
   return Promise.race([
-    invokeWithTimeout(channel, ...args),
+    ipcRenderer.invoke(channel, ...args),
     new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error(`IPC call "${channel}" timed out after ${IPC_TIMEOUT_MS}ms`)), IPC_TIMEOUT_MS),
     ),
