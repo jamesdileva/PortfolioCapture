@@ -2,7 +2,15 @@ import { ipcMain } from "electron";
 import type { ProjectService } from "../services/project-service.js";
 import { CreateProjectInputSchema, UpdateProjectInputSchema, validateInput } from "../../../../packages/shared/schemas/index.js";
 
-export function registerProjectHandlers(projectService: ProjectService): void {
+export function registerProjectHandlers(projectService: ProjectService, onProjectsChanged?: () => void): void {
+  const notifyChanged = () => {
+    try {
+      onProjectsChanged?.();
+    } catch {
+      // Monitor refresh is best-effort — never fail the CRUD operation.
+    }
+  };
+
   ipcMain.handle("projects:list", () => {
     return projectService.list();
   });
@@ -13,15 +21,21 @@ export function registerProjectHandlers(projectService: ProjectService): void {
 
   ipcMain.handle("projects:create", (_event, input) => {
     const validated = validateInput(CreateProjectInputSchema, input);
-    return projectService.create(validated);
+    const created = projectService.create(validated);
+    notifyChanged();
+    return created;
   });
 
   ipcMain.handle("projects:update", (_event, id: string, input) => {
     const validated = validateInput(UpdateProjectInputSchema, input);
-    return projectService.update(id, validated);
+    const updated = projectService.update(id, validated);
+    notifyChanged();
+    return updated;
   });
 
   ipcMain.handle("projects:delete", (_event, id: string) => {
-    return projectService.delete(id);
+    const result = projectService.delete(id);
+    notifyChanged();
+    return result;
   });
 }

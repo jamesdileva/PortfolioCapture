@@ -1,5 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { _electron as electron } from "playwright";
+import * as fs from "fs";
+import * as os from "os";
 import * as path from "path";
 
 const ROOT = path.resolve(__dirname, "../..");
@@ -7,9 +9,10 @@ const ELECTRON_EXE = require("electron") as string;
 const MAIN_JS = path.join(ROOT, "apps/desktop/electron/dist/main.js");
 
 async function launchApp() {
+  const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), "par-e2e-"));
   return electron.launch({
     executablePath: ELECTRON_EXE,
-    args: [MAIN_JS],
+    args: [MAIN_JS, `--user-data-dir=${userDataDir}`],
     ignoreDefaultArgs: ["--remote-debugging-port=0"],
   });
 }
@@ -33,8 +36,9 @@ test.describe("Project Flow — Create & List", () => {
 
       await window.getByRole("button", { name: "Create" }).click();
 
-      await expect(window.locator("td")).toContainText("E2E Test Project");
-      await expect(window.locator("td")).toContainText("C:\\Users\\test\\e2e-project");
+      const row = window.locator("tr", { hasText: "E2E Test Project" });
+      await expect(row).toContainText("E2E Test Project");
+      await expect(row).toContainText("C:\\Users\\test\\e2e-project");
     } finally {
       await app.close();
     }
@@ -69,15 +73,15 @@ test.describe("Project Flow — Create & List", () => {
       await window.getByLabel("Project Path").fill("C:\\edit-test");
       await window.getByRole("button", { name: "Create" }).click();
 
-      await expect(window.locator("td")).toContainText("Edit Test");
+      await expect(window.locator("tr", { hasText: "Edit Test" })).toContainText("Edit Test");
 
-      await window.getByRole("button", { name: "Edit" }).first().click();
+      await window.locator("tr", { hasText: "Edit Test" }).getByRole("button", { name: "Edit" }).click();
       await expect(window.locator("h2")).toContainText("Edit Project");
 
       await window.getByLabel("Name").fill("Edit Test Updated");
       await window.getByRole("button", { name: "Update" }).click();
 
-      await expect(window.locator("td")).toContainText("Edit Test Updated");
+      await expect(window.locator("tr", { hasText: "Edit Test Updated" })).toContainText("Edit Test Updated");
     } finally {
       await app.close();
     }
@@ -97,12 +101,13 @@ test.describe("Project Flow — Create & List", () => {
       await window.getByLabel("Project Path").fill("C:\\delete-test");
       await window.getByRole("button", { name: "Create" }).click();
 
-      await expect(window.locator("td")).toContainText("Delete Test");
+      await expect(window.locator("tr", { hasText: "Delete Test" })).toContainText("Delete Test");
 
-      window.on("dialog", (dialog) => dialog.accept());
-      await window.getByRole("button", { name: "Delete" }).first().click();
+      await window.locator("tr", { hasText: "Delete Test" }).getByRole("button", { name: "Delete" }).click();
+      await window.getByText(/Delete project/).waitFor();
+      await window.getByRole("button", { name: "Delete" }).last().click();
 
-      await expect(window.getByText("No projects yet")).toBeVisible();
+      await expect(window.locator("tr", { hasText: "Delete Test" })).toHaveCount(0);
     } finally {
       await app.close();
     }

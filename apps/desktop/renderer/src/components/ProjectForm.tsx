@@ -153,10 +153,23 @@ export function ProjectForm({ project, onSave, onCancel }: ProjectFormProps) {
         {detectStatus && <span style={{ fontSize: "0.8em", color: "#6b8", marginTop: "0.2rem", display: "block" }}>{detectStatus}</span>}
       </label>
 
-      <label style={labelStyle}>
-        Executable Path
-        <input value={executablePath} onChange={(e) => setExecutablePath(e.target.value)} style={inputStyle} placeholder="C:\Projects\my-app\app.exe" />
-      </label>
+      <fieldset style={{ border: "1px solid #444", borderRadius: "6px", padding: "0.75rem", marginBottom: "1rem" }}>
+        <legend style={{ color: "#eee", fontSize: "0.9em", padding: "0 0.4rem" }}>What triggers auto-recording</legend>
+        <p style={{ color: "#888", fontSize: "0.8em", margin: "0 0 0.75rem" }}>
+          Fill in at least one so the app can detect activity automatically. Process launch watches for the
+          executable; dev-server detection polls the ports. With neither, use the ● Record button in the project list.
+        </p>
+
+        <label style={labelStyle}>
+          Executable Path <span style={{ color: "#888" }}>(records when this app launches)</span>
+          <input value={executablePath} onChange={(e) => setExecutablePath(e.target.value)} style={inputStyle} placeholder="C:\Projects\my-app\app.exe" />
+        </label>
+
+        <label style={{ ...labelStyle, marginBottom: 0 }}>
+          Dev Server Ports (comma-separated) <span style={{ color: "#888" }}>(records while a server answers)</span>
+          <input value={devServerPorts} onChange={(e) => setDevServerPorts(e.target.value)} style={inputStyle} placeholder="3000, 5173, 8080" />
+        </label>
+      </fieldset>
 
       <label style={labelStyle}>
         Launch Command
@@ -192,11 +205,6 @@ export function ProjectForm({ project, onSave, onCancel }: ProjectFormProps) {
       <label style={labelStyle}>
         GitHub URL
         <input value={githubUrl} onChange={(e) => setGithubUrl(e.target.value)} style={inputStyle} placeholder="https://github.com/user/repo" />
-      </label>
-
-      <label style={labelStyle}>
-        Dev Server Ports (comma-separated)
-        <input value={devServerPorts} onChange={(e) => setDevServerPorts(e.target.value)} style={inputStyle} placeholder="3000, 5173, 8080" />
       </label>
 
       <label style={labelStyle}>

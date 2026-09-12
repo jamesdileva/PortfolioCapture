@@ -36,6 +36,7 @@ function createWindow(): void {
     height: 800,
     minWidth: 800,
     minHeight: 600,
+    backgroundColor: "#0a0a0a",
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
@@ -173,7 +174,7 @@ function initializeServices() {
   const demoQualityScorer = new DemoQualityScorerImpl();
 
   _log("initializeServices: registering core IPC handlers");
-  registerProjectHandlers(projectService);
+  registerProjectHandlers(projectService, () => refreshMonitorProjects());
   registerAssetHandlers(assetService);
   registerSettingsHandlers(settingsService);
   _log("initializeServices: core IPC handlers registered");
@@ -305,6 +306,18 @@ function initializeServices() {
 
   const windowEnumerator = new WindowEnumeratorImpl();
   registerWindowHandlers(windowEnumerator);
+
+  function refreshMonitorProjects(): void {
+    const list = projectService.list();
+    processMonitor.setProjects(
+      list.map((p) => ({ id: p.id, executablePath: p.executablePath, name: p.name }))
+    );
+    _log("initializeServices: processMonitor projects refreshed (" + list.length + ")");
+    devServerDetector.setProjects(
+      list.map((p) => ({ id: p.id, devServerPorts: p.devServerPorts, name: p.name }))
+    );
+    _log("initializeServices: devServerDetector projects refreshed (" + list.length + ")");
+  }
 
   registerChapterHandlers(chapterGenerator);
 

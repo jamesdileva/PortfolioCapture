@@ -2594,3 +2594,59 @@
 - ErrorBoundary is a class component (React requirement for error boundaries â€” cannot use hooks)
 - ErrorToast uses module-level state (global across renders) â€” clearAllToasts for test isolation
 - Phase 7 complete: all 6 sprints (7.1â€“7.6) delivered
+
+---
+
+### 2026-09-12 — Exe Silent-Fail ROOT CAUSE + FIX (human #365 follow-up)
+
+**Agent:** agent-a
+**Status:** Fixed, pending human visual verification
+
+**Root cause (better-sqlite3 v13.0.3 segfault on Node 20):**
+- Upstream issue WiseLibs/better-sqlite3#1514: v13.0.3 segfaults inside `new Database()` on Node 20/22 (even `:memory:`), `require()` succeeds, no JS exception. Still open, 13.0.3 latest.
+- Packaged runtime was Node 20.18.3 (Electron 33.4.11) — affected. Verified: same binary works under system Node v24.14.1 (`require ok / open ok / close ok`), exonerating packaging/asarUnpack. Vitest never caught it (runs on Node 24).
+
+**Fix 1 — Electron 33.4.11 ? 44.3.0 (embeds Node 24.20.0):**
+- API audit: only stable APIs used (app/BrowserWindow/dialog/shell/contextBridge/ipcRenderer/ipcMain/session.webRequest) — no compat concerns.
+- `npm install --save-dev electron@^44.0.0`; `npm run build` clean; `npm run test` 838/838 pass; `npm run dist` repacks (rcedit version-stamp warning cosmetic only).
+- Launch test: process stays alive, log passes `memory DB probe START` ? migrations ? services wired ? `createWindow: DONE` ? health `healthy`; `portfoliodb.sqlite` created (82KB).
+
+**Fix 2 — White screen (CSP nosniff on file://):**
+- Renderer console (`--enable-logging=stderr`): `Failed to load module script ... MIME type of ""` — injected `X-Content-Type-Options: nosniff` blocked `file://` module scripts (no MIME on file URLs).
+- `security/csp.ts`: `installCspHeaders` now leaves non-http(s) responses untouched (index.html inline `<meta>` CSP still applies).
+- `tests/unit/security.test.ts`: +1 test (file:// untouched), 45/45 pass.
+
+**Verification pending:** human double-clicks `dist/win-unpacked/Portfolio Auto Recorder.exe` (no flags) and confirms dashboard renders.
+
+---
+
+### 2026-09-12 — Recording UX + UI Polish (human feedback follow-up)
+
+**Agent:** agent-a
+**Status:** Complete, human to verify in repacked exe
+
+**Problems (from human testing):**
+1. White border/background around the dark UI.
+2. Recording flow confusing: project added without executable/launch/features/ports never records, with no explanation; no visible way to start recording manually.
+
+**Root causes found:**
+- `body` kept default white background + 8px margin; `BrowserWindow` had no `backgroundColor` (white flash/edges).
+- `sessions:start/stop` IPC + preload were wired but had zero UI callers — auto-triggers were the only path.
+- Auto-record requires `executablePath` (process monitor) or `devServerPorts` (dev-server detector); form never said so.
+- Monitors loaded project list once at startup (`main.ts`); later creates/updates/deletes never refreshed them — auto-record silently dead until restart.
+
+**Changes:**
+- A. Border: `html,body{margin:0;background:#0a0a0a}` in `renderer/index.html`; `backgroundColor: "#0a0a0a"` in `main.ts` `BrowserWindow`.
+- B. Manual capture: Record/Stop buttons per ProjectList row + Status column (Recording / Watching / Manual only / Disabled); `App.tsx` `recordingIds` state seeded from `sessions.list()`, synced on `portfolio:session-started/stopped` events, toast on failure.
+- C. Monitor refresh: `registerProjectHandlers(projectService, onProjectsChanged)` — create/update/delete now refresh both monitors via `refreshMonitorProjects()` in `main.ts` (best-effort, never fails CRUD).
+- D. Form: "What triggers auto-recording" fieldset grouping Executable Path + Dev Server Ports with helper text.
+- E2E hardening (drive-by): row-scoped locators + per-launch temp `--user-data-dir` isolation in both specs (suite was order/state-dependent; prior runs polluted shared dev userData).
+
+**Verification:**
+- `npm run test` — 846 pass (49 files: 838 + 7 new ProjectList + 1 CSP file test)
+- `npx playwright test` — 7/7 pass against real Electron 44 app (create/edit/delete exercises refresh path, no page errors)
+- `npm run build` + `npm run dist` clean; launch test: 4 processes alive, zero renderer console errors
+- tsc: no new errors (13-line baseline unchanged; root composite quirk pre-existing)
+
+**Files modified:** `renderer/index.html`, `electron/main.ts`, `electron/ipc/projects.ts`, `renderer/src/App.tsx`, `renderer/src/components/ProjectList.tsx`, `renderer/src/components/ProjectForm.tsx`, `tests/e2e/*.spec.ts`, `package.json`/`package-lock.json` (electron ^44.3.0)
+**Files created:** `tests/renderer/project-list.test.tsx`

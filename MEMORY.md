@@ -1,7 +1,7 @@
 # MEMORY.md — Agent Working Memory
 
 ## Current Goal
-Exe silent-fail DECISIVE: fresh 2:42 AM PDT retest stops at "memory DB probe START" — even `:memory:` new Database() hard-aborts, no portfoliodb.sqlite created. Not a file-lock/path issue: require("better-sqlite3") v13.0.3 loads OK, constructor native-aborts. #26 done. Next: Event Viewer faulting module + exception code to identify missing CRT / ABI mismatch.
+Recording UX shipped 2026-09-12: manual Record/Stop per project row + status (Recording/Watching/Manual only/Disabled), monitors refresh on project CRUD (no restart needed), trigger guidance fieldset in form, white border killed (body bg + window backgroundColor). E2E isolated per-run (temp user-data-dir), 7/7 green. Pending: human verifies in repacked exe.
 
 ## Completed
 - Sprint 0.1–7.6: All sprints complete

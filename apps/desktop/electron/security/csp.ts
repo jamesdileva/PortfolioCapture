@@ -63,9 +63,18 @@ export function installCspHeaders(
 
   session.webRequest.onHeadersReceived(
     (
-      _details: unknown,
+      details: unknown,
       callback: (response: { responseHeaders?: Record<string, string[]> }) => void
     ) => {
+      const url = (details as { url?: unknown } | null | undefined)?.url;
+      if (typeof url === "string" && !url.startsWith("http://") && !url.startsWith("https://")) {
+        // Non-network schemes (e.g. file:// for the packaged renderer) carry
+        // no MIME type, so X-Content-Type-Options: nosniff would make Chromium
+        // refuse to execute module scripts (white screen). Leave the response
+        // untouched — index.html's inline <meta> CSP still applies.
+        callback({});
+        return;
+      }
       callback({
         responseHeaders: {
           "Content-Security-Policy": [cspHeader],

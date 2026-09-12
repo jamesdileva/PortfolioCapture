@@ -140,10 +140,29 @@ describe("CSP Module", () => {
       installCspHeaders(session);
 
       let capturedResponse: { responseHeaders?: Record<string, string[]> } = {};
-      listenerRef!({}, (r) => { capturedResponse = r; });
+      listenerRef!({ url: "https://localhost:5173/index.html" }, (r) => { capturedResponse = r; });
 
       const csp = capturedResponse.responseHeaders!["Content-Security-Policy"][0];
       expect(csp).toContain("script-src 'self'");
+    });
+
+    it("callback leaves file:// responses untouched (no nosniff — avoids white screen)", () => {
+      let listenerRef: ((details: unknown, cb: (response: { responseHeaders?: Record<string, string[]> }) => void) => void) | undefined;
+
+      const session = {
+        webRequest: {
+          onHeadersReceived: (listener: (details: unknown, cb: (response: { responseHeaders?: Record<string, string[]> }) => void) => void) => {
+            listenerRef = listener;
+          },
+        },
+      };
+
+      installCspHeaders(session);
+
+      let capturedResponse: { responseHeaders?: Record<string, string[]> } = { responseHeaders: { "X-Old": ["keep"] } };
+      listenerRef!({ url: "file:///C:/app/resources/app.asar/apps/desktop/renderer/dist/assets/index.js" }, (r) => { capturedResponse = r; });
+
+      expect(capturedResponse.responseHeaders).toBeUndefined();
     });
   });
 });

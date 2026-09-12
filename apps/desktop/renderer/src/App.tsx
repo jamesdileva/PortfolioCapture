@@ -8,7 +8,7 @@ import { SessionList } from "./components/SessionList";
 import { SessionDetail } from "./components/SessionDetail";
 import { ProjectTimeline } from "./components/ProjectTimeline";
 import { ErrorBoundary } from "./components/ErrorBoundary";
-import { ErrorToastContainer } from "./components/ErrorToast";
+import { ErrorToastContainer, showToast } from "./components/ErrorToast";
 
 type Tab = "dashboard" | "projects" | "recordings";
 type ProjectView = "list" | "add" | "edit";
@@ -26,6 +26,7 @@ export function App() {
   const [loadingSessions, setLoadingSessions] = useState(true);
   const [selectedSession, setSelectedSession] = useState<RecordingSession | null>(null);
   const [deleteSessionConfirm, setDeleteSessionConfirm] = useState<RecordingSession | null>(null);
+  const [recordingIds, setRecordingIds] = useState<Set<string>>(new Set());
 
   const loadProjects = useCallback(async () => {
     try {
@@ -42,6 +43,7 @@ export function App() {
     try {
       const list = await window.portfolio.sessions.list();
       setSessions(list);
+      setRecordingIds(new Set(list.filter((s) => s.status === "recording").map((s) => s.projectId)));
     } catch (err) {
       console.error("Failed to load sessions:", err);
     } finally {
@@ -103,6 +105,30 @@ export function App() {
     loadSessions();
   };
 
+  const handleRecord = async (project: Project) => {
+    try {
+      await window.portfolio.sessions.start(project.id);
+      setRecordingIds((prev) => new Set(prev).add(project.id));
+      await loadSessions();
+    } catch (err) {
+      showToast(err instanceof Error ? `Failed to start recording: ${err.message}` : "Failed to start recording");
+    }
+  };
+
+  const handleStopRecord = async (project: Project) => {
+    try {
+      await window.portfolio.sessions.stop(project.id);
+      setRecordingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(project.id);
+        return next;
+      });
+      await loadSessions();
+    } catch (err) {
+      showToast(err instanceof Error ? `Failed to stop recording: ${err.message}` : "Failed to stop recording");
+    }
+  };
+
   const [activeProjectIds, setActiveProjectIds] = useState<Set<string>>(new Set());
   const lastActivityRef = useRef(0);
   const [portfolioDir, setPortfolioDir] = useState<string>("");
@@ -122,12 +148,18 @@ export function App() {
       const d = data as { project?: { id: string } };
       if (d?.project?.id) {
         setActiveProjectIds((prev) => new Set(prev).add(d.project!.id));
+        setRecordingIds((prev) => new Set(prev).add(d.project!.id));
       }
     });
     const unsub2 = window.portfolio.on("portfolio:session-stopped", (data: unknown) => {
       const d = data as { project?: { id: string } };
       if (d?.project?.id) {
         setActiveProjectIds((prev) => {
+          const next = new Set(prev);
+          next.delete(d.project!.id);
+          return next;
+        });
+        setRecordingIds((prev) => {
           const next = new Set(prev);
           next.delete(d.project!.id);
           return next;
@@ -209,9 +241,12 @@ export function App() {
               <>
                 <ProjectList
                   projects={projects}
+                  recordingIds={recordingIds}
                   onEdit={handleEdit}
                   onDelete={(p) => setDeleteConfirm(p)}
                   onAdd={handleAdd}
+                  onRecord={handleRecord}
+                  onStop={handleStopRecord}
                 />
                 {deleteConfirm && (
                   <div style={overlay}>

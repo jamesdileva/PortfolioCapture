@@ -1,5 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { _electron as electron } from "playwright";
+import * as fs from "fs";
+import * as os from "os";
 import * as path from "path";
 
 const ROOT = path.resolve(__dirname, "../..");
@@ -7,9 +9,10 @@ const ELECTRON_EXE = require("electron") as string;
 const MAIN_JS = path.join(ROOT, "apps/desktop/electron/dist/main.js");
 
 async function launchApp() {
+  const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), "par-e2e-"));
   return electron.launch({
     executablePath: ELECTRON_EXE,
-    args: [MAIN_JS],
+    args: [MAIN_JS, `--user-data-dir=${userDataDir}`],
     ignoreDefaultArgs: ["--remote-debugging-port=0"],
   });
 }
