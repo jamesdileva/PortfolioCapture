@@ -2594,3 +2594,25 @@
 - ErrorBoundary is a class component (React requirement for error boundaries — cannot use hooks)
 - ErrorToast uses module-level state (global across renders) — clearAllToasts for test isolation
 - Phase 7 complete: all 6 sprints (7.1–7.6) delivered
+
+---
+
+
+### 2026-09-12 — Exe Silent-Fail: Memory-DB Probe + Fresh Repack (human #365)
+
+**Agent:** agent-a
+**Status:** Complete
+
+**Findings:**
+- Human timezone is PDT: dist built 1:15 AM PDT is AFTER b7a165f (01:08 PDT), so the 01:54 retest USED the fresh portfoliodb.sqlite build. Rename falsifier result is NEGATIVE (no portfoliodb.sqlite created, still aborts at new Database()). Not a 0-byte-file-lock issue.
+- crashpad "not connected" is benign Electron noise, not the cause.
+- package.json found gutted in working tree (no scripts/devDeps, mtime 2:05 AM, cause unknown) while an early git status read empty. Restored via git checkout. Lesson: re-run git status after any anomaly before trusting it.
+
+**Actions taken:**
+- main.ts: log full dbPath, added :memory: DB probe before file open (stop at "memory DB probe START" = native module broken; memory OK then stop at "calling new Database() next" = file/path issue)
+- npm run build + npm run test: 838 tests pass (48 files)
+- npm run dist repacked 2:09 AM; asar-verify confirmed bundled main.js contains memory probe + portfoliodb.sqlite, no database.sqlite
+
+**Verification:**
+- build:electron / build:renderer clean; 838/838 tests pass
+- Fresh dist/win-unpacked/Portfolio Auto Recorder.exe (2:09 AM) contains probe. Ready for human retest per docs/terminal-launch.md

@@ -1,7 +1,7 @@
 # MEMORY.md — Agent Working Memory
 
 ## Current Goal
-Exe silent-fail root-caused to native abort in new Database(): BOTH logs stop at "calling new Database() next", 0-byte database.sqlite, writability OK. DB renamed database.sqlite→portfoliodb.sqlite in b7a165f as falsifier; docs/terminal-launch.md written (human #346). dist/win-unpacked is STALE (built 00:58, before b7a165f 01:08) — needs repack before human retest.
+Exe silent-fail: rename falsifier NEGATIVE (fresh 1:15 AM PDT dist w/ portfoliodb.sqlite still aborts at new Database(), no portfoliodb.sqlite created — #365). Memory-DB probe added to main.ts + dist repacked 2:09 AM (asar-verified). Awaiting human retest of FRESH exe per docs/terminal-launch.md (#26).
 
 ## Completed
 - Sprint 0.1–7.6: All sprints complete

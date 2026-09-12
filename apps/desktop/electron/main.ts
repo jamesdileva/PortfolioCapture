@@ -76,6 +76,7 @@ function initializeServices() {
 
   _log("initializeServices: creating database at " + userDataPath);
   const dbPath = path.join(userDataPath, "portfoliodb.sqlite");
+  _log("initializeServices: dbPath=" + dbPath);
   try {
     const vers = (process as unknown as { versions: Record<string, string> }).versions;
     _log("initializeServices: versions node=" + vers.node + " electron=" + vers.electron + " arch=" + process.arch);
@@ -93,6 +94,15 @@ function initializeServices() {
     _log("initializeServices: userData writable OK");
   } catch (werr) {
     _log("initializeServices: userData write probe FAILED: " + String(werr));
+  }
+  _log("initializeServices: memory DB probe START");
+  try {
+    const memDb = createDatabase(":memory:");
+    _log("initializeServices: memory DB probe opened OK");
+    closeDatabase(memDb);
+    _log("initializeServices: memory DB probe closed OK");
+  } catch (memErr) {
+    _log("initializeServices: memory DB probe FAILED: " + (memErr instanceof Error ? memErr.stack ?? memErr.message : String(memErr)));
   }
   _log("initializeServices: calling new Database() next");
   let db: ReturnType<typeof createDatabase>;
