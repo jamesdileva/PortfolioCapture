@@ -75,7 +75,7 @@ function initializeServices() {
   _log("initializeServices: userData=" + userDataPath);
 
   _log("initializeServices: creating database at " + userDataPath);
-  const dbPath = path.join(userDataPath, "database.sqlite");
+  const dbPath = path.join(userDataPath, "portfoliodb.sqlite");
   try {
     const vers = (process as unknown as { versions: Record<string, string> }).versions;
     _log("initializeServices: versions node=" + vers.node + " electron=" + vers.electron + " arch=" + process.arch);
