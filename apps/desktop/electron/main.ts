@@ -88,6 +88,34 @@ function initializeServices() {
     _log("initializeServices: better-sqlite3 version lookup FAILED: " + String(verr));
   }
   try {
+    const resolved = require.resolve("better-sqlite3");
+    _log("initializeServices: better-sqlite3 resolved=" + resolved);
+  } catch (rerr) {
+    _log("initializeServices: better-sqlite3 resolve FAILED: " + String(rerr));
+  }
+  try {
+    const fsMod = require("fs") as typeof import("fs");
+    const bsqlDir = path.dirname(require.resolve("better-sqlite3/package.json"));
+    for (const cand of ["prebuilds", "build/Release"]) {
+      const dir = path.join(bsqlDir, cand);
+      let entries: string;
+      try {
+        entries = fsMod.readdirSync(dir).join(",");
+      } catch (_) {
+        entries = "<missing>";
+      }
+      _log("initializeServices: better-sqlite3 " + cand + "=[" + entries + "]");
+    }
+  } catch (lerr) {
+    _log("initializeServices: better-sqlite3 prebuild listing FAILED: " + String(lerr));
+  }
+  try {
+    const bsqlMod = require("better-sqlite3") as unknown;
+    _log("initializeServices: require(better-sqlite3) OK typeof=" + typeof bsqlMod);
+  } catch (reqErr) {
+    _log("initializeServices: require(better-sqlite3) FAILED: " + (reqErr instanceof Error ? reqErr.stack ?? reqErr.message : String(reqErr)));
+  }
+  try {
     const probe = path.join(userDataPath, "write-probe.tmp");
     require("fs").writeFileSync(probe, "ok");
     require("fs").unlinkSync(probe);
