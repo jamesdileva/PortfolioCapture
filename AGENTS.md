@@ -2693,3 +2693,40 @@
 **Verification:** 882 unit pass (50 files); Playwright 7/7 default + 2/2 capture (window 10s playable + desktop); `dist` repacked; packaged launch healthy.
 
 **Files:** migration 005, project-repository, shared types+schemas, preload, session-manager, main.ts, window-enumerator, ProjectForm/ProjectList/SessionDetail, tests (project-repository/session-manager/schemas/window-enumerator/project-form/project-list/session-detail, e2e window-capture + hardening).
+
+---
+
+### 2026-09-13 — MSYS2 Recovery (rmdir-incident casualty)
+
+**Agent:** agent-a
+**Status:** Complete, toolchain verified by real build
+
+**Cause:** the drive-root `rmdir` walk silently deleted user-writable `C:\msys64` (registry proved MSYS2 20260322 lived there). Sole casualty per full audit (all other install locations verified present).
+
+**Restored (home-folder install, no admin):**
+- MSYS2 20260611 at `C:\Users\j\msys64`, base fully updated (`pacman -Syuu` clean)
+- Repaired pacman fallout from the aborted session (stale `db.lck`, corrupt ncurses entry via `--overwrite`); `pacman -Dk` clean
+- `mingw-w64-x86_64-toolchain` + `mingw-w64-x86_64-{make,cmake,openssl,sqlite3}` (user config proved MINGW64 env): mingw32-make 4.4.1, g++ 16.2.0, cmake 4.4.3
+- ALGO-TRADER `.vscode/c_cpp_properties.json` repointed `C:/msys64` ? `C:/Users/j/msys64` (compilerPath + includePath)
+- User PATH: dead `C:\msys64\mingw64\bin` ? new location; stale HKCU uninstall entry removed (new installer registered itself + fixed Start Menu shortcuts)
+- Proof: ALGO-TRADER configures (OpenSSL 3.6.4 found) and builds `trader.exe` + `backtester.exe` with MinGW Makefiles into `build-mingw/`
+
+---
+
+### 2026-09-13 — Demos For Idle-Free Captures (human: portfolio videos are just images)
+
+**Agent:** agent-a
+**Status:** Complete, repacked + pushed (app + site)
+
+**Catch:** portfolio showed stills because `demoPath` was null everywhere. Two layers: (1) pre-fix captures are moov-less so ffprobe fails the whole chain (historical); (2) live bug — `generateDemo` required a trimmed input, and `trimVideo` yields null when no idle segments exist, so an actively-used demo could NEVER get a video. Post-process logs made this visible.
+
+**Fix:**
+- `stopSession`: `demoSource = trimmedVideoPath ?? result.outputPath` (raw is always valid post-`q`-shutdown); logs when falling back.
+- `portfolio-generator`: demo lookup prefers `demo_video`, falls back to `raw_video` asset (covers already-recorded good captures on next regenerate).
+- Homepage: "Live Captured Demos" section on `jamesdileva.github.io` linking `./portfolio/` (tagline untouched). Verified `/portfolio/` live (2 projects, 3 sessions, 5 screenshots) — only missing its entry point.
+
+**Verification:** 884 unit pass; Playwright 9/9 (incl. both real-capture specs with ffprobe stream assertions); `dist` repacked; packaged launch healthy.
+
+**Files (app):** `services/session-manager.ts`, `services/portfolio-generator.ts`, tests (session-manager demo-fallback, portfolio raw fallback).
+**Files (site):** `jamesdileva.github.io/index.html` (demos section).
+**Files (algo-trader):** `BUILD.md` (rebuild commands doc, human-requested).

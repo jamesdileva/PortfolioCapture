@@ -328,7 +328,9 @@ export class PortfolioGeneratorImpl {
         const assets = this.assetService.listByProject(project.id);
 
         if (includeDemos) {
-          const demoAsset = assets.find((a) => a.type === "demo_video");
+          const demoAsset =
+            assets.find((a) => a.type === "demo_video") ??
+            assets.find((a) => a.type === "raw_video");
           if (demoAsset) {
             demoPath = demoAsset.path;
             hasDemos = true;

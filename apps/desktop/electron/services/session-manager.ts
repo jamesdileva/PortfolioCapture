@@ -298,7 +298,13 @@ export class SessionManager {
 
         const trimmedVideoPath = await this.trimVideo(active.session.id, active.projectId, result.outputPath, timeline);
 
-        await this.generateDemo(active.session.id, active.projectId, trimmedVideoPath, active.profileSettings);
+        // No idle to trim is normal for an active demo — cut the demo from
+        // the raw capture instead of producing no video at all.
+        const demoSource = trimmedVideoPath ?? result.outputPath;
+        if (!trimmedVideoPath) {
+          this.logger(`postprocess session=${active.session.id} step=trimVideo skipped (no idle) — demo from raw`);
+        }
+        await this.generateDemo(active.session.id, active.projectId, demoSource, active.profileSettings);
 
         const scenes = await this.assembleTimeline(active.session.id, active.projectId, result.outputPath, timeline);
 

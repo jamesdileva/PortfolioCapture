@@ -140,6 +140,26 @@ describe("PortfolioGeneratorImpl", () => {
     expect(fs.existsSync(path.join(result.outputDir, "assets", "demo.mp4"))).toBe(true);
   });
 
+  it("falls back to raw video when no demo exists", async () => {
+    const project = projectService.create({ name: "RawProject", path: "/raw" });
+    const session = sessionService.create({ projectId: project.id, trigger: "manual" });
+    completeSession(session.id);
+
+    const sourceDir = path.join(tempDir, "source");
+    fs.mkdirSync(sourceDir, { recursive: true });
+    const rawPath = path.join(sourceDir, "raw.mp4");
+    fs.writeFileSync(rawPath, "fake raw");
+
+    assetService.create({ sessionId: session.id, projectId: project.id, type: "raw_video", path: rawPath });
+
+    const result = await generator.generate();
+
+    expect(fs.existsSync(path.join(result.outputDir, "assets", "raw.mp4"))).toBe(true);
+    const data = JSON.parse(fs.readFileSync(path.join(tempDir, "data.json"), "utf-8"));
+    expect(data.projects[0].demoPath).toContain("raw.mp4");
+    expect(data.summary.hasDemos).toBe(true);
+  });
+
   it("copies screenshots to assets directory", async () => {
     const project = projectService.create({ name: "ShotProject", path: "/shot" });
     const session = sessionService.create({ projectId: project.id, trigger: "manual" });

@@ -699,4 +699,37 @@ describe("SessionManager", () => {
       expect(settingsService.get(`capture-fallback:${session.id}`)).toBeNull();
     });
   });
+
+  describe("demo fallback", () => {
+    it("generates the demo from raw video when there is nothing to trim", async () => {
+      const { AssetRepository } = await import("../../packages/database/repositories/asset-repository.js");
+      const { AssetService } = await import("../../apps/desktop/electron/services/asset-service.js");
+      const assetService = new AssetService(new AssetRepository(db));
+      const generatedFrom: string[] = [];
+      const mgr = new SessionManager({
+        sessionService,
+        captureProvider,
+        projectService,
+        assetService,
+        demoGenerator: {
+          generate: async (input: string, outputDir: string) => {
+            generatedFrom.push(input);
+            return { outputPath: `${outputDir}/demo.mp4`, durationMs: 5000, segmentCount: 1, hasIntro: false, hasOutro: false };
+          },
+        },
+        config: { outputRoot: "data/recordings" },
+      });
+
+      const project = projectService.create({ name: "Test", path: "/test" });
+      await mgr.startSession(project.id, "manual");
+      const completed = await mgr.stopSession(project.id);
+
+      // No smartTrimmer configured, so trimVideo yields null and the raw
+      // capture becomes the demo source.
+      expect(generatedFrom).toHaveLength(1);
+      expect(generatedFrom[0]).toBe(completed!.rawVideoPath);
+      const demo = assetService.listBySession(completed!.id).find((a) => a.type === "demo_video");
+      expect(demo).toBeDefined();
+    });
+  });
 });
