@@ -76,6 +76,7 @@ export const ALLOWED_IPC_CHANNELS: readonly string[] = [
   "devserver:start",
   "devserver:stop",
   "windows:list",
+  "windows:testCapture",
   "chapters:generate",
   "chapters:get",
   "chapters:save",

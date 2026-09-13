@@ -34,6 +34,7 @@ function killTree(child: ChildProcess): void {
 }
 
 test.describe("Recording Flow — real app capture", () => {
+  test.setTimeout(300000);
   test("spawning a watched exe records exactly the launch, viewable afterwards", async () => {
     test.skip(!fs.existsSync(FIXTURE_EXE), `fixture exe missing: ${FIXTURE_EXE}`);
     const app = await launchApp();

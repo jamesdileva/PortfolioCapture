@@ -732,4 +732,41 @@ describe("SessionManager", () => {
       expect(demo).toBeDefined();
     });
   });
+
+  describe("blank capture detection", () => {
+    async function stopWithBrightness(brightness: number | null) {
+      const { AssetRepository } = await import("../../packages/database/repositories/asset-repository.js");
+      const { AssetService } = await import("../../apps/desktop/electron/services/asset-service.js");
+      const messages: string[] = [];
+      const settingsSvc = new SettingsService(new SettingsRepository(db));
+      const mgr = new SessionManager({
+        sessionService,
+        captureProvider,
+        projectService,
+        assetService: new AssetService(new AssetRepository(db)),
+        settingsService: settingsSvc,
+        brightnessSampler: async () => brightness,
+        config: { outputRoot: "data/recordings" },
+        logger: (m: string) => { messages.push(m); },
+      });
+      const project = projectService.create({ name: "Test", path: "/test" });
+      await mgr.startSession(project.id, "manual");
+      const completed = await mgr.stopSession(project.id);
+      return { completed, messages, settingsSvc };
+    }
+
+    it("marks white captures and logs", async () => {
+      const { completed, messages, settingsSvc } = await stopWithBrightness(250);
+      expect(completed!.status).toBe("complete");
+      expect(messages.some((m) => m.includes("looks blank"))).toBe(true);
+      expect(settingsSvc.get(`capture-blank:${completed!.id}`)).toBe("250");
+    });
+
+    it("stays silent for normal captures", async () => {
+      const { completed, messages, settingsSvc } = await stopWithBrightness(90);
+      expect(completed!.status).toBe("complete");
+      expect(messages.some((m) => m.includes("looks blank"))).toBe(false);
+      expect(settingsSvc.get(`capture-blank:${completed!.id}`)).toBeNull();
+    });
+  });
 });

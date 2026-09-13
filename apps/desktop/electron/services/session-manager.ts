@@ -1,5 +1,7 @@
 import { mkdirSync, existsSync } from "fs";
 import { join } from "path";
+import { execFile } from "child_process";
+import { sampleVideoBrightness, BLANK_BRIGHTNESS_THRESHOLD } from "./window-capture-tester.js";
 import type {
   RecordingSession,
   SessionTrigger,
@@ -79,6 +81,21 @@ export interface SessionManagerOptions {
   onSessionComplete?: (projectId: string, sessionId: string) => void;
   logger?: (message: string) => void;
   windowEnumerator?: WindowEnumerator;
+  brightnessSampler?: (videoPath: string) => Promise<number | null>;
+}
+
+function defaultBrightnessSampler(videoPath: string): Promise<number | null> {
+  return sampleVideoBrightness(
+    (command, args) =>
+      new Promise((resolve, reject) => {
+        execFile(command, args, { encoding: "utf-8", maxBuffer: 4 * 1024 * 1024 }, (error, stdout, stderr) => {
+          if (error) reject(error);
+          else resolve({ stdout: String(stdout), stderr: String(stderr) });
+        });
+      }),
+    "ffmpeg",
+    videoPath,
+  );
 }
 
 export class SessionManager {
@@ -104,6 +121,7 @@ export class SessionManager {
   private onSessionComplete?: (projectId: string, sessionId: string) => void;
   private logger: (message: string) => void;
   private windowEnumerator?: WindowEnumerator;
+  private brightnessSampler: (videoPath: string) => Promise<number | null>;
 
   constructor(options: SessionManagerOptions) {
     this.config = { ...DEFAULT_CONFIG, ...options.config };
@@ -126,6 +144,7 @@ export class SessionManager {
     this.onSessionComplete = options.onSessionComplete;
     this.logger = options.logger ?? (() => {});
     this.windowEnumerator = options.windowEnumerator;
+    this.brightnessSampler = options.brightnessSampler ?? defaultBrightnessSampler;
   }
 
   async startSession(projectId: string, trigger: SessionTrigger, profileSettings?: Partial<RecordingProfileSettings>): Promise<RecordingSession> {
@@ -283,6 +302,23 @@ export class SessionManager {
         });
       } catch {
         // Non-fatal: the session row already carries rawVideoPath.
+      }
+
+      try {
+        if (result.fileSizeBytes > 0) {
+          const brightness = await this.brightnessSampler(result.outputPath);
+          if (brightness != null && brightness >= BLANK_BRIGHTNESS_THRESHOLD) {
+            const rounded = Math.round(brightness);
+            this.logger(`postprocess session=${active.session.id} capture looks blank (brightness ${rounded}) — app window may need full-desktop mode`);
+            try {
+              this.settingsService?.set(`capture-blank:${active.session.id}`, String(rounded));
+            } catch {
+              // best-effort marker only
+            }
+          }
+        }
+      } catch {
+        // Sampling must never fail the session.
       }
 
       if (timeline.length > 0) {

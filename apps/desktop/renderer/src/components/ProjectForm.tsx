@@ -24,6 +24,8 @@ export function ProjectForm({ project, onSave, onCancel }: ProjectFormProps) {
   const [liveWindows, setLiveWindows] = useState<WindowInfo[]>([]);
   const [loadingWindows, setLoadingWindows] = useState(false);
   const [windowsError, setWindowsError] = useState<string | null>(null);
+  const [testingWindow, setTestingWindow] = useState(false);
+  const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [projectStatus, setProjectStatus] = useState<ProjectStatus>("active");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -60,6 +62,21 @@ export function ProjectForm({ project, onSave, onCancel }: ProjectFormProps) {
       setWindowsError("Could not list windows");
     } finally {
       setLoadingWindows(false);
+    }
+  };
+
+  const testWindow = async () => {
+    const title = windowTitle.trim();
+    if (!title) return;
+    setTestingWindow(true);
+    setTestResult(null);
+    try {
+      const res = await window.portfolio.windows.testCapture(title);
+      setTestResult({ ok: res.ok, message: res.message });
+    } catch (err) {
+      setTestResult({ ok: false, message: err instanceof Error ? err.message : "Test failed" });
+    } finally {
+      setTestingWindow(false);
     }
   };
 
@@ -201,6 +218,8 @@ export function ProjectForm({ project, onSave, onCancel }: ProjectFormProps) {
         <p style={{ color: "#888", fontSize: "0.8em", margin: "0 0 0.75rem" }}>
           Full desktop captures everything on screen. App window captures just that window — it must be
           open (not minimized) while recording, and overlapping popups can bleed through.
+          GPU-rendered windows (browsers, Electron apps, Unity games) capture as blank white — use
+          the Test button below, and stick with Full desktop if it reports blank.
         </p>
 
         <div style={{ display: "flex", gap: "1.5rem", marginBottom: "0.75rem" }}>
@@ -240,6 +259,14 @@ export function ProjectForm({ project, onSave, onCancel }: ProjectFormProps) {
               Window title (exact)
               <input value={windowTitle} onChange={(e) => setWindowTitle(e.target.value)} style={inputStyle} placeholder="My App — Dashboard" />
             </label>
+            <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", marginBottom: "0.75rem" }}>
+              <button type="button" onClick={testWindow} disabled={testingWindow || !windowTitle.trim()} style={{ ...btnStyle, whiteSpace: "nowrap" }}>
+                {testingWindow ? "Testing…" : "Test 3s capture"}
+              </button>
+              {testResult && (
+                <span style={{ fontSize: "0.8em", color: testResult.ok ? "#6b8" : "#f88" }}>{testResult.message}</span>
+              )}
+            </div>
             <p style={{ color: "#888", fontSize: "0.8em", margin: "0 0 0.75rem" }}>
               If the window isn't open when recording starts, you'll be told and the full desktop is captured instead.
             </p>

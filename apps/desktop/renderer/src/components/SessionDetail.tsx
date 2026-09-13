@@ -47,6 +47,7 @@ export function SessionDetail({ session, project, onBack, onDelete }: SessionDet
   const [assets, setAssets] = useState<MediaAsset[]>([]);
   const [loadingAssets, setLoadingAssets] = useState(true);
   const [fallbackWindow, setFallbackWindow] = useState<string | null>(null);
+  const [blankBrightness, setBlankBrightness] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -71,6 +72,8 @@ export function SessionDetail({ session, project, onBack, onDelete }: SessionDet
         if (!cancelled) {
           const note = list.find((s) => s.key === `capture-fallback:${session.id}`);
           if (note) setFallbackWindow(note.value);
+          const blank = list.find((s) => s.key === `capture-blank:${session.id}`);
+          if (blank) setBlankBrightness(blank.value);
         }
       })
       .catch(() => {});
@@ -80,6 +83,7 @@ export function SessionDetail({ session, project, onBack, onDelete }: SessionDet
   }, [session.id]);
 
   const rawVideoPath = session.rawVideoPath ?? assets.find((a) => a.type === "raw_video")?.path ?? null;
+  const demoPath = assets.find((a) => a.type === "demo_video")?.path ?? null;
   const thumbnailAssets = assets.filter(
     (a) => a.type === "thumbnail" || a.type === "screenshot"
   );
@@ -103,6 +107,12 @@ export function SessionDetail({ session, project, onBack, onDelete }: SessionDet
         </div>
       )}
 
+      {blankBrightness && (
+        <div style={{ padding: "0.6rem 0.8rem", marginTop: "0.75rem", background: "#3b2f10", border: "1px solid #a80", borderRadius: "4px", color: "#fc6", fontSize: "0.85em" }}>
+          This capture looks blank (brightness {blankBrightness}/255) — GPU-rendered app windows often need full-desktop mode.
+        </div>
+      )}
+
       {rawVideoPath ? (
         <div style={{ margin: "1rem 0" }}>
           <video
@@ -120,6 +130,19 @@ export function SessionDetail({ session, project, onBack, onDelete }: SessionDet
             <p style={{ color: "#888", fontSize: "0.85em" }}>Video will be available when recording stops.</p>
           </div>
         )
+      )}
+
+      {demoPath && demoPath !== rawVideoPath && (
+        <div style={{ margin: "1rem 0" }}>
+          <h3 style={{ margin: "0 0 0.5rem" }}>Demo cut</h3>
+          <video
+            controls
+            style={{ width: "100%", maxHeight: "400px", background: "#000", borderRadius: "4px" }}
+            src={toFileUrl(demoPath)}
+          >
+            Your browser does not support the video element.
+          </video>
+        </div>
       )}
 
       {thumbnailAssets.length > 0 && (

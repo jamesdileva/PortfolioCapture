@@ -129,4 +129,26 @@ describe("SessionDetail", () => {
     });
     expect(screen.queryByText(/wasn’t open when recording started/)).not.toBeInTheDocument();
   });
+
+  it("shows the demo cut when a demo asset exists", async () => {
+    vi.mocked(window.portfolio.assets.listBySession).mockResolvedValue([
+      ...assets,
+      { id: "a9", sessionId: "s1", projectId: "p1", type: "demo_video", path: "/rec/s1/demo.mp4", durationMs: 30000, width: 1280, height: 720, fileSizeBytes: 9000000, createdAt: "" },
+    ]);
+    const { container } = render(<SessionDetail session={completeSession} project={project} onBack={() => {}} onDelete={() => {}} />);
+    await waitFor(() => {
+      expect(screen.getByText("Demo cut")).toBeInTheDocument();
+    });
+    expect(container.querySelectorAll("video")).toHaveLength(2);
+  });
+
+  it("shows a blank-capture badge when marked", async () => {
+    vi.mocked(window.portfolio.settings.get).mockResolvedValue([
+      { key: "capture-blank:s1", value: "250" },
+    ]);
+    render(<SessionDetail session={completeSession} project={project} onBack={() => {}} onDelete={() => {}} />);
+    await waitFor(() => {
+      expect(screen.getByText(/looks blank/)).toBeInTheDocument();
+    });
+  });
 });

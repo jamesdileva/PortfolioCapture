@@ -43,6 +43,7 @@ import type {
   DeployTarget,
   DevServerInfo,
   WindowInfo,
+  WindowCaptureTestResult,
   DemoQualityResult,
   DemoQualityScorerConfig,
   ProjectAutoFillResult,
@@ -165,6 +166,7 @@ interface PortfolioDevServerAPI {
 
 interface PortfolioWindowsAPI {
   list: () => Promise<WindowInfo[]>;
+  testCapture: (title: string) => Promise<WindowCaptureTestResult>;
 }
 
 interface PortfolioChaptersAPI {

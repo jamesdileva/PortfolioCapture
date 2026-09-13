@@ -2,7 +2,7 @@ import { app, BrowserWindow, dialog } from "electron";
 import * as path from "path";
 import { createDatabase, runMigrations, closeDatabase } from "../../../packages/database/index.js";
 import { ProjectRepository, SessionRepository, AssetRepository, SettingsRepository, FeatureEvidenceRepository } from "../../../packages/database/repositories/index.js";
-import { ProjectService, SessionService, AssetService, SettingsService, ProcessMonitor, FfmpegCaptureProvider, FfmpegServiceImpl, FfmpegScreenshotExtractor, IdleDetectorImpl, SmartTrimmerImpl, DemoGeneratorImpl, ExportServiceImpl, ScreenshotRankerImpl, TimelineAssemblerImpl, RecordingProfileServiceImpl, ManualEditOverridesServiceImpl, GitServiceImpl, ProjectScannerImpl, FeatureEvidenceServiceImpl, LocalAiServiceImpl, PortfolioGeneratorImpl, ThemeServiceImpl, DeployServiceImpl, DevServerDetectorImpl, WindowEnumeratorImpl, FeatureChapterGeneratorImpl, SceneDetectorImpl, DemoQualityScorerImpl, ProjectAutoFillServiceImpl, InteractionCollectorImpl, CrashRecoveryServiceImpl } from "./services/index.js";
+import { ProjectService, SessionService, AssetService, SettingsService, ProcessMonitor, FfmpegCaptureProvider, FfmpegServiceImpl, FfmpegScreenshotExtractor, IdleDetectorImpl, SmartTrimmerImpl, DemoGeneratorImpl, ExportServiceImpl, ScreenshotRankerImpl, TimelineAssemblerImpl, RecordingProfileServiceImpl, ManualEditOverridesServiceImpl, GitServiceImpl, ProjectScannerImpl, FeatureEvidenceServiceImpl, LocalAiServiceImpl, PortfolioGeneratorImpl, ThemeServiceImpl, DeployServiceImpl, DevServerDetectorImpl, WindowEnumeratorImpl, WindowCaptureTester, FeatureChapterGeneratorImpl, SceneDetectorImpl, DemoQualityScorerImpl, ProjectAutoFillServiceImpl, InteractionCollectorImpl, CrashRecoveryServiceImpl } from "./services/index.js";
 import { SessionManager } from "./services/session-manager.js";
 import { PortfolioUpdateTriggerImpl } from "./services/portfolio-update-trigger.js";
 import { registerProjectHandlers, registerSessionHandlers, registerAssetHandlers, registerSettingsHandlers, registerExportHandlers, registerProfileHandlers, registerManualOverridesHandlers, registerGitHandlers, registerScannerHandlers, registerFeatureEvidenceHandlers, registerAiHandlers, registerPortfolioHandlers, registerThemeHandlers, registerDeployHandlers, registerDevServerHandlers, registerWindowHandlers, registerChapterHandlers, registerDemoQualityHandlers, registerCrashRecoveryHandlers, registerHealthCheckHandlers } from "./ipc/index.js";
@@ -307,7 +307,7 @@ function initializeServices() {
   registerDevServerHandlers(devServerDetector);
 
   const windowEnumerator = new WindowEnumeratorImpl();
-  registerWindowHandlers(windowEnumerator);
+  registerWindowHandlers(windowEnumerator, new WindowCaptureTester({ windowEnumerator }));
 
   function refreshMonitorProjects(): void {
     const list = projectService.list();

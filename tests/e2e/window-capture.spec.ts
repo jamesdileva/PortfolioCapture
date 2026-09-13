@@ -41,6 +41,7 @@ async function listWindows(window: import("playwright").Page): Promise<LiveWindo
 }
 
 test.describe("Window Capture — app-window recording", () => {
+  test.setTimeout(300000);
   test("binds a live window title and records it", async () => {
     test.skip(!fs.existsSync(WINDOW_EXE), `window fixture missing: ${WINDOW_EXE}`);
     const app = await launchApp();

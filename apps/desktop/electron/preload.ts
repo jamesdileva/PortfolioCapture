@@ -136,6 +136,7 @@ contextBridge.exposeInMainWorld("portfolio", {
   },
   windows: {
     list: () => invokeWithTimeout("windows:list"),
+    testCapture: (title: string) => invokeWithTimeout("windows:testCapture", title),
   },
   chapters: {
     generate: (videoPath: string, sessionId: string, featureEvidence: Array<{ id: string; projectId: string; featureName: string; description: string | null; confidence: number; status: string; commits: Array<{ sha: string; message: string; date: string }>; screenshotPaths: string[]; recordingSegmentPaths: string[]; readmeSnippet: string | null; createdAt: string; updatedAt: string }>, config?: { minChapterDurationMs?: number; mergeGapMs?: number; titleSource?: string }) =>

@@ -8,12 +8,13 @@ const mockListWindows = vi.fn(async () => [
   { title: "My App", pid: 11, hwnd: "0x1" },
   { title: "Other Window", pid: 22, hwnd: "0x2" },
 ]);
+const mockTestCapture = vi.fn(async () => ({ ok: true, brightness: 90, message: "Captured OK" }));
 
 beforeEach(() => {
   vi.clearAllMocks();
   vi.stubGlobal("portfolio", {
     scanner: { autofill: mockAutofill },
-    windows: { list: mockListWindows },
+    windows: { list: mockListWindows, testCapture: mockTestCapture },
   });
 });
 
@@ -65,6 +66,28 @@ describe("ProjectForm capture section", () => {
     fireEvent.click(screen.getByText("Refresh"));
     await waitFor(() => {
       expect(screen.getByText("Could not list windows")).toBeInTheDocument();
+    });
+  });
+
+  it("tests the bound window and shows the result", async () => {
+    renderForm();
+    fireEvent.click(screen.getByLabelText("App window"));
+    fireEvent.change(screen.getByPlaceholderText("My App — Dashboard"), { target: { value: "My App" } });
+    fireEvent.click(screen.getByText("Test 3s capture"));
+    await waitFor(() => {
+      expect(mockTestCapture).toHaveBeenCalledWith("My App");
+      expect(screen.getByText("Captured OK")).toBeInTheDocument();
+    });
+  });
+
+  it("shows test failures", async () => {
+    mockTestCapture.mockResolvedValueOnce({ ok: false, brightness: 250, message: "looks blank" });
+    renderForm();
+    fireEvent.click(screen.getByLabelText("App window"));
+    fireEvent.change(screen.getByPlaceholderText("My App — Dashboard"), { target: { value: "My App" } });
+    fireEvent.click(screen.getByText("Test 3s capture"));
+    await waitFor(() => {
+      expect(screen.getByText("looks blank")).toBeInTheDocument();
     });
   });
 });

@@ -27,6 +27,7 @@ export { PortfolioUpdateTriggerImpl } from "./portfolio-update-trigger.js";
 export { DeployServiceImpl } from "./deploy-service.js";
 export { DevServerDetectorImpl } from "./dev-server-detector.js";
 export { WindowEnumeratorImpl } from "./window-enumerator.js";
+export { WindowCaptureTester, sampleVideoBrightness, BLANK_BRIGHTNESS_THRESHOLD } from "./window-capture-tester.js";
 export { FeatureChapterGeneratorImpl } from "./feature-chapter-generator.js";
 export { DemoQualityScorerImpl } from "./demo-quality-scorer.js";
 export { ProjectAutoFillServiceImpl } from "./project-autofill.js";

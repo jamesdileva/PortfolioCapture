@@ -2730,3 +2730,26 @@
 **Files (app):** `services/session-manager.ts`, `services/portfolio-generator.ts`, tests (session-manager demo-fallback, portfolio raw fallback).
 **Files (site):** `jamesdileva.github.io/index.html` (demos section).
 **Files (algo-trader):** `BUILD.md` (rebuild commands doc, human-requested).
+
+---
+
+### 2026-09-13 — GPU-Window White Captures: Demos Visible + Test-Capture + Blank Detection (human: worldsim records white)
+
+**Agent:** agent-a
+**Status:** Complete, repacked + pushed
+
+**Root cause (proven on user files):** WorldSim window is pywebview/Edge WebView2 (Chromium). FFmpeg gdigrab scrapes via GDI, which cannot see GPU-composited pixels — returns white. Evidence: raw.mp4 valid container + video stream + 209s, but YAVG=235/255 and all screenshots ~10KB blanks. Desktop capture unaffected (DWM readable). Demos were "unplayable" only in content (valid streams of white frames).
+
+**Work:**
+- SessionDetail "Demo cut" section (demo_video asset, hidden when identical to raw).
+- `WindowCaptureTester` service: resolve live title ? 3s trial capture to temp ? ffprobe signalstats brightness ? ok/blank verdict + message; shared `sampleVideoBrightness()` helper + `BLANK_BRIGHTNESS_THRESHOLD = 240`.
+- `windows:testCapture` IPC + preload + d.ts + allowlist entry (now 82 channels).
+- ProjectForm "Test 3s capture" button with inline verdict; helper text names the GPU caveat (browsers/Electron/Unity/WebView2).
+- Post-stop blank sampling in SessionManager (injectable `brightnessSampler`, 3-timestamp average inside ffprobe run); white captures get `capture-blank:{sessionId}` note + logger line; SessionDetail amber badge.
+- SessionManager/registry note: default sampler shells real ffmpeg — harmless in tests (missing input fails fast to null).
+
+**Advice to human:** redo worldsim in full-desktop mode (works today); native Windows Graphics Capture is the real fix for GPU windows (roadmap, big lift).
+
+**Verification:** 900 unit pass (51 files); Playwright 9/9 (7 default + 2 real-capture with stream assertions; capture specs raised to 300s budget after outgrowing 60s); `dist` repacked; packaged launch healthy (9 procs).
+
+**Files:** `services/window-capture-tester.ts` (new), `services/session-manager.ts`, `ipc/windows.ts`, `security/ipc-allowlist.ts`, `preload.ts`, `global.d.ts`, shared types (`WindowCaptureTestResult`), `SessionDetail.tsx`, `ProjectForm.tsx`, tests (window-capture-tester/session-manager/project-form/session-detail/security).

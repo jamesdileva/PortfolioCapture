@@ -164,6 +164,12 @@ export interface WindowEnumerator {
   listWindows(): Promise<WindowInfo[]>;
 }
 
+export interface WindowCaptureTestResult {
+  ok: boolean;
+  brightness: number | null;
+  message: string;
+}
+
 export interface CaptureSession {
   sessionId: string;
   startedAt: string;

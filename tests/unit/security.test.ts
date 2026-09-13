@@ -194,8 +194,8 @@ describe("IPC Allowlist", () => {
     expect(namespaces.has("health")).toBe(true);
   });
 
-  it("contains exactly 81 channels", () => {
-    expect(ALLOWED_IPC_CHANNELS.length).toBe(81);
+  it("contains exactly 82 channels", () => {
+    expect(ALLOWED_IPC_CHANNELS.length).toBe(82);
   });
 
   it("isChannelAllowed returns true for known channels", () => {
@@ -223,9 +223,9 @@ describe("IPC Allowlist", () => {
 
   it("getAllowedChannels returns a copy of the list", () => {
     const channels = getAllowedChannels();
-    expect(channels.length).toBe(81);
-    channels.push("fake:channel");
-    expect(ALLOWED_IPC_CHANNELS.length).toBe(81);
+    expect(channels.length).toBe(82);
+    expect(channels).toContain("windows:testCapture");
+    expect(ALLOWED_IPC_CHANNELS.length).toBe(82);
   });
 
   it("ALLOWED_IPC_CHANNELS is readonly (TypeScript)", () => {

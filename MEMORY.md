@@ -1,7 +1,7 @@
 # MEMORY.md — Agent Working Memory
 
 ## Current Goal
-Demos for idle-free captures shipped 2026-09-13: demo falls back to raw when no trim; portfolio falls back to raw_video asset; homepage links /portfolio/ (live, verified). 884 unit + 9 e2e green, both repos pushed. Next: human records worldsim (recipe given) to populate the portfolio.
+GPU-white captures addressed 2026-09-13: SessionDetail demo section, 3s test-capture button + IPC, post-stop blank badge (YAVG>=240), GPU caveat in form. Worldsim=root cause proven (WebView2, YAVG 235). 900 unit + 9 e2e green, repacked. Human re-records worldsim in desktop mode.
 
 ## Completed
 - Sprint 0.1–7.6: All sprints complete
