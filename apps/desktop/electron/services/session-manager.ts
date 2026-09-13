@@ -20,6 +20,8 @@ import type {
   FeatureEvidenceService,
   SceneDetector,
   InteractionCollector,
+  Project,
+  WindowEnumerator,
 } from "../../../../packages/shared/types/index.js";
 import type { SessionService } from "./session-service.js";
 import type { ProjectService } from "./project-service.js";
@@ -76,6 +78,7 @@ export interface SessionManagerOptions {
   interactionCollectorFactory?: () => InteractionCollector;
   onSessionComplete?: (projectId: string, sessionId: string) => void;
   logger?: (message: string) => void;
+  windowEnumerator?: WindowEnumerator;
 }
 
 export class SessionManager {
@@ -100,6 +103,7 @@ export class SessionManager {
   private interactionCollectorFactory?: () => InteractionCollector;
   private onSessionComplete?: (projectId: string, sessionId: string) => void;
   private logger: (message: string) => void;
+  private windowEnumerator?: WindowEnumerator;
 
   constructor(options: SessionManagerOptions) {
     this.config = { ...DEFAULT_CONFIG, ...options.config };
@@ -121,6 +125,7 @@ export class SessionManager {
     this.interactionCollectorFactory = options.interactionCollectorFactory;
     this.onSessionComplete = options.onSessionComplete;
     this.logger = options.logger ?? (() => {});
+    this.windowEnumerator = options.windowEnumerator;
   }
 
   async startSession(projectId: string, trigger: SessionTrigger, profileSettings?: Partial<RecordingProfileSettings>): Promise<RecordingSession> {
@@ -137,13 +142,51 @@ export class SessionManager {
     // concurrent triggers (e.g. rapid process polls) must not create dupes.
     this.startingProjects.add(projectId);
     try {
-      return await this.startSessionInner(projectId, trigger, profileSettings);
+      return await this.startSessionInner(projectId, trigger, profileSettings, project);
     } finally {
       this.startingProjects.delete(projectId);
     }
   }
 
-  private async startSessionInner(projectId: string, trigger: SessionTrigger, profileSettings: Partial<RecordingProfileSettings> | undefined): Promise<RecordingSession> {
+  private async resolveCaptureTarget(
+    project: Project,
+    profileSettings: Partial<RecordingProfileSettings> | undefined,
+    sessionId: string,
+  ): Promise<{ captureMode: CaptureMode | undefined; windowTitle: string | undefined }> {
+    const captureMode = profileSettings?.captureMode ?? project.captureMode ?? this.config.captureMode;
+    const configuredTitle = profileSettings?.windowTitle ?? project.windowTitle ?? this.config.windowTitle ?? undefined;
+
+    if (captureMode !== "window" || !configuredTitle) {
+      return { captureMode, windowTitle: configuredTitle };
+    }
+
+    let liveTitle: string | undefined;
+    try {
+      const windows = (await this.windowEnumerator?.listWindows()) ?? [];
+      const needle = configuredTitle.toLowerCase();
+      liveTitle =
+        windows.find((w) => w.title.toLowerCase() === needle)?.title ??
+        windows.find((w) => w.title.toLowerCase().includes(needle))?.title;
+    } catch (err) {
+      this.logger(`capture session=${sessionId} window lookup failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
+
+    if (!liveTitle) {
+      // Loud fallback: record the desktop so something is captured, but leave
+      // a marker so the UI can say the app window was missed.
+      this.logger(`capture session=${sessionId} window not found ("${configuredTitle}") — falling back to desktop`);
+      try {
+        this.settingsService?.set(`capture-fallback:${sessionId}`, configuredTitle);
+      } catch {
+        // best-effort marker only
+      }
+      return { captureMode: "desktop", windowTitle: undefined };
+    }
+
+    return { captureMode: "window", windowTitle: liveTitle };
+  }
+
+  private async startSessionInner(projectId: string, trigger: SessionTrigger, profileSettings: Partial<RecordingProfileSettings> | undefined, project: Project): Promise<RecordingSession> {
 
     const session = this.sessionService.create({ projectId, trigger });
 
@@ -157,6 +200,7 @@ export class SessionManager {
     const effectiveHeight = profileSettings?.height ?? this.config.height;
     const effectiveFps = profileSettings?.fps ?? this.config.fps;
     const effectiveAudio = profileSettings?.audio ?? this.config.audio;
+    const { captureMode, windowTitle } = await this.resolveCaptureTarget(project, profileSettings, session.id);
 
     const captureOptions: CaptureOptions = {
       outputPath,
@@ -164,8 +208,8 @@ export class SessionManager {
       width: effectiveWidth,
       height: effectiveHeight,
       audio: effectiveAudio,
-      captureMode: profileSettings?.captureMode ?? this.config.captureMode,
-      windowTitle: profileSettings?.windowTitle ?? this.config.windowTitle,
+      captureMode,
+      windowTitle,
     };
 
     try {

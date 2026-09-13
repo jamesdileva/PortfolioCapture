@@ -88,6 +88,8 @@ export const CreateProjectInputSchema = z.object({
   githubUrl: z.string().nullable().optional(),
   projectStatus: ProjectStatusSchema.optional(),
   devServerPorts: z.array(z.number().int().nonnegative()).optional(),
+  captureMode: CaptureModeSchema.optional(),
+  windowTitle: z.string().min(1).nullable().optional(),
 });
 
 export const UpdateProjectInputSchema = z.object({
@@ -103,6 +105,8 @@ export const UpdateProjectInputSchema = z.object({
   githubUrl: z.string().nullable().optional(),
   projectStatus: ProjectStatusSchema.optional(),
   devServerPorts: z.array(z.number().int().nonnegative()).optional(),
+  captureMode: CaptureModeSchema.optional(),
+  windowTitle: z.string().min(1).nullable().optional(),
 });
 
 // ─── Session Schemas ─────────────────────────────────────────────

@@ -30,6 +30,9 @@ beforeEach(() => {
     assets: {
       listBySession: vi.fn().mockResolvedValue(assets),
     },
+    settings: {
+      get: vi.fn().mockResolvedValue([]),
+    },
   });
 });
 
@@ -107,5 +110,23 @@ describe("SessionDetail", () => {
       screen.getByText("Delete").click();
     });
     expect(deleted).toEqual(completeSession);
+  });
+
+  it("shows desktop-fallback badge when the window was missed", async () => {
+    vi.mocked(window.portfolio.settings.get).mockResolvedValue([
+      { key: "capture-fallback:s1", value: "My App" },
+    ]);
+    render(<SessionDetail session={completeSession} project={project} onBack={() => {}} onDelete={() => {}} />);
+    await waitFor(() => {
+      expect(screen.getByText(/wasn’t open when recording started/)).toBeInTheDocument();
+    });
+  });
+
+  it("shows no fallback badge without a marker", async () => {
+    render(<SessionDetail session={completeSession} project={project} onBack={() => {}} onDelete={() => {}} />);
+    await waitFor(() => {
+      expect(screen.getByText("complete")).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/wasn’t open when recording started/)).not.toBeInTheDocument();
   });
 });

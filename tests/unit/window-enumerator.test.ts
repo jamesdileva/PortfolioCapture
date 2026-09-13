@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { WindowEnumeratorImpl } from "../../apps/desktop/electron/services/window-enumerator.js";
+import { WindowEnumeratorImpl, buildWindowListScript } from "../../apps/desktop/electron/services/window-enumerator.js";
 import type { ExecFn } from "../../apps/desktop/electron/services/window-enumerator.js";
 
 beforeEach(() => {
@@ -97,7 +97,16 @@ describe("WindowEnumeratorImpl", () => {
       expect(execFn).toHaveBeenCalledTimes(1);
       const cmd = execFn.mock.calls[0][0] as string;
       expect(cmd).toContain("powershell");
-      expect(cmd).toContain("EnumWindows");
+      expect(cmd).toContain("-File");
+      expect(cmd).toMatch(/\.ps1"?$/);
+    });
+
+    it("does not assign PowerShell automatic variables ($pid is read-only)", () => {
+      expect(buildWindowListScript()).not.toMatch(/\$pid\s*=/);
+    });
+
+    it("accumulates via script scope (native callbacks drop outer-scope writes)", () => {
+      expect(buildWindowListScript()).toContain("$script:windows");
     });
 
     it("handles array with single empty-title window", async () => {

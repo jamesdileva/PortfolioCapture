@@ -64,13 +64,26 @@ test.describe("Recording Flow — real app capture", () => {
       // Session finalizes (FFmpeg post-processing) and the indicator clears.
       await expect(window.getByText("● Recording")).toHaveCount(0, { timeout: 120000 });
 
-      const sessions = await window.evaluate(() =>
-        (window as unknown as { portfolio: { sessions: { list: () => Promise<Array<{ id: string; projectId: string; status: string; trigger: string; rawVideoPath: string | null }>> } } }).portfolio.sessions.list()
+      const getSessions = () => window.evaluate(() =>
+        (window as unknown as { portfolio: { sessions: { list: () => Promise<Array<{ id: string; projectId: string; status: string; trigger: string; startedAt: string; rawVideoPath: string | null }>> } } }).portfolio.sessions.list()
       );
-      const complete = sessions.filter((s) => s.status === "complete");
-      expect(complete.length).toBeGreaterThanOrEqual(1);
-      for (const s of complete) {
-        expect(s.rawVideoPath).toBeTruthy();
+      // The session we triggered is the latest; wait for it to finish finalizing.
+      let latest: { rawVideoPath: string | null } | undefined;
+      const deadline = Date.now() + 60000;
+      while (Date.now() < deadline) {
+        const sessions = await getSessions();
+        const complete = sessions
+          .filter((s) => s.status === "complete")
+          .sort((a, b) => b.startedAt.localeCompare(a.startedAt));
+        if (complete.length > 0 && complete[0].rawVideoPath) {
+          latest = complete[0];
+          break;
+        }
+        await new Promise((r) => setTimeout(r, 2000));
+      }
+      expect(latest, "expected a finalized session with a video path").toBeTruthy();
+      {
+        const s = latest!;
         expect(fs.existsSync(s.rawVideoPath!)).toBe(true);
         expect(fs.statSync(s.rawVideoPath!).size).toBeGreaterThan(1024);
         // Must be a finalized, playable container (moov present) — not just bytes.

@@ -1,6 +1,6 @@
 import Database from "better-sqlite3";
 import { randomUUID } from "crypto";
-import type { Project, ProjectStatus, CreateProjectInput, UpdateProjectInput } from "../../shared/types/index.js";
+import type { Project, ProjectStatus, CaptureMode, CreateProjectInput, UpdateProjectInput } from "../../shared/types/index.js";
 import { parseJsonArray } from "../../shared/utils/parse-json-array.js";
 
 export class ProjectRepository {
@@ -22,14 +22,16 @@ export class ProjectRepository {
       githubUrl: input.githubUrl ?? null,
       projectStatus: input.projectStatus ?? "active",
       devServerPorts: input.devServerPorts ?? [],
+      captureMode: input.captureMode ?? "desktop",
+      windowTitle: input.windowTitle ?? null,
       createdAt: now,
       updatedAt: now,
     };
 
     this.db
       .prepare(
-        `INSERT INTO projects (id, name, path, executable_path, launch_command, enabled, auto_record, description, features, tech_stack, github_url, project_status, dev_server_ports, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO projects (id, name, path, executable_path, launch_command, enabled, auto_record, description, features, tech_stack, github_url, project_status, dev_server_ports, capture_mode, window_title, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .run(
         project.id,
@@ -45,6 +47,8 @@ export class ProjectRepository {
         project.githubUrl,
         project.projectStatus,
         JSON.stringify(project.devServerPorts),
+        project.captureMode,
+        project.windowTitle,
         project.createdAt,
         project.updatedAt
       );
@@ -84,6 +88,8 @@ export class ProjectRepository {
     if (input.githubUrl !== undefined) { updates.push("github_url = ?"); values.push(input.githubUrl); }
     if (input.projectStatus !== undefined) { updates.push("project_status = ?"); values.push(input.projectStatus); }
     if (input.devServerPorts !== undefined) { updates.push("dev_server_ports = ?"); values.push(JSON.stringify(input.devServerPorts)); }
+    if (input.captureMode !== undefined) { updates.push("capture_mode = ?"); values.push(input.captureMode); }
+    if (input.windowTitle !== undefined) { updates.push("window_title = ?"); values.push(input.windowTitle); }
 
     if (updates.length === 0) return existing;
 
@@ -115,6 +121,8 @@ export class ProjectRepository {
       githubUrl: row.github_url as string | null,
       projectStatus: (row.project_status as ProjectStatus) ?? "active",
       devServerPorts: parseJsonArray(row.dev_server_ports as string | null).map(Number).filter((n) => !isNaN(n)),
+      captureMode: (row.capture_mode as CaptureMode) ?? "desktop",
+      windowTitle: (row.window_title as string | null) ?? null,
       createdAt: row.created_at as string,
       updatedAt: row.updated_at as string,
     };

@@ -18,6 +18,8 @@ function makeProject(overrides: Partial<Project> = {}): Project {
     techStack: [],
     githubUrl: null,
     devServerPorts: [],
+    captureMode: "desktop",
+    windowTitle: null,
     projectStatus: "active",
     createdAt: "2026-09-01T00:00:00Z",
     updatedAt: "2026-09-01T00:00:00Z",
@@ -93,5 +95,15 @@ describe("ProjectList", () => {
     expect(handlers.onEdit).toHaveBeenCalledTimes(1);
     screen.getByText("Delete").click();
     expect(handlers.onDelete).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows the bound window when capture is window-scoped", () => {
+    renderList([makeProject({ captureMode: "window", windowTitle: "My App — Dashboard" })]);
+    expect(screen.getByText(/🪟 My App — Dashboard/)).toBeInTheDocument();
+  });
+
+  it("shows no window label for desktop capture", () => {
+    renderList([makeProject()]);
+    expect(screen.queryByText(/🪟/)).not.toBeInTheDocument();
   });
 });

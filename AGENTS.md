@@ -2665,3 +2665,31 @@
 **Verification:** 866 unit pass (49 files); Playwright 7/7 default + 1/1 recording; `dist` repacked; packaged launch healthy (4 procs, health pass).
 
 **Files:** `services/capture-provider.ts`, `services/portfolio-generator.ts`, `services/export-service.ts`, `packages/shared/types/index.ts`, tests (capture-provider/deploy/export/portfolio + e2e recording), `package.json` (test:e2e split).
+
+---
+
+### 2026-09-13 — Per-Project App-Window Capture (human: record just the app, not full desktop)
+
+**Agent:** agent-a
+**Status:** Complete, repacked + pushed
+
+**Scope:** opt-in per project; full desktop stays the default. Hybrid miss behavior per human: record desktop anyway but say so loudly.
+
+**Work:**
+- Migration `005_project_capture.sql`: `capture_mode` (default desktop) + `window_title` on projects; repo CRUD, shared types, Zod schemas, preload + renderer d.ts pass-through.
+- SessionManager: `resolveCaptureTarget()` — profile > project > config; window mode resolves the live title (exact, then contains) via injected `WindowEnumerator`; miss => desktop + `capture-fallback:{sessionId}` settings note + logger warning.
+- ProjectForm "Capture area" section (desktop/app-window radio, Refresh-fed window dropdown + exact-title input, occlusion caveat); ProjectList `?? title` label; SessionDetail amber fallback badge.
+- main.ts wires `WindowEnumeratorImpl` into SessionManager.
+
+**Dormant Sprint 6.2 bugs found by the new window E2E (windows:list NEVER worked in prod):**
+1. `$pid = 0` — `$pid` is a read-only automatic variable; assignment throws, swallowed to `[]`.
+2. `-Command` string flattened newlines, breaking the `@"..."@` here-string for Add-Type (exit 0, empty stdout, swallowed to `[]`).
+3. Bare `$windows +=` inside the native-callback scriptblock never persists (child scope) — needs `$script:windows`.
+- Fixed via temp-`.ps1`-file execution (`-File`, single quoted arg) + `$script:` scoping; `buildWindowListScript()` exported for unit guards; verified live (12 windows, Notepad pid/title).
+- FFmpeg fact (empirical): gdigrab `title=` requires the EXACT live title (partial fails I/O error) — resolver always passes a live enumerated title, so guaranteed.
+
+**E2E:** `window-capture.spec.ts` (sentinel win-unpacked default, `E2E_WINDOW_EXE` override, 45s cold-start discovery poll, binds live title via UI, asserts recording + ffprobe video stream). Hardened both capture specs to assert on the LATEST finalized session (one transient null-path complete seen once).
+
+**Verification:** 882 unit pass (50 files); Playwright 7/7 default + 2/2 capture (window 10s playable + desktop); `dist` repacked; packaged launch healthy.
+
+**Files:** migration 005, project-repository, shared types+schemas, preload, session-manager, main.ts, window-enumerator, ProjectForm/ProjectList/SessionDetail, tests (project-repository/session-manager/schemas/window-enumerator/project-form/project-list/session-detail, e2e window-capture + hardening).

@@ -237,6 +237,7 @@ function initializeServices() {
       portfolioUpdateTrigger.requestUpdate();
     },
     logger: (msg: string) => _log(msg),
+    windowEnumerator: new WindowEnumeratorImpl(),
   });
 
   registerSessionHandlers(sessionService, sessionManager, profileService);

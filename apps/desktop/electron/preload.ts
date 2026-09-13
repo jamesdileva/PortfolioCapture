@@ -22,9 +22,9 @@ contextBridge.exposeInMainWorld("portfolio", {
   projects: {
     list: () => invokeWithTimeout("projects:list"),
     get: (id: string) => invokeWithTimeout("projects:get", id),
-    create: (input: { name: string; path: string; executablePath?: string; launchCommand?: string; enabled?: boolean; autoRecord?: boolean; description?: string; features?: string[]; techStack?: string[]; githubUrl?: string; projectStatus?: string; devServerPorts?: number[] }) =>
+    create: (input: { name: string; path: string; executablePath?: string; launchCommand?: string; enabled?: boolean; autoRecord?: boolean; description?: string; features?: string[]; techStack?: string[]; githubUrl?: string; projectStatus?: string; devServerPorts?: number[]; captureMode?: string; windowTitle?: string }) =>
       invokeWithTimeout("projects:create", input),
-    update: (id: string, input: { name?: string; path?: string; executablePath?: string | null; launchCommand?: string | null; enabled?: boolean; autoRecord?: boolean; description?: string | null; features?: string[]; techStack?: string[]; githubUrl?: string | null; projectStatus?: string; devServerPorts?: number[] }) =>
+    update: (id: string, input: { name?: string; path?: string; executablePath?: string | null; launchCommand?: string | null; enabled?: boolean; autoRecord?: boolean; description?: string | null; features?: string[]; techStack?: string[]; githubUrl?: string | null; projectStatus?: string; devServerPorts?: number[]; captureMode?: string; windowTitle?: string | null }) =>
       invokeWithTimeout("projects:update", id, input),
     delete: (id: string) => invokeWithTimeout("projects:delete", id),
   },

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import type { RecordingSession, Project, MediaAsset } from "../../../../packages/shared/types/index.js";
+import type { RecordingSession, Project, MediaAsset, Settings } from "../../../../packages/shared/types/index.js";
 
 interface SessionDetailProps {
   session: RecordingSession;
@@ -46,6 +46,7 @@ const STATUS_COLORS: Record<string, { bg: string; fg: string }> = {
 export function SessionDetail({ session, project, onBack, onDelete }: SessionDetailProps) {
   const [assets, setAssets] = useState<MediaAsset[]>([]);
   const [loadingAssets, setLoadingAssets] = useState(true);
+  const [fallbackWindow, setFallbackWindow] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -58,6 +59,21 @@ export function SessionDetail({ session, project, onBack, onDelete }: SessionDet
       .finally(() => {
         if (!cancelled) setLoadingAssets(false);
       });
+    const settingsPromise = ((): Promise<Settings[]> | null | undefined => {
+      try {
+        return window.portfolio.settings?.get?.() ?? null;
+      } catch {
+        return null;
+      }
+    })();
+    settingsPromise
+      ?.then((list) => {
+        if (!cancelled) {
+          const note = list.find((s) => s.key === `capture-fallback:${session.id}`);
+          if (note) setFallbackWindow(note.value);
+        }
+      })
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
@@ -80,6 +96,12 @@ export function SessionDetail({ session, project, onBack, onDelete }: SessionDet
         </h2>
         <button onClick={() => onDelete(session)} style={{ ...btnStyle, ...deleteBtn }}>Delete</button>
       </div>
+
+      {fallbackWindow && (
+        <div style={{ padding: "0.6rem 0.8rem", marginTop: "0.75rem", background: "#3b2f10", border: "1px solid #a80", borderRadius: "4px", color: "#fc6", fontSize: "0.85em" }}>
+          The “{fallbackWindow}” window wasn’t open when recording started — full desktop was captured instead.
+        </div>
+      )}
 
       {rawVideoPath ? (
         <div style={{ margin: "1rem 0" }}>

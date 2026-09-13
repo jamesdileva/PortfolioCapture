@@ -4,12 +4,14 @@ import type Database from "better-sqlite3";
 import { ProjectRepository } from "../../packages/database/repositories/project-repository.js";
 import { SessionRepository } from "../../packages/database/repositories/session-repository.js";
 import { SettingsRepository } from "../../packages/database/repositories/settings-repository.js";
+import { SettingsRepository } from "../../packages/database/repositories/settings-repository.js";
 import { ProjectService } from "../../apps/desktop/electron/services/project-service.js";
 import { SessionService } from "../../apps/desktop/electron/services/session-service.js";
 import { SettingsService } from "../../apps/desktop/electron/services/settings-service.js";
+import { SettingsService } from "../../apps/desktop/electron/services/settings-service.js";
 import { SessionManager } from "../../apps/desktop/electron/services/session-manager.js";
 import { IdleDetectorImpl } from "../../apps/desktop/electron/services/idle-detector.js";
-import type { CaptureProvider, CaptureSession, CaptureResult } from "../../packages/shared/types/index.js";
+import type { CaptureProvider, CaptureSession, CaptureResult, CaptureOptions } from "../../packages/shared/types/index.js";
 
 function createMockCaptureProvider(): CaptureProvider & { stopResult: CaptureResult; shouldFailStart: boolean; shouldFailStop: boolean } {
   return {
@@ -620,6 +622,81 @@ describe("SessionManager", () => {
 
       expect(completed!.status).toBe("complete");
       expect(messages.some((m) => m.includes("extractScreenshots") && m.includes("ffmpeg exploded"))).toBe(true);
+    });
+  });
+
+  describe("window capture resolution", () => {
+    function windowTestSetup(windows: Array<{ title: string; pid: number; hwnd: string }>, logger?: (m: string) => void) {
+      const settingsService = new SettingsService(new SettingsRepository(db));
+      const startedWith: CaptureOptions[] = [];
+      const innerStart = captureProvider.start.bind(captureProvider);
+      captureProvider.start = async (opts: CaptureOptions) => {
+        startedWith.push(opts);
+        return innerStart();
+      };
+      const mgr = new SessionManager({
+        sessionService,
+        captureProvider,
+        projectService,
+        settingsService,
+        windowEnumerator: { listWindows: async () => windows },
+        config: { outputRoot: "data/recordings" },
+        logger,
+      });
+      return { mgr, settingsService, startedWith };
+    }
+
+    it("captures the bound window when it is open", async () => {
+      const { mgr, startedWith } = windowTestSetup([{ title: "My App", pid: 42, hwnd: "0x1" }]);
+      const project = projectService.create({
+        name: "Win",
+        path: "/win",
+        captureMode: "window",
+        windowTitle: "my app",
+      });
+
+      await mgr.startSession(project.id, "manual");
+
+      expect(startedWith).toHaveLength(1);
+      expect(startedWith[0].captureMode).toBe("window");
+      expect(startedWith[0].windowTitle).toBe("My App");
+    });
+
+    it("falls back to desktop with a marker when the window is missing", async () => {
+      const messages: string[] = [];
+      const { mgr, settingsService, startedWith } = windowTestSetup([], (m) => messages.push(m));
+      const project = projectService.create({
+        name: "Win",
+        path: "/win",
+        captureMode: "window",
+        windowTitle: "Gone App",
+      });
+
+      const session = await mgr.startSession(project.id, "manual");
+
+      expect(startedWith).toHaveLength(1);
+      expect(startedWith[0].captureMode).toBe("desktop");
+      expect(startedWith[0].windowTitle).toBeUndefined();
+      expect(messages.some((m) => m.includes("falling back to desktop"))).toBe(true);
+      expect(settingsService.get(`capture-fallback:${session.id}`)).toBe("Gone App");
+    });
+
+    it("profile settings override the project binding", async () => {
+      const { mgr, settingsService, startedWith } = windowTestSetup([
+        { title: "My App", pid: 42, hwnd: "0x1" },
+      ]);
+      const project = projectService.create({
+        name: "Win",
+        path: "/win",
+        captureMode: "window",
+        windowTitle: "My App",
+      });
+
+      const session = await mgr.startSession(project.id, "manual", { captureMode: "desktop" });
+
+      expect(startedWith).toHaveLength(1);
+      expect(startedWith[0].captureMode).toBe("desktop");
+      expect(settingsService.get(`capture-fallback:${session.id}`)).toBeNull();
     });
   });
 });

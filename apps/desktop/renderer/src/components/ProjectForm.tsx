@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import type { Project, ProjectStatus, CreateProjectInput, UpdateProjectInput } from "../../../../packages/shared/types/index.js";
+import type { Project, ProjectStatus, CaptureMode, WindowInfo, CreateProjectInput, UpdateProjectInput } from "../../../../packages/shared/types/index.js";
 
 interface ProjectFormProps {
   project: Project | null;
@@ -19,6 +19,11 @@ export function ProjectForm({ project, onSave, onCancel }: ProjectFormProps) {
   const [techStack, setTechStack] = useState("");
   const [githubUrl, setGithubUrl] = useState("");
   const [devServerPorts, setDevServerPorts] = useState("");
+  const [captureMode, setCaptureMode] = useState<CaptureMode>("desktop");
+  const [windowTitle, setWindowTitle] = useState("");
+  const [liveWindows, setLiveWindows] = useState<WindowInfo[]>([]);
+  const [loadingWindows, setLoadingWindows] = useState(false);
+  const [windowsError, setWindowsError] = useState<string | null>(null);
   const [projectStatus, setProjectStatus] = useState<ProjectStatus>("active");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,9 +43,25 @@ export function ProjectForm({ project, onSave, onCancel }: ProjectFormProps) {
       setTechStack(project.techStack.join(", "));
       setGithubUrl(project.githubUrl ?? "");
       setDevServerPorts(project.devServerPorts?.join(", ") ?? "");
+      setCaptureMode(project.captureMode ?? "desktop");
+      setWindowTitle(project.windowTitle ?? "");
       setProjectStatus(project.projectStatus);
     }
   }, [project]);
+
+  const refreshWindows = async () => {
+    setLoadingWindows(true);
+    setWindowsError(null);
+    try {
+      const list = await window.portfolio.windows.list();
+      setLiveWindows(list);
+      if (list.length === 0) setWindowsError("No open windows found");
+    } catch {
+      setWindowsError("Could not list windows");
+    } finally {
+      setLoadingWindows(false);
+    }
+  };
 
   const detectFromPath = async () => {
     const currentPath = path.trim();
@@ -100,6 +121,8 @@ export function ProjectForm({ project, onSave, onCancel }: ProjectFormProps) {
           techStack: parseList(techStack),
           githubUrl: githubUrl.trim() || null,
           devServerPorts: parsePorts(devServerPorts),
+          captureMode,
+          windowTitle: windowTitle.trim() || null,
           projectStatus,
         };
         await onSave(input);
@@ -116,6 +139,8 @@ export function ProjectForm({ project, onSave, onCancel }: ProjectFormProps) {
           techStack: parseList(techStack),
           githubUrl: githubUrl.trim() || undefined,
           devServerPorts: parsePorts(devServerPorts),
+          captureMode,
+          windowTitle: windowTitle.trim() || undefined,
           projectStatus,
         };
         await onSave(input);
@@ -169,6 +194,57 @@ export function ProjectForm({ project, onSave, onCancel }: ProjectFormProps) {
           Dev Server Ports (comma-separated) <span style={{ color: "#888" }}>(records while a server answers)</span>
           <input value={devServerPorts} onChange={(e) => setDevServerPorts(e.target.value)} style={inputStyle} placeholder="3000, 5173, 8080" />
         </label>
+      </fieldset>
+
+      <fieldset style={{ border: "1px solid #444", borderRadius: "6px", padding: "0.75rem", marginBottom: "1rem" }}>
+        <legend style={{ color: "#eee", fontSize: "0.9em", padding: "0 0.4rem" }}>Capture area</legend>
+        <p style={{ color: "#888", fontSize: "0.8em", margin: "0 0 0.75rem" }}>
+          Full desktop captures everything on screen. App window captures just that window — it must be
+          open (not minimized) while recording, and overlapping popups can bleed through.
+        </p>
+
+        <div style={{ display: "flex", gap: "1.5rem", marginBottom: "0.75rem" }}>
+          <label style={{ display: "flex", alignItems: "center", gap: "0.4rem", cursor: "pointer" }}>
+            <input type="radio" name="captureMode" checked={captureMode === "desktop"} onChange={() => setCaptureMode("desktop")} />
+            Full desktop
+          </label>
+          <label style={{ display: "flex", alignItems: "center", gap: "0.4rem", cursor: "pointer" }}>
+            <input type="radio" name="captureMode" checked={captureMode === "window"} onChange={() => setCaptureMode("window")} />
+            App window
+          </label>
+        </div>
+
+        {captureMode === "window" && (
+          <>
+            <label style={labelStyle}>
+              Window
+              <div style={{ display: "flex", gap: "0.5rem" }}>
+                <select
+                  value={liveWindows.some((w) => w.title === windowTitle) ? windowTitle : ""}
+                  onChange={(e) => setWindowTitle(e.target.value)}
+                  style={{ ...inputStyle, flex: 1 }}
+                >
+                  <option value="">Pick an open window…</option>
+                  {liveWindows.map((w) => (
+                    <option key={`${w.pid}-${w.title}`} value={w.title}>{w.title}</option>
+                  ))}
+                </select>
+                <button type="button" onClick={refreshWindows} disabled={loadingWindows} style={{ ...btnStyle, alignSelf: "flex-start", marginTop: "0.25rem", whiteSpace: "nowrap" }}>
+                  {loadingWindows ? "Listing…" : "Refresh"}
+                </button>
+              </div>
+              {windowsError && <span style={{ fontSize: "0.8em", color: "#f88", marginTop: "0.2rem", display: "block" }}>{windowsError}</span>}
+            </label>
+
+            <label style={labelStyle}>
+              Window title (exact)
+              <input value={windowTitle} onChange={(e) => setWindowTitle(e.target.value)} style={inputStyle} placeholder="My App — Dashboard" />
+            </label>
+            <p style={{ color: "#888", fontSize: "0.8em", margin: "0 0 0.75rem" }}>
+              If the window isn't open when recording starts, you'll be told and the full desktop is captured instead.
+            </p>
+          </>
+        )}
       </fieldset>
 
       <label style={labelStyle}>

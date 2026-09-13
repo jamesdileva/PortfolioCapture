@@ -41,6 +41,8 @@ export interface Project {
   githubUrl: string | null;
   projectStatus: ProjectStatus;
   devServerPorts: number[];
+  captureMode: CaptureMode;
+  windowTitle: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -87,6 +89,8 @@ export interface CreateProjectInput {
   githubUrl?: string;
   projectStatus?: ProjectStatus;
   devServerPorts?: number[];
+  captureMode?: CaptureMode;
+  windowTitle?: string;
 }
 
 export interface UpdateProjectInput {
@@ -102,6 +106,8 @@ export interface UpdateProjectInput {
   githubUrl?: string | null;
   projectStatus?: ProjectStatus;
   devServerPorts?: number[];
+  captureMode?: CaptureMode;
+  windowTitle?: string | null;
 }
 
 export interface CreateSessionInput {

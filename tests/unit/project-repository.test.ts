@@ -216,4 +216,37 @@ describe("ProjectRepository", () => {
     const updated = repo.update(created.id, { devServerPorts: [8080, 8000] });
     expect(updated!.devServerPorts).toEqual([8080, 8000]);
   });
+
+  it("creates project with window capture binding", () => {
+    const created = repo.create({
+      name: "Window App",
+      path: "C:\\WindowApp",
+      captureMode: "window",
+      windowTitle: "My App — Dashboard",
+    });
+    expect(created.captureMode).toBe("window");
+    expect(created.windowTitle).toBe("My App — Dashboard");
+
+    const found = repo.getById(created.id);
+    expect(found!.captureMode).toBe("window");
+    expect(found!.windowTitle).toBe("My App — Dashboard");
+  });
+
+  it("defaults to desktop capture with no window", () => {
+    const created = repo.create({ name: "No Capture", path: "C:\\NoCapture" });
+    expect(created.captureMode).toBe("desktop");
+    expect(created.windowTitle).toBeNull();
+  });
+
+  it("updates capture binding", () => {
+    const created = repo.create({ name: "Update Capture", path: "C:\\UpdateCapture" });
+
+    const updated = repo.update(created.id, { captureMode: "window", windowTitle: "Other Window" });
+    expect(updated!.captureMode).toBe("window");
+    expect(updated!.windowTitle).toBe("Other Window");
+
+    const cleared = repo.update(created.id, { captureMode: "desktop", windowTitle: null });
+    expect(cleared!.captureMode).toBe("desktop");
+    expect(cleared!.windowTitle).toBeNull();
+  });
 });

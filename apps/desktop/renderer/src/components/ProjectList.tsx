@@ -50,6 +50,11 @@ export function ProjectList({ projects, recordingIds, onEdit, onDelete, onAdd, o
                   ) : (
                     <span style={{ color: "#6b8" }}>Watching</span>
                   )}
+                  {p.captureMode === "window" && p.windowTitle && (
+                    <div style={{ color: "#8ab", fontSize: "0.8em", marginTop: "0.15rem" }} title={`Captures the "${p.windowTitle}" window (desktop fallback if closed)`}>
+                      🪟 {p.windowTitle.length > 28 ? p.windowTitle.slice(0, 27) + "…" : p.windowTitle}
+                    </div>
+                  )}
                 </td>
                 <td style={tdStyle}>{p.autoRecord ? "Yes" : "No"}</td>
                 <td style={tdStyle}>{p.enabled ? "Yes" : "No"}</td>

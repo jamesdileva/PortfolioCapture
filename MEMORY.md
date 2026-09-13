@@ -1,7 +1,7 @@
 # MEMORY.md — Agent Working Memory
 
 ## Current Goal
-Playable captures fixed 2026-09-12: FFmpeg now quits via stdin "q" (SIGINT hard-kills on Windows, left moov-less files) + faststart; 3s trivial-session filter in portfolio/export; recording E2E asserts real video stream. 866 unit + 8 e2e green, repacked. Pending: human retests viewing + records fresh playable video.
+App-window capture shipped 2026-09-13: per-project binding (migration 005), loud desktop fallback, picker UI, fallback badge; fixed 3 stacked Sprint 6.2 enumerator bugs ($pid, -Command flattening, scriptblock scope) + exact-title FFmpeg semantics. 882 unit + 9 e2e green, repacked. Pending: human tries window capture on a real project.
 
 ## Completed
 - Sprint 0.1–7.6: All sprints complete
