@@ -10,10 +10,12 @@ const ELECTRON_EXE = require("electron") as string;
 const MAIN_JS = path.join(ROOT, "apps/desktop/electron/dist/main.js");
 
 // GUI fixture with a real window. Override with E2E_WINDOW_EXE=/path/to/app.exe.
-// Skipped when absent.
+// Skipped when absent. WorldSim (pywebview/WebView2) is the primary fixture:
+// its GPU-composited pixels are invisible to GDI scraping, so a non-blank
+// capture proves the Electron capture path end to end.
 const WINDOW_EXE =
   process.env.E2E_WINDOW_EXE ??
-  "C:\\Users\\j\\Projects\\sentinel\\desktop\\dist\\win-unpacked\\Sentinel.exe";
+  "C:\\Users\\j\\Projects\\worldsim\\dist\\worldsim\\worldsim.exe";
 
 async function launchApp() {
   const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), "par-e2e-"));
@@ -118,6 +120,17 @@ test.describe("Window Capture — app-window recording", () => {
         { encoding: "utf-8" }
       );
       expect(probe).toContain("video");
+      // Must show real window content, not a GDI-scrape blank (YAVG ~235+).
+      const stats = execSync(
+        `ffmpeg -v info -i "${latest!.rawVideoPath!}" -vf "signalstats,metadata=print:key=lavfi.signalstats.YAVG:file=-" -f null - 2>&1`,
+        { encoding: "utf-8" }
+      );
+      const brightnessValues = [...stats.matchAll(/YAVG=([\d.]+)/g)]
+        .map((m) => parseFloat(m[1]))
+        .filter((n) => !isNaN(n));
+      expect(brightnessValues.length).toBeGreaterThan(0);
+      const avgBrightness = brightnessValues.reduce((a, b) => a + b, 0) / brightnessValues.length;
+      expect(avgBrightness).toBeLessThan(150);
     } finally {
       if (fixture) killTree(fixture);
       await app.close();

@@ -2753,3 +2753,22 @@
 **Verification:** 900 unit pass (51 files); Playwright 9/9 (7 default + 2 real-capture with stream assertions; capture specs raised to 300s budget after outgrowing 60s); `dist` repacked; packaged launch healthy (9 procs).
 
 **Files:** `services/window-capture-tester.ts` (new), `services/session-manager.ts`, `ipc/windows.ts`, `security/ipc-allowlist.ts`, `preload.ts`, `global.d.ts`, shared types (`WindowCaptureTestResult`), `SessionDetail.tsx`, `ProjectForm.tsx`, tests (window-capture-tester/session-manager/project-form/session-detail/security).
+
+---
+
+### 2026-09-14 — Phase B/C: Electron Window Capture for GPU Windows (human: worldsim white via gdigrab)
+
+**Agent:** agent-a
+**Status:** Complete, repacked + pushed
+
+**Path (no native code):** Chromium window capture already traverses the DWM/Graphics-Capture stack, so `desktopCapturer` + `MediaRecorder` in a hidden window sees GPU pixels gdigrab cannot. Phase A spike proved it on WorldSim itself (YAVG 38 vs 235 white, ~17.6 fps, webm?h264 remux clean).
+
+**Work:**
+- `ElectronWindowCaptureProvider implements CaptureProvider` (same start/stop contract): source match (exact?contains), lazily-created hidden capture window (`?capture=1` route, shared preload `captureHost` bridge), 1s webm chunks with seq/lastSeq accounting, remux to h264+faststart, sync busy guard (same duplicate-start class as the session race), serial use.
+- `CaptureHost.tsx` renderer page (own route branch in main.tsx, no build-config change) + preload `captureHost` namespace + d.ts types.
+- SessionManager: window mode ? Electron ? FFmpeg-title ? desktop, each step logged; stop routes via the provider recorded on the active session; `WindowCaptureTester` rewired onto the provider (its old raw-FFmpeg trial is exactly what fails on GPU windows).
+- main.ts: hidden-window factory (shared preload, contextIsolation), `desktopCapturer.getSources({types:["window"]})`, one provider instance shared by SessionManager + tester.
+
+**Verification:** 912 unit pass; Playwright 9/9 incl. window E2E now on WorldSim asserting playable stream + non-blank brightness (Sentinel dropped as fixture: Ollama pins GPU); `dist` repacked; packaged launch healthy.
+
+**Files:** `services/electron-capture-provider.ts` (new), `components/CaptureHost.tsx` (new), preload, global.d.ts, main.tsx, main.ts, session-manager, window-capture-tester, ipc/windows, docs/window-capture-plan.md, tests (electron-capture-provider/session-manager/window-capture-tester, window e2e flip).

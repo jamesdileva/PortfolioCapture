@@ -1,13 +1,13 @@
 import { mkdirSync, existsSync } from "fs";
 import { join } from "path";
-import { execFile } from "child_process";
-import { sampleVideoBrightness, BLANK_BRIGHTNESS_THRESHOLD } from "./window-capture-tester.js";
+import { defaultBrightnessSampler, BLANK_BRIGHTNESS_THRESHOLD } from "./window-capture-tester.js";
 import type {
   RecordingSession,
   SessionTrigger,
   CaptureProvider,
   CaptureOptions,
   CaptureResult,
+  CaptureSession,
   AudioMode,
   ScreenshotExtractor,
   IdleSegment,
@@ -55,6 +55,7 @@ interface ActiveSession {
   session: RecordingSession;
   captureSessionId: string;
   projectId: string;
+  provider: CaptureProvider;
   idleDetector?: IdleDetectorImpl;
   interactionCollector?: InteractionCollector;
   profileSettings?: Partial<RecordingProfileSettings>;
@@ -82,20 +83,7 @@ export interface SessionManagerOptions {
   logger?: (message: string) => void;
   windowEnumerator?: WindowEnumerator;
   brightnessSampler?: (videoPath: string) => Promise<number | null>;
-}
-
-function defaultBrightnessSampler(videoPath: string): Promise<number | null> {
-  return sampleVideoBrightness(
-    (command, args) =>
-      new Promise((resolve, reject) => {
-        execFile(command, args, { encoding: "utf-8", maxBuffer: 4 * 1024 * 1024 }, (error, stdout, stderr) => {
-          if (error) reject(error);
-          else resolve({ stdout: String(stdout), stderr: String(stderr) });
-        });
-      }),
-    "ffmpeg",
-    videoPath,
-  );
+  windowCaptureProvider?: CaptureProvider;
 }
 
 export class SessionManager {
@@ -122,6 +110,7 @@ export class SessionManager {
   private logger: (message: string) => void;
   private windowEnumerator?: WindowEnumerator;
   private brightnessSampler: (videoPath: string) => Promise<number | null>;
+  private windowCaptureProvider?: CaptureProvider;
 
   constructor(options: SessionManagerOptions) {
     this.config = { ...DEFAULT_CONFIG, ...options.config };
@@ -145,6 +134,44 @@ export class SessionManager {
     this.logger = options.logger ?? (() => {});
     this.windowEnumerator = options.windowEnumerator;
     this.brightnessSampler = options.brightnessSampler ?? defaultBrightnessSampler;
+    this.windowCaptureProvider = options.windowCaptureProvider;
+  }
+
+  /**
+   * Window mode prefers the Electron (GPU-aware) provider, then FFmpeg
+   * title capture, then full desktop. Desktop mode goes straight to FFmpeg.
+   * Every fallback is logged; misses already leave settings markers.
+   */
+  private async startCaptureWithFallback(
+    projectId: string,
+    sessionId: string,
+    captureOptions: CaptureOptions,
+  ): Promise<{ provider: CaptureProvider; captureSession: CaptureSession }> {
+    if (captureOptions.captureMode === "window" && captureOptions.windowTitle && this.windowCaptureProvider) {
+      try {
+        const captureSession = await this.windowCaptureProvider.start(captureOptions);
+        this.logger(`capture session=${sessionId} using Electron window capture ("${captureOptions.windowTitle}")`);
+        return { provider: this.windowCaptureProvider, captureSession };
+      } catch (err) {
+        this.logger(
+          `capture session=${sessionId} Electron window capture failed, trying FFmpeg title capture: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+    try {
+      const captureSession = await this.captureProvider.start(captureOptions);
+      return { provider: this.captureProvider, captureSession };
+    } catch (err) {
+      if (captureOptions.captureMode === "window") {
+        this.logger(
+          `capture session=${sessionId} FFmpeg title capture failed, falling back to desktop: ${err instanceof Error ? err.message : String(err)}`,
+        );
+        const desktopOptions: CaptureOptions = { ...captureOptions, captureMode: "desktop", windowTitle: undefined };
+        const captureSession = await this.captureProvider.start(desktopOptions);
+        return { provider: this.captureProvider, captureSession };
+      }
+      throw err;
+    }
   }
 
   async startSession(projectId: string, trigger: SessionTrigger, profileSettings?: Partial<RecordingProfileSettings>): Promise<RecordingSession> {
@@ -232,13 +259,18 @@ export class SessionManager {
     };
 
     try {
-      const captureSession = await this.captureProvider.start(captureOptions);
+      const { provider, captureSession } = await this.startCaptureWithFallback(
+        projectId,
+        session.id,
+        captureOptions,
+      );
 
       this.activeByProject.set(projectId, {
         session: { ...session, status: "recording" },
         captureSessionId: captureSession.sessionId,
         projectId,
         profileSettings,
+        provider,
       });
 
       const active = this.activeByProject.get(projectId)!;
@@ -285,7 +317,7 @@ export class SessionManager {
     }
 
     try {
-      const result = await this.captureProvider.stop(active.captureSessionId);
+      const result = await active.provider.stop(active.captureSessionId);
 
       this.activeByProject.delete(projectId);
 

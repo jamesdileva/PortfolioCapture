@@ -216,8 +216,18 @@ interface PortfolioAPI {
   health: PortfolioHealthAPI;
 }
 
+interface PortfolioCaptureHostAPI {
+  onStart: (callback: (cmd: { sourceId: string; fps: number; width?: number; height?: number }) => void) => () => void;
+  onStop: (callback: () => void) => () => void;
+  sendChunk: (bytes: ArrayBuffer, seq: number) => void;
+  notifyStarted: (info: { mimeType: string }) => void;
+  notifyStopped: (lastSeq: number) => void;
+  notifyError: (message: string) => void;
+}
+
 declare global {
   interface Window {
     portfolio: PortfolioAPI;
+    captureHost?: PortfolioCaptureHostAPI;
   }
 }

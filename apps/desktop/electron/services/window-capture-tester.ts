@@ -1,17 +1,15 @@
-import { spawn, execFile, type ChildProcess } from "child_process";
-import { existsSync, unlinkSync } from "fs";
+import { execFile } from "child_process";
+import { unlinkSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
-import type { WindowInfo, WindowEnumerator, WindowCaptureTestResult } from "../../../../packages/shared/types/index.js";
+import type { WindowInfo, WindowEnumerator, WindowCaptureTestResult, CaptureProvider } from "../../../../packages/shared/types/index.js";
 
 export interface WindowCaptureTesterOptions {
   windowEnumerator: WindowEnumerator;
-  ffmpegPath?: string;
-  spawnFn?: (command: string, args: string[]) => ChildProcess;
-  execFileFn?: (command: string, args: string[]) => Promise<{ stdout: string; stderr: string }>;
+  captureProvider: CaptureProvider;
+  brightnessSampler?: (videoPath: string) => Promise<number | null>;
   tmpDir?: string;
   unlinkFn?: (path: string) => void;
-  existsFn?: (path: string) => boolean;
 }
 
 /** YAVG at or above this means the picture is (near-)pure white. */
@@ -24,6 +22,10 @@ function defaultExecFile(command: string, args: string[]): Promise<{ stdout: str
       else resolve({ stdout: String(stdout), stderr: String(stderr) });
     });
   });
+}
+
+export function defaultBrightnessSampler(videoPath: string): Promise<number | null> {
+  return sampleVideoBrightness(defaultExecFile, "ffmpeg", videoPath);
 }
 
 /** Average frame brightness (0-255 luma) of a video file, or null when unmeasurable. */
@@ -53,21 +55,17 @@ export async function sampleVideoBrightness(
 
 export class WindowCaptureTester {
   private windowEnumerator: WindowEnumerator;
-  private ffmpegPath: string;
-  private spawnFn: (command: string, args: string[]) => ChildProcess;
-  private execFileFn: (command: string, args: string[]) => Promise<{ stdout: string; stderr: string }>;
+  private captureProvider: CaptureProvider;
+  private brightnessSampler: (videoPath: string) => Promise<number | null>;
   private tmpDir: string;
   private unlinkFn: (path: string) => void;
-  private existsFn: (path: string) => boolean;
 
   constructor(options: WindowCaptureTesterOptions) {
     this.windowEnumerator = options.windowEnumerator;
-    this.ffmpegPath = options.ffmpegPath ?? "ffmpeg";
-    this.spawnFn = options.spawnFn ?? ((command, args) => spawn(command, args));
-    this.execFileFn = options.execFileFn ?? defaultExecFile;
+    this.captureProvider = options.captureProvider;
+    this.brightnessSampler = options.brightnessSampler ?? defaultBrightnessSampler;
     this.tmpDir = options.tmpDir ?? tmpdir();
     this.unlinkFn = options.unlinkFn ?? ((p) => unlinkSync(p));
-    this.existsFn = options.existsFn ?? ((p) => existsSync(p));
   }
 
   async testCapture(title: string, seconds = 3): Promise<WindowCaptureTestResult> {
@@ -90,19 +88,37 @@ export class WindowCaptureTester {
     }
 
     const outPath = join(this.tmpDir, `par-testcap-${Date.now()}.mp4`);
-    const { exitCode, stderr } = await this.runCapture(live.title, outPath, seconds);
     try {
-      if (exitCode !== 0 || !this.existsFn(outPath)) {
-        const tail = stderr.trim().split("\n").slice(-3).join(" ").slice(0, 300);
-        return { ok: false, brightness: null, message: `Capture failed (ffmpeg exit ${exitCode})${tail ? `: ${tail}` : ""}` };
+      let sessionId: string;
+      try {
+        const session = await this.captureProvider.start({
+          outputPath: outPath,
+          fps: 15,
+          width: 1280,
+          height: 720,
+          audio: "none",
+          captureMode: "window",
+          windowTitle: live.title,
+        });
+        sessionId = session.sessionId;
+      } catch (err) {
+        return { ok: false, brightness: null, message: `Capture failed to start: ${err instanceof Error ? err.message : String(err)}` };
       }
 
-      const brightness = await sampleVideoBrightness(this.execFileFn, this.ffmpegPath, outPath);
+      await new Promise((r) => setTimeout(r, Math.max(0, seconds) * 1000));
+
+      try {
+        await this.captureProvider.stop(sessionId);
+      } catch (err) {
+        return { ok: false, brightness: null, message: `Capture failed to stop: ${err instanceof Error ? err.message : String(err)}` };
+      }
+
+      const brightness = await this.brightnessSampler(outPath);
       if (brightness != null && brightness >= BLANK_BRIGHTNESS_THRESHOLD) {
         return {
           ok: false,
           brightness,
-          message: `Captured "${live.title}" but it looks blank (brightness ${Math.round(brightness)}). GPU-rendered windows (browsers, Electron, Unity) need full-desktop mode.`,
+          message: `Captured "${live.title}" but it looks blank (brightness ${Math.round(brightness)}). Try full-desktop mode for this window.`,
         };
       }
       const detail = brightness != null ? ` (brightness ${Math.round(brightness)})` : "";
@@ -114,46 +130,5 @@ export class WindowCaptureTester {
         // best-effort temp cleanup
       }
     }
-  }
-
-  private runCapture(title: string, outputPath: string, seconds: number): Promise<{ exitCode: number; stderr: string }> {
-    return new Promise((resolve) => {
-      let proc: ChildProcess;
-      try {
-        proc = this.spawnFn(this.ffmpegPath, [
-          "-y",
-          "-f", "gdigrab",
-          "-framerate", "5",
-          "-i", `title=${title}`,
-          "-t", String(seconds),
-          "-vf", "scale=640:-1",
-          "-c:v", "libx264",
-          "-preset", "ultrafast",
-          "-pix_fmt", "yuv420p",
-          "-an",
-          outputPath,
-        ]);
-      } catch (err) {
-        resolve({ exitCode: -1, stderr: err instanceof Error ? err.message : String(err) });
-        return;
-      }
-
-      let stderr = "";
-      proc.stderr?.on("data", (d: Buffer) => {
-        stderr += d.toString();
-        if (stderr.length > 8192) stderr = stderr.slice(-8192);
-      });
-      const done = (code: number) => resolve({ exitCode: code, stderr });
-      proc.on("error", () => done(-1));
-      proc.on("close", (code) => done(code ?? -1));
-      setTimeout(() => {
-        try {
-          proc.kill("SIGKILL");
-        } catch {
-          // ignore
-        }
-        done(-1);
-      }, (seconds + 10) * 1000);
-    });
   }
 }

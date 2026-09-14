@@ -1,7 +1,7 @@
 # MEMORY.md — Agent Working Memory
 
 ## Current Goal
-GPU-white captures addressed 2026-09-13: SessionDetail demo section, 3s test-capture button + IPC, post-stop blank badge (YAVG>=240), GPU caveat in form. Worldsim=root cause proven (WebView2, YAVG 235). 900 unit + 9 e2e green, repacked. Human re-records worldsim in desktop mode.
+Electron window capture shipped 2026-09-14 (Phase B/C): GPU windows record real pixels via hidden-window desktopCapturer path; fallback chain Electron→FFmpeg→desktop; worldsim E2E asserts non-blank. 912 unit + 9 e2e green, repacked. Human retries worldsim as app-window capture.
 
 ## Completed
 - Sprint 0.1–7.6: All sprints complete

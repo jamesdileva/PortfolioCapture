@@ -163,3 +163,32 @@ contextBridge.exposeInMainWorld("portfolio", {
     check: () => invokeWithTimeout("health:check"),
   },
 });
+
+contextBridge.exposeInMainWorld("captureHost", {
+  onStart: (callback: (cmd: { sourceId: string; fps: number; width?: number; height?: number }) => void) => {
+    const subscription = (_event: unknown, cmd: unknown) => callback(cmd as { sourceId: string; fps: number; width?: number; height?: number });
+    ipcRenderer.on("capture-host:start", subscription);
+    return () => {
+      ipcRenderer.removeListener("capture-host:start", subscription);
+    };
+  },
+  onStop: (callback: () => void) => {
+    const subscription = () => callback();
+    ipcRenderer.on("capture-host:stop", subscription);
+    return () => {
+      ipcRenderer.removeListener("capture-host:stop", subscription);
+    };
+  },
+  sendChunk: (bytes: ArrayBuffer, seq: number) => {
+    ipcRenderer.send("capture-host:chunk", bytes, seq);
+  },
+  notifyStarted: (info: { mimeType: string }) => {
+    ipcRenderer.send("capture-host:started", info);
+  },
+  notifyStopped: (lastSeq: number) => {
+    ipcRenderer.send("capture-host:stopped", lastSeq);
+  },
+  notifyError: (message: string) => {
+    ipcRenderer.send("capture-host:error", message);
+  },
+});

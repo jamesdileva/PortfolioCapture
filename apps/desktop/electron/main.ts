@@ -1,8 +1,9 @@
-import { app, BrowserWindow, dialog } from "electron";
+import { app, BrowserWindow, desktopCapturer, dialog } from "electron";
 import * as path from "path";
+import { pathToFileURL } from "url";
 import { createDatabase, runMigrations, closeDatabase } from "../../../packages/database/index.js";
 import { ProjectRepository, SessionRepository, AssetRepository, SettingsRepository, FeatureEvidenceRepository } from "../../../packages/database/repositories/index.js";
-import { ProjectService, SessionService, AssetService, SettingsService, ProcessMonitor, FfmpegCaptureProvider, FfmpegServiceImpl, FfmpegScreenshotExtractor, IdleDetectorImpl, SmartTrimmerImpl, DemoGeneratorImpl, ExportServiceImpl, ScreenshotRankerImpl, TimelineAssemblerImpl, RecordingProfileServiceImpl, ManualEditOverridesServiceImpl, GitServiceImpl, ProjectScannerImpl, FeatureEvidenceServiceImpl, LocalAiServiceImpl, PortfolioGeneratorImpl, ThemeServiceImpl, DeployServiceImpl, DevServerDetectorImpl, WindowEnumeratorImpl, WindowCaptureTester, FeatureChapterGeneratorImpl, SceneDetectorImpl, DemoQualityScorerImpl, ProjectAutoFillServiceImpl, InteractionCollectorImpl, CrashRecoveryServiceImpl } from "./services/index.js";
+import { ProjectService, SessionService, AssetService, SettingsService, ProcessMonitor, FfmpegCaptureProvider, FfmpegServiceImpl, FfmpegScreenshotExtractor, IdleDetectorImpl, SmartTrimmerImpl, DemoGeneratorImpl, ExportServiceImpl, ScreenshotRankerImpl, TimelineAssemblerImpl, RecordingProfileServiceImpl, ManualEditOverridesServiceImpl, GitServiceImpl, ProjectScannerImpl, FeatureEvidenceServiceImpl, LocalAiServiceImpl, PortfolioGeneratorImpl, ThemeServiceImpl, DeployServiceImpl, DevServerDetectorImpl, WindowEnumeratorImpl, WindowCaptureTester, ElectronWindowCaptureProvider, FeatureChapterGeneratorImpl, SceneDetectorImpl, DemoQualityScorerImpl, ProjectAutoFillServiceImpl, InteractionCollectorImpl, CrashRecoveryServiceImpl } from "./services/index.js";
 import { SessionManager } from "./services/session-manager.js";
 import { PortfolioUpdateTriggerImpl } from "./services/portfolio-update-trigger.js";
 import { registerProjectHandlers, registerSessionHandlers, registerAssetHandlers, registerSettingsHandlers, registerExportHandlers, registerProfileHandlers, registerManualOverridesHandlers, registerGitHandlers, registerScannerHandlers, registerFeatureEvidenceHandlers, registerAiHandlers, registerPortfolioHandlers, registerThemeHandlers, registerDeployHandlers, registerDevServerHandlers, registerWindowHandlers, registerChapterHandlers, registerDemoQualityHandlers, registerCrashRecoveryHandlers, registerHealthCheckHandlers } from "./ipc/index.js";
@@ -215,6 +216,48 @@ function initializeServices() {
     mainWindow?.webContents.send("portfolio:regenerated");
   });
 
+  const capturePageUrl = process.env.VITE_DEV_SERVER_URL
+    ? `${process.env.VITE_DEV_SERVER_URL}?capture=1`
+    : `${pathToFileURL(path.join(__dirname, "../../renderer/dist/index.html")).toString()}?capture=1`;
+  const electronCaptureProvider = new ElectronWindowCaptureProvider({
+    getSources: () => desktopCapturer.getSources({ types: ["window"] }),
+    createHostWindow: () => {
+      const host = new BrowserWindow({
+        show: false,
+        width: 320,
+        height: 240,
+        webPreferences: {
+          preload: path.join(__dirname, "preload.js"),
+          contextIsolation: true,
+          nodeIntegration: false,
+        },
+      });
+      return {
+        sendToHost: (channel: string, ...args: unknown[]) => {
+          if (!host.isDestroyed()) host.webContents.send(channel, ...args);
+        },
+        loadPage: (url: string) => host.loadURL(url).then(() => undefined),
+        waitReady: () =>
+          new Promise<void>((resolve) => {
+            if (host.isDestroyed()) {
+              resolve();
+              return;
+            }
+            host.once("ready-to-show", () => resolve());
+          }),
+        isAlive: () => !host.isDestroyed(),
+        destroy: () => {
+          if (!host.isDestroyed()) host.close();
+        },
+        onClosed: (callback: () => void) => {
+          host.on("closed", callback);
+        },
+      };
+    },
+    pageUrl: capturePageUrl,
+    logger: (msg: string) => _log(msg),
+  });
+
   const sessionManager = new SessionManager({
     sessionService,
     captureProvider,
@@ -238,6 +281,7 @@ function initializeServices() {
     },
     logger: (msg: string) => _log(msg),
     windowEnumerator: new WindowEnumeratorImpl(),
+    windowCaptureProvider: electronCaptureProvider,
   });
 
   registerSessionHandlers(sessionService, sessionManager, profileService);
@@ -307,7 +351,7 @@ function initializeServices() {
   registerDevServerHandlers(devServerDetector);
 
   const windowEnumerator = new WindowEnumeratorImpl();
-  registerWindowHandlers(windowEnumerator, new WindowCaptureTester({ windowEnumerator }));
+  registerWindowHandlers(windowEnumerator, new WindowCaptureTester({ windowEnumerator, captureProvider: electronCaptureProvider }));
 
   function refreshMonitorProjects(): void {
     const list = projectService.list();

@@ -769,4 +769,115 @@ describe("SessionManager", () => {
       expect(settingsSvc.get(`capture-blank:${completed!.id}`)).toBeNull();
     });
   });
+
+  describe("window provider selection", () => {
+    function selectionSetup() {
+      const ffmpegMock = createMockCaptureProvider();
+      const electronMock = createMockCaptureProvider();
+      const messages: string[] = [];
+      const mgr = new SessionManager({
+        sessionService,
+        captureProvider: ffmpegMock,
+        projectService,
+        config: { outputRoot: "data/recordings" },
+        windowEnumerator: {
+          listWindows: async () => [{ title: "My App", pid: 11, hwnd: "0x1" }],
+        },
+        windowCaptureProvider: electronMock,
+        brightnessSampler: async () => null,
+        logger: (m: string) => { messages.push(m); },
+      });
+      const ffmpegStart = vi.spyOn(ffmpegMock, "start");
+      const ffmpegStop = vi.spyOn(ffmpegMock, "stop");
+      const electronStart = vi.spyOn(electronMock, "start");
+      const electronStop = vi.spyOn(electronMock, "stop");
+      return { mgr, messages, ffmpegStart, ffmpegStop, electronStart, electronStop, ffmpegMock, electronMock };
+    }
+
+    function makeWindowProject() {
+      return projectService.create({
+        name: "Win",
+        path: "/win",
+        captureMode: "window",
+        windowTitle: "My App",
+      });
+    }
+
+    it("uses the Electron provider for window captures", async () => {
+      const { mgr, ffmpegStart, electronStart, electronStop } = selectionSetup();
+      const project = makeWindowProject();
+
+      await mgr.startSession(project.id, "manual");
+
+      expect(electronStart).toHaveBeenCalledTimes(1);
+      expect(electronStart.mock.calls[0][0]).toMatchObject({ captureMode: "window", windowTitle: "My App" });
+      expect(ffmpegStart).not.toHaveBeenCalled();
+
+      await mgr.stopSession(project.id);
+      expect(electronStop).toHaveBeenCalledTimes(1);
+    });
+
+    it("falls back to FFmpeg title capture when Electron fails", async () => {
+      const { mgr, messages, ffmpegStart, electronMock } = selectionSetup();
+      electronMock.shouldFailStart = true;
+      const project = makeWindowProject();
+
+      await mgr.startSession(project.id, "manual");
+
+      expect(ffmpegStart).toHaveBeenCalledTimes(1);
+      expect(ffmpegStart.mock.calls[0][0]).toMatchObject({ captureMode: "window", windowTitle: "My App" });
+      expect(messages.some((m) => m.includes("trying FFmpeg title capture"))).toBe(true);
+    });
+
+    it("falls back to desktop when FFmpeg title capture fails", async () => {
+      const messages: string[] = [];
+      const ffmpegStart = vi.fn();
+      const project = makeWindowProject();
+
+      const mgr2 = new SessionManager({
+        sessionService,
+        captureProvider: {
+          start: ffmpegStart,
+          stop: async () => ({
+            outputPath: "x.mp4",
+            durationMs: 1,
+            fileSizeBytes: 1,
+            width: 1,
+            height: 1,
+          }),
+        } as never,
+        projectService,
+        config: { outputRoot: "data/recordings" },
+        windowEnumerator: {
+          listWindows: async () => [{ title: "My App", pid: 11, hwnd: "0x1" }],
+        },
+        brightnessSampler: async () => null,
+        logger: (m: string) => { messages.push(m); },
+      });
+      ffmpegStart
+        .mockRejectedValueOnce(new Error("no such window"))
+        .mockImplementation(async () => ({
+          sessionId: "cap-desktop",
+          startedAt: new Date().toISOString(),
+        }));
+
+      await mgr2.startSession(project.id, "manual");
+
+      expect(ffmpegStart).toHaveBeenCalledTimes(2);
+      expect(ffmpegStart.mock.calls[1][0]).toMatchObject({ captureMode: "desktop" });
+      expect((ffmpegStart.mock.calls[1][0] as { windowTitle?: string }).windowTitle).toBeUndefined();
+      expect(messages.some((m) => m.includes("falling back to desktop"))).toBe(true);
+    });
+
+    it("ignores the Electron provider for desktop captures", async () => {
+      const { mgr, electronStart, ffmpegStart } = selectionSetup();
+      const project = projectService.create({ name: "Desk", path: "/desk" });
+
+      await mgr.startSession(project.id, "manual");
+
+      expect(electronStart).not.toHaveBeenCalled();
+      expect(ffmpegStart).toHaveBeenCalledTimes(1);
+      expect(ffmpegStart.mock.calls[0][0]).toMatchObject({ captureMode: "desktop" });
+    });
+  });
 });
