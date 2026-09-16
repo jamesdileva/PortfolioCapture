@@ -102,6 +102,34 @@ export class SessionRepository {
     return result.changes > 0;
   }
 
+  /**
+   * Deletes a session plus its asset rows and per-session settings keys in
+   * one transaction. Plain `delete()` fails with a foreign-key error once
+   * assets exist, so this is the only supported way to remove a session.
+   * Cross-table SQL lives here deliberately: atomicity requires a single
+   * transaction on this handle.
+   */
+  deleteCascade(id: string): boolean {
+    const settingsKeys = [
+      `timeline:${id}`,
+      `assembled-timeline:${id}`,
+      `demo-chapters:${id}`,
+      `demo-quality:${id}`,
+      `capture-fallback:${id}`,
+      `capture-blank:${id}`,
+      `timeline-overrides:${id}`,
+    ];
+    const run = this.db.transaction(() => {
+      this.db.prepare("DELETE FROM assets WHERE session_id = ?").run(id);
+      this.db
+        .prepare(`DELETE FROM settings WHERE key IN (${settingsKeys.map(() => "?").join(",")})`)
+        .run(...settingsKeys);
+      const result = this.db.prepare("DELETE FROM sessions WHERE id = ?").run(id);
+      return result.changes > 0;
+    });
+    return run();
+  }
+
   private rowToSession(row: Record<string, unknown>): RecordingSession {
     return {
       id: row.id as string,

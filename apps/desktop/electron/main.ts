@@ -156,13 +156,13 @@ function initializeServices() {
   const evidenceRepo = new FeatureEvidenceRepository(db);
   _log("initializeServices: repositories created, building services");
 
-  const projectService = new ProjectService(projectRepo);
-  const sessionService = new SessionService(sessionRepo);
+  const outputRoot = path.join(app.getPath("userData"), "recordings");
+  const projectService = new ProjectService(projectRepo, { recordingsRoot: outputRoot });
+  const sessionService = new SessionService(sessionRepo, { recordingsRoot: outputRoot });
   const assetService = new AssetService(assetRepo);
   const settingsService = new SettingsService(settingsRepo);
 
   const captureProvider = new FfmpegCaptureProvider();
-  const outputRoot = path.join(app.getPath("userData"), "recordings");
 
   const ffmpegService = new FfmpegServiceImpl();
   const screenshotExtractor = new FfmpegScreenshotExtractor(ffmpegService);

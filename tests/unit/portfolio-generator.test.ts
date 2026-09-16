@@ -103,8 +103,8 @@ describe("PortfolioGeneratorImpl", () => {
     await generator.generate();
     const html = fs.readFileSync(path.join(tempDir, "index.html"), "utf-8");
 
-    expect(html).toContain('src="assets/demo.mp4"');
-    expect(html).toContain('src="assets/shot.png"');
+    expect(html).toContain('src="assets/pathtest/demo.mp4"');
+    expect(html).toContain('src="assets/pathtest/shot.png"');
     expect(html).not.toContain('../assets/');
   });
 
@@ -137,7 +137,38 @@ describe("PortfolioGeneratorImpl", () => {
     const result = await generator.generate();
 
     expect(result.assetCount).toBe(1);
-    expect(fs.existsSync(path.join(result.outputDir, "assets", "demo.mp4"))).toBe(true);
+    expect(fs.existsSync(path.join(result.outputDir, "assets", "demoproject", "demo.mp4"))).toBe(true);
+  });
+
+  it("namespaces assets per project so same basenames do not collide", async () => {
+    const first = projectService.create({ name: "First App", path: "/first" });
+    const second = projectService.create({ name: "Second App", path: "/second" });
+
+    for (const [project, marker] of [[first, "first"], [second, "second"]] as const) {
+      const session = sessionService.create({ projectId: project.id, trigger: "manual" });
+      completeSession(session.id);
+      const sourceDir = path.join(tempDir, `src-${marker}`);
+      fs.mkdirSync(sourceDir, { recursive: true });
+      const demoPath = path.join(sourceDir, "demo.mp4");
+      const shotPath = path.join(sourceDir, "shot-001.png");
+      fs.writeFileSync(demoPath, `fake demo ${marker}`);
+      fs.writeFileSync(shotPath, `fake shot ${marker}`);
+      assetService.create({ sessionId: session.id, projectId: project.id, type: "demo_video", path: demoPath });
+      assetService.create({ sessionId: session.id, projectId: project.id, type: "screenshot", path: shotPath, width: 64, height: 64 });
+    }
+
+    const result = await generator.generate();
+
+    const firstDemo = path.join(result.outputDir, "assets", "first-app", "demo.mp4");
+    const secondDemo = path.join(result.outputDir, "assets", "second-app", "demo.mp4");
+    expect(fs.readFileSync(firstDemo, "utf-8")).toBe("fake demo first");
+    expect(fs.readFileSync(secondDemo, "utf-8")).toBe("fake demo second");
+    expect(fs.readFileSync(path.join(result.outputDir, "assets", "first-app", "shot-001.png"), "utf-8")).toBe("fake shot first");
+    expect(fs.readFileSync(path.join(result.outputDir, "assets", "second-app", "shot-001.png"), "utf-8")).toBe("fake shot second");
+
+    const html = fs.readFileSync(path.join(tempDir, "index.html"), "utf-8");
+    expect(html).toContain("assets/first-app/demo.mp4");
+    expect(html).toContain("assets/second-app/demo.mp4");
   });
 
   it("falls back to raw video when no demo exists", async () => {
@@ -154,7 +185,7 @@ describe("PortfolioGeneratorImpl", () => {
 
     const result = await generator.generate();
 
-    expect(fs.existsSync(path.join(result.outputDir, "assets", "raw.mp4"))).toBe(true);
+    expect(fs.existsSync(path.join(result.outputDir, "assets", "rawproject", "raw.mp4"))).toBe(true);
     const data = JSON.parse(fs.readFileSync(path.join(tempDir, "data.json"), "utf-8"));
     expect(data.projects[0].demoPath).toContain("raw.mp4");
     expect(data.summary.hasDemos).toBe(true);
@@ -178,8 +209,8 @@ describe("PortfolioGeneratorImpl", () => {
     const result = await generator.generate();
 
     expect(result.assetCount).toBe(2);
-    expect(fs.existsSync(path.join(result.outputDir, "assets", "shot-001.png"))).toBe(true);
-    expect(fs.existsSync(path.join(result.outputDir, "assets", "shot-002.png"))).toBe(true);
+    expect(fs.existsSync(path.join(result.outputDir, "assets", "shotproject", "shot-001.png"))).toBe(true);
+    expect(fs.existsSync(path.join(result.outputDir, "assets", "shotproject", "shot-002.png"))).toBe(true);
   });
 
   it("includes sessions in data.json", async () => {
@@ -322,7 +353,7 @@ describe("PortfolioGeneratorImpl", () => {
     const html = fs.readFileSync(path.join(tempDir, "projects", "heroproject.html"), "utf-8");
 
     expect(html).toContain('class="hero"');
-    expect(html).toContain('src="../assets/shot-001.png"');
+    expect(html).toContain('src="../assets/heroproject/shot-001.png"');
     expect(html).toContain('alt="hero"');
   });
 

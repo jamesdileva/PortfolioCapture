@@ -74,9 +74,13 @@ export function App() {
   };
 
   const handleDelete = async (project: Project) => {
-    await window.portfolio.projects.delete(project.id);
-    setDeleteConfirm(null);
-    await loadProjects();
+    try {
+      await window.portfolio.projects.delete(project.id);
+      setDeleteConfirm(null);
+      await loadProjects();
+    } catch (err) {
+      showToast(err instanceof Error ? `Failed to delete project: ${err.message}` : "Failed to delete project");
+    }
   };
 
   const handleAdd = () => {
@@ -94,10 +98,14 @@ export function App() {
   };
 
   const handleDeleteSession = async (session: RecordingSession) => {
-    await window.portfolio.sessions.delete(session.id);
-    setDeleteSessionConfirm(null);
-    setSelectedSession(null);
-    await loadSessions();
+    try {
+      await window.portfolio.sessions.delete(session.id);
+      setDeleteSessionConfirm(null);
+      setSelectedSession(null);
+      await loadSessions();
+    } catch (err) {
+      showToast(err instanceof Error ? `Failed to delete recording: ${err.message}` : "Failed to delete recording");
+    }
   };
 
   const handleBackToList = () => {
@@ -252,7 +260,7 @@ export function App() {
                   <div style={overlay}>
                     <div style={modal}>
                       <p>Delete project <strong>{deleteConfirm.name}</strong>?</p>
-                      <p style={{ color: "#aaa", fontSize: "0.85em" }}>This cannot be undone.</p>
+                      <p style={{ color: "#aaa", fontSize: "0.85em" }}>This removes the project, its recordings, and their files from disk. This cannot be undone.</p>
                       <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
                         <button onClick={() => handleDelete(deleteConfirm)} style={{ ...btnStyle, borderColor: "#a33", color: "#f88" }}>Delete</button>
                         <button onClick={() => setDeleteConfirm(null)} style={btnStyle}>Cancel</button>
@@ -306,7 +314,7 @@ export function App() {
               <div style={overlay}>
                 <div style={modal}>
                   <p>Delete this recording?</p>
-                  <p style={{ color: "#aaa", fontSize: "0.85em" }}>This will remove the session record. Raw files may remain on disk.</p>
+                  <p style={{ color: "#aaa", fontSize: "0.85em" }}>This removes the session, its assets, and its video and screenshot files from disk.</p>
                   <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
                     <button onClick={() => handleDeleteSession(deleteSessionConfirm)} style={{ ...btnStyle, borderColor: "#a33", color: "#f88" }}>Delete</button>
                     <button onClick={() => setDeleteSessionConfirm(null)} style={btnStyle}>Cancel</button>

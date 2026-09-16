@@ -1,7 +1,7 @@
 # MEMORY.md — Agent Working Memory
 
 ## Current Goal
-Electron window capture shipped 2026-09-14 (Phase B/C): GPU windows record real pixels via hidden-window desktopCapturer path; fallback chain Electron→FFmpeg→desktop; worldsim E2E asserts non-blank. 912 unit + 9 e2e green, repacked. Human retries worldsim as app-window capture.
+Delete cascade + portfolio namespacing shipped 2026-09-14: FK trap fixed (transactional cascades + disk cleanup + toasts), flat-assets collision fixed (per-project slug dirs). 919 unit + 7 e2e green, repacked. Human retries deletes + pushes fresh portfolio.
 
 ## Completed
 - Sprint 0.1–7.6: All sprints complete

@@ -4,9 +4,19 @@ import type {
   CreateProjectInput,
   UpdateProjectInput,
 } from "../../../../packages/shared/types/index.js";
+import { rmSync } from "fs";
+import { resolve, sep } from "path";
+
+export interface ProjectServiceOptions {
+  /** Project recording folders under this root are removed on delete. Omit to keep files. */
+  recordingsRoot?: string;
+}
 
 export class ProjectService {
-  constructor(private repo: ProjectRepository) {}
+  constructor(
+    private repo: ProjectRepository,
+    private options?: ProjectServiceOptions,
+  ) {}
 
   list(): Project[] {
     return this.repo.list();
@@ -34,6 +44,18 @@ export class ProjectService {
     if (!id) throw new Error("Project ID is required");
     const existing = this.repo.getById(id);
     if (!existing) throw new Error(`Project ${id} not found`);
-    return this.repo.delete(id);
+    const deleted = this.repo.deleteCascade(id);
+    if (this.options?.recordingsRoot) {
+      const resolvedRoot = resolve(this.options.recordingsRoot);
+      const resolvedTarget = resolve(resolvedRoot, id);
+      if (resolvedTarget !== resolvedRoot && resolvedTarget.startsWith(resolvedRoot + sep)) {
+        try {
+          rmSync(resolvedTarget, { recursive: true, force: true });
+        } catch {
+          // Disk cleanup is best-effort; the DB delete already succeeded.
+        }
+      }
+    }
+    return deleted;
   }
 }

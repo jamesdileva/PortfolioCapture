@@ -2772,3 +2772,24 @@
 **Verification:** 912 unit pass; Playwright 9/9 incl. window E2E now on WorldSim asserting playable stream + non-blank brightness (Sentinel dropped as fixture: Ollama pins GPU); `dist` repacked; packaged launch healthy.
 
 **Files:** `services/electron-capture-provider.ts` (new), `components/CaptureHost.tsx` (new), preload, global.d.ts, main.tsx, main.ts, session-manager, window-capture-tester, ipc/windows, docs/window-capture-plan.md, tests (electron-capture-provider/session-manager/window-capture-tester, window e2e flip).
+
+---
+
+### 2026-09-14 — Delete Cascade + Portfolio Asset Namespacing (human: deletes stop working; airadio shows worldsim video)
+
+**Agent:** agent-a
+**Status:** Complete, repacked + pushed
+
+**Delete root cause (FK trap, proven):** `assets.session_id ? sessions.id` has no ON DELETE action and the app runs `foreign_keys = ON`, so deleting any session WITH assets throws SQLITE_CONSTRAINT. First deletes worked (asset-less sessions); everything else failed. Project deletes had the same trap. UI had no try/catch — modal froze open with zero feedback ("won't let me delete").
+
+**Fix:**
+- `AssetRepository.deleteBySession/deleteByProject`; `SessionRepository.deleteCascade` + `ProjectRepository.deleteCascade` (assets, per-session settings keys ×7, feature evidence — one transaction; in-memory chapter cache documented as restart-expiring).
+- Services delete files too (`recordings/{project}/{session}` / project dir, traversal-guarded, best-effort, opt-in via `recordingsRoot` wired in main.ts).
+- App.tsx: try/catch + toast on both deletes; modal copy now says what goes.
+- Airadio/worldsim: NO db bug — separate UUID rows/own sessions. Airadio card showed worldsim video due to a second real bug: portfolio copied every demo to flat `assets/demo.mp4` (screenshots likewise), so projects overwrote each other. User screenshot also proved the fallback works (taskbar visible in desktop capture).
+
+**Portfolio namespacing:** assets copy to `assets/{slug}/`; index + project-page refs updated (same slug scheme as page filenames, so no new collision class).
+
+**Verification:** 919 unit pass (52 files: delete-cascade 4 new, App delete-toast 2 new, collision regression); Playwright 7/7 default; `dist` repacked; packaged launch healthy (9 procs).
+
+**Files:** repositories (asset/session/project), services (session/project), main.ts, App.tsx, portfolio-generator, tests (delete-cascade/app-delete/portfolio updates).

@@ -75,6 +75,16 @@ export class AssetRepository {
     return result.changes > 0;
   }
 
+  deleteBySession(sessionId: string): number {
+    const result = this.db.prepare("DELETE FROM assets WHERE session_id = ?").run(sessionId);
+    return Number(result.changes);
+  }
+
+  deleteByProject(projectId: string): number {
+    const result = this.db.prepare("DELETE FROM assets WHERE project_id = ?").run(projectId);
+    return Number(result.changes);
+  }
+
   private rowToAsset(row: Record<string, unknown>): MediaAsset {
     return {
       id: row.id as string,

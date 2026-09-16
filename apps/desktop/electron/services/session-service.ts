@@ -4,9 +4,30 @@ import type {
   CreateSessionInput,
   SessionStatus,
 } from "../../../../packages/shared/types/index.js";
+import { rmSync } from "fs";
+import { join, resolve, sep } from "path";
+
+export interface SessionServiceOptions {
+  /** Session files under this root are removed on delete. Omit to keep files. */
+  recordingsRoot?: string;
+}
+
+function removeDirIfInside(root: string, target: string): void {
+  const resolvedRoot = resolve(root);
+  const resolvedTarget = resolve(root, target);
+  if (resolvedTarget === resolvedRoot || !resolvedTarget.startsWith(resolvedRoot + sep)) return;
+  try {
+    rmSync(resolvedTarget, { recursive: true, force: true });
+  } catch {
+    // Disk cleanup is best-effort; the DB delete already succeeded.
+  }
+}
 
 export class SessionService {
-  constructor(private repo: SessionRepository) {}
+  constructor(
+    private repo: SessionRepository,
+    private options?: SessionServiceOptions,
+  ) {}
 
   create(input: CreateSessionInput): RecordingSession {
     if (!input.projectId) throw new Error("Project ID is required");
@@ -47,6 +68,10 @@ export class SessionService {
     if (!id) throw new Error("Session ID is required");
     const existing = this.repo.getById(id);
     if (!existing) throw new Error(`Session ${id} not found`);
-    return this.repo.delete(id);
+    const deleted = this.repo.deleteCascade(id);
+    if (this.options?.recordingsRoot) {
+      removeDirIfInside(this.options.recordingsRoot, join(existing.projectId, id));
+    }
+    return deleted;
   }
 }

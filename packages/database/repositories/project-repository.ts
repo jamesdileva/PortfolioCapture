@@ -106,6 +106,43 @@ export class ProjectRepository {
     return result.changes > 0;
   }
 
+  /**
+   * Deletes a project plus its sessions, asset rows, feature evidence, and
+   * per-session settings keys in one transaction. Plain `delete()` fails
+   * with a foreign-key error once child rows exist. Cross-table SQL lives
+   * here deliberately: atomicity requires a single transaction on this
+   * handle. In-memory chapter caches are keyed by UUID and expire on
+   * restart, so they need no cleanup.
+   */
+  deleteCascade(id: string): boolean {
+    const run = this.db.transaction(() => {
+      const sessionRows = this.db
+        .prepare("SELECT id FROM sessions WHERE project_id = ?")
+        .all(id) as Array<{ id: string }>;
+      const prefixes = [
+        "timeline:",
+        "assembled-timeline:",
+        "demo-chapters:",
+        "demo-quality:",
+        "capture-fallback:",
+        "capture-blank:",
+        "timeline-overrides:",
+      ];
+      const settingsKeys = sessionRows.flatMap((s) => prefixes.map((p) => `${p}${s.id}`));
+      if (settingsKeys.length > 0) {
+        this.db
+          .prepare(`DELETE FROM settings WHERE key IN (${settingsKeys.map(() => "?").join(",")})`)
+          .run(...settingsKeys);
+      }
+      this.db.prepare("DELETE FROM assets WHERE project_id = ?").run(id);
+      this.db.prepare("DELETE FROM feature_evidence WHERE project_id = ?").run(id);
+      this.db.prepare("DELETE FROM sessions WHERE project_id = ?").run(id);
+      const result = this.db.prepare("DELETE FROM projects WHERE id = ?").run(id);
+      return result.changes > 0;
+    });
+    return run();
+  }
+
   private rowToProject(row: Record<string, unknown>): Project {
     return {
       id: row.id as string,

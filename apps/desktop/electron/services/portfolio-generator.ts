@@ -118,8 +118,8 @@ function generateIndexHtml(data: PortfolioData, theme?: PortfolioThemeConfig): s
           <span class="status ${p.projectStatus}">${p.projectStatus}</span>
           ${p.techStack.length > 0 ? `<span class="tech">${escapeHtml(p.techStack.join(", "))}</span>` : ""}
         </div>
-        ${p.demoPath ? `<video class="demo" src="assets/${basename(p.demoPath)}" controls muted></video>` : ""}
-        ${p.screenshots.length > 0 ? `<div class="screenshots">${p.screenshots.map((s) => `<img src="assets/${basename(s.path)}" alt="screenshot" loading="lazy" />`).join("")}</div>` : ""}
+        ${p.demoPath ? `<video class="demo" src="assets/${slugify(p.name)}/${basename(p.demoPath)}" controls muted></video>` : ""}
+        ${p.screenshots.length > 0 ? `<div class="screenshots">${p.screenshots.map((s) => `<img src="assets/${slugify(p.name)}/${basename(s.path)}" alt="screenshot" loading="lazy" />`).join("")}</div>` : ""}
       </div>`,
     )
     .join("\n");
@@ -150,7 +150,7 @@ ${projectCards}
 function generateProjectHtml(project: PortfolioProjectData, theme?: PortfolioThemeConfig): string {
   const heroSection =
     project.screenshots.length > 0
-      ? `<div class="hero"><img src="../assets/${basename(project.screenshots[0].path)}" alt="hero" /></div>`
+      ? `<div class="hero"><img src="../assets/${slugify(project.name)}/${basename(project.screenshots[0].path)}" alt="hero" /></div>`
       : "";
 
   const featuresList =
@@ -165,11 +165,11 @@ function generateProjectHtml(project: PortfolioProjectData, theme?: PortfolioThe
 
   const screenshotsSection =
     project.screenshots.length > 0
-      ? `<section><h2>Screenshots</h2><div class="screenshots">${project.screenshots.map((s) => `<img src="../assets/${basename(s.path)}" alt="screenshot" loading="lazy" />`).join("")}</div></section>`
+      ? `<section><h2>Screenshots</h2><div class="screenshots">${project.screenshots.map((s) => `<img src="../assets/${slugify(project.name)}/${basename(s.path)}" alt="screenshot" loading="lazy" />`).join("")}</div></section>`
       : "";
 
   const demoSection = project.demoPath
-    ? `<section><h2>Demo</h2><video class="demo" src="../assets/${basename(project.demoPath)}" controls muted></video></section>`
+    ? `<section><h2>Demo</h2><video class="demo" src="../assets/${slugify(project.name)}/${basename(project.demoPath)}" controls muted></video></section>`
     : "";
 
   const githubSection = project.githubUrl
@@ -264,13 +264,17 @@ export class PortfolioGeneratorImpl {
     let assetCount = 0;
 
     for (const project of data.projects) {
+      // Namespaced per project: every demo is demo.mp4 and screenshots repeat
+      // names across sessions, so a flat folder would overwrite other projects.
+      const projectAssetsDir = join(assetsDir, slugify(project.name));
+      if (!existsSync(projectAssetsDir)) mkdirSync(projectAssetsDir, { recursive: true });
       if (project.demoPath && existsSync(project.demoPath)) {
-        copyFileSync(project.demoPath, join(assetsDir, basename(project.demoPath)));
+        copyFileSync(project.demoPath, join(projectAssetsDir, basename(project.demoPath)));
         assetCount++;
       }
       for (const shot of project.screenshots) {
         if (existsSync(shot.path)) {
-          copyFileSync(shot.path, join(assetsDir, basename(shot.path)));
+          copyFileSync(shot.path, join(projectAssetsDir, basename(shot.path)));
           assetCount++;
         }
       }
