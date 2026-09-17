@@ -6,6 +6,7 @@ import { DeployPanel } from "@renderer/components/DeployPanel";
 const mockZip = vi.fn();
 const mockPreview = vi.fn();
 const mockRun = vi.fn();
+const mockGenerate = vi.fn(async () => ({ outputDir: "/portfolio", projectCount: 2, assetCount: 5, indexHtmlPath: "/portfolio/index.html" }));
 const mockSettingsGet = vi.fn(async () => []);
 const mockSettingsSet = vi.fn(async () => {});
 
@@ -18,6 +19,9 @@ beforeEach(() => {
       preview: mockPreview,
       run: mockRun,
       targets: vi.fn(async () => ["zip", "github-pages", "netlify", "vercel"]),
+    },
+    portfolio: {
+      generate: mockGenerate,
     },
     settings: {
       get: mockSettingsGet,
@@ -68,7 +72,44 @@ describe("DeployPanel", () => {
     await waitFor(() => {
       expect(mockPreview).toHaveBeenCalledWith("/portfolio");
     });
-    expect(screen.getByText("Opened in default browser")).toBeInTheDocument();
+    expect(screen.getByText("Refreshed and opened in default browser")).toBeInTheDocument();
+  });
+
+  it("regenerates before previewing, in order", async () => {
+    mockPreview.mockResolvedValue({ success: true });
+    const order: string[] = [];
+    mockGenerate.mockImplementationOnce(async () => {
+      order.push("generate");
+      return { outputDir: "/portfolio", projectCount: 1, assetCount: 1, indexHtmlPath: "/portfolio/index.html" };
+    });
+    mockPreview.mockImplementationOnce(async () => {
+      order.push("preview");
+      return { success: true };
+    });
+    render(<DeployPanel portfolioDir="/portfolio" />);
+    fireEvent.click(screen.getByText("Preview Locally"));
+    await waitFor(() => {
+      expect(screen.getByText("Refreshed and opened in default browser")).toBeInTheDocument();
+    });
+    expect(order).toEqual(["generate", "preview"]);
+  });
+
+  it("regenerates on Regenerate click", async () => {
+    render(<DeployPanel portfolioDir="/portfolio" />);
+    fireEvent.click(screen.getByText("Regenerate"));
+    await waitFor(() => {
+      expect(mockGenerate).toHaveBeenCalledTimes(1);
+      expect(screen.getByText("Portfolio refreshed: 2 projects, 5 assets")).toBeInTheDocument();
+    });
+  });
+
+  it("shows error on regenerate failure", async () => {
+    mockGenerate.mockRejectedValueOnce(new Error("Generate blew up"));
+    render(<DeployPanel portfolioDir="/portfolio" />);
+    fireEvent.click(screen.getByText("Regenerate"));
+    await waitFor(() => {
+      expect(screen.getByText("Generate blew up")).toBeInTheDocument();
+    });
   });
 
   it("shows error on zip failure", async () => {

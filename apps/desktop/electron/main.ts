@@ -162,6 +162,11 @@ function initializeServices() {
   const assetService = new AssetService(assetRepo);
   const settingsService = new SettingsService(settingsRepo);
 
+  // Assigned once the portfolio trigger exists below; delete handlers call
+  // through this indirection so registration order doesn't matter.
+  let requestPortfolioRefresh: () => void = () => {};
+  const refreshPortfolio = () => requestPortfolioRefresh();
+
   const captureProvider = new FfmpegCaptureProvider();
 
   const ffmpegService = new FfmpegServiceImpl();
@@ -175,7 +180,7 @@ function initializeServices() {
   const demoQualityScorer = new DemoQualityScorerImpl();
 
   _log("initializeServices: registering core IPC handlers");
-  registerProjectHandlers(projectService, () => refreshMonitorProjects());
+  registerProjectHandlers(projectService, () => refreshMonitorProjects(), refreshPortfolio);
   registerAssetHandlers(assetService);
   registerSettingsHandlers(settingsService);
   _log("initializeServices: core IPC handlers registered");
@@ -215,6 +220,7 @@ function initializeServices() {
   const portfolioUpdateTrigger = new PortfolioUpdateTriggerImpl(portfolioGenerator, () => {
     mainWindow?.webContents.send("portfolio:regenerated");
   });
+  requestPortfolioRefresh = () => portfolioUpdateTrigger.requestUpdate();
 
   const capturePageUrl = process.env.VITE_DEV_SERVER_URL
     ? `${process.env.VITE_DEV_SERVER_URL}?capture=1`
@@ -284,7 +290,7 @@ function initializeServices() {
     windowCaptureProvider: electronCaptureProvider,
   });
 
-  registerSessionHandlers(sessionService, sessionManager, profileService);
+  registerSessionHandlers(sessionService, sessionManager, profileService, refreshPortfolio);
 
   const processMonitor = new ProcessMonitor();
 

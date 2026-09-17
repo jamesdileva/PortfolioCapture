@@ -1,7 +1,7 @@
 # MEMORY.md — Agent Working Memory
 
 ## Current Goal
-Delete cascade + portfolio namespacing shipped 2026-09-14: FK trap fixed (transactional cascades + disk cleanup + toasts), flat-assets collision fixed (per-project slug dirs). 919 unit + 7 e2e green, repacked. Human retries deletes + pushes fresh portfolio.
+Fresh preview shipped 2026-09-14: auto-regenerate on delete, manual Regenerate button, preview rebuilds first, clean-output hygiene (deploy/ preserved). 927 unit + 7 e2e green, repacked. Human deletes + previews to confirm.
 
 ## Completed
 - Sprint 0.1–7.6: All sprints complete

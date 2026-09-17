@@ -2,12 +2,24 @@ import { ipcMain } from "electron";
 import type { ProjectService } from "../services/project-service.js";
 import { CreateProjectInputSchema, UpdateProjectInputSchema, validateInput } from "../../../../packages/shared/schemas/index.js";
 
-export function registerProjectHandlers(projectService: ProjectService, onProjectsChanged?: () => void): void {
+export function registerProjectHandlers(
+  projectService: ProjectService,
+  onProjectsChanged?: () => void,
+  onProjectsDeleted?: () => void,
+): void {
   const notifyChanged = () => {
     try {
       onProjectsChanged?.();
     } catch {
       // Monitor refresh is best-effort — never fail the CRUD operation.
+    }
+  };
+
+  const notifyDeleted = () => {
+    try {
+      onProjectsDeleted?.();
+    } catch {
+      // Portfolio refresh is best-effort — never fail the CRUD operation.
     }
   };
 
@@ -36,6 +48,7 @@ export function registerProjectHandlers(projectService: ProjectService, onProjec
   ipcMain.handle("projects:delete", (_event, id: string) => {
     const result = projectService.delete(id);
     notifyChanged();
+    notifyDeleted();
     return result;
   });
 }

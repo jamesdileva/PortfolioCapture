@@ -7,6 +7,7 @@ export function registerSessionHandlers(
   sessionService: SessionService,
   sessionManager: SessionManager,
   profileService: RecordingProfileServiceImpl,
+  onSessionsDeleted?: () => void,
 ): void {
   ipcMain.handle("sessions:start", async (_event, projectId: string, profileId?: string) => {
     let profileSettings;
@@ -44,7 +45,13 @@ export function registerSessionHandlers(
   });
 
   ipcMain.handle("sessions:delete", (_event, id: string) => {
-    return sessionService.delete(id);
+    const result = sessionService.delete(id);
+    try {
+      onSessionsDeleted?.();
+    } catch {
+      // Portfolio refresh is best-effort — never fail the CRUD operation.
+    }
+    return result;
   });
 
   ipcMain.handle("sessions:recordActivity", (_event, projectId: string) => {

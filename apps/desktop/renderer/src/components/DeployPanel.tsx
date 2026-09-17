@@ -55,10 +55,25 @@ export function DeployPanel({ portfolioDir }: DeployPanelProps) {
     clearFeedback();
     setBusy(true);
     try {
+      setResult("Refreshing portfolio…");
+      await window.portfolio.portfolio.generate();
       await window.portfolio.deploy.preview(portfolioDir);
-      setResult("Opened in default browser");
+      setResult("Refreshed and opened in default browser");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Preview failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    clearFeedback();
+    setBusy(true);
+    try {
+      const res = await window.portfolio.portfolio.generate();
+      setResult(`Portfolio refreshed: ${res.projectCount} projects, ${res.assetCount} assets`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Refresh failed");
     } finally {
       setBusy(false);
     }
@@ -99,6 +114,9 @@ export function DeployPanel({ portfolioDir }: DeployPanelProps) {
       <div style={rowStyle}>
         <button onClick={handleZipExport} disabled={busy} style={btnStyle}>
           Download ZIP
+        </button>
+        <button onClick={handleRefresh} disabled={busy} style={btnStyle}>
+          Regenerate
         </button>
         <button onClick={handlePreview} disabled={busy} style={btnStyle}>
           Preview Locally

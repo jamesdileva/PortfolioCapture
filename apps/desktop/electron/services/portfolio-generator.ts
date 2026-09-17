@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, copyFileSync, writeFileSync, readdirSync } from "fs";
+import { existsSync, mkdirSync, copyFileSync, writeFileSync, rmSync } from "fs";
 import { join, basename } from "path";
 import type {
   PortfolioGenerateConfig,
@@ -258,6 +258,16 @@ export class PortfolioGeneratorImpl {
     const projectsDir = join(outputDir, "projects");
 
     if (!existsSync(outputDir)) mkdirSync(outputDir, { recursive: true });
+    // Fresh output so pages/assets of deleted projects vanish. Only removes
+    // known generated names (plus anything inside them) — never unknown
+    // files, in case outputDir points somewhere shared. deploy/ is preserved:
+    // the default deploy target lives inside the portfolio dir.
+    for (const entry of ["index.html", "data.json", "assets", "projects"]) {
+      const target = join(outputDir, entry);
+      if (entry !== "deploy" && existsSync(target)) {
+        rmSync(target, { recursive: true, force: true });
+      }
+    }
     if (!existsSync(assetsDir)) mkdirSync(assetsDir, { recursive: true });
     if (!existsSync(projectsDir)) mkdirSync(projectsDir, { recursive: true });
 

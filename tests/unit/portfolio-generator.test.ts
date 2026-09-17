@@ -191,6 +191,26 @@ describe("PortfolioGeneratorImpl", () => {
     expect(data.summary.hasDemos).toBe(true);
   });
 
+  it("clears stale output but preserves the deploy directory", async () => {
+    projectService.create({ name: "Fresh", path: "/fresh" });
+    const stalePage = path.join(tempDir, "projects", "deleted-project.html");
+    const staleAsset = path.join(tempDir, "assets", "deleted-project", "demo.mp4");
+    const deployDir = path.join(tempDir, "deploy", "github-pages");
+    fs.mkdirSync(path.join(tempDir, "projects"), { recursive: true });
+    fs.mkdirSync(path.join(tempDir, "assets", "deleted-project"), { recursive: true });
+    fs.mkdirSync(deployDir, { recursive: true });
+    fs.writeFileSync(stalePage, "stale");
+    fs.writeFileSync(staleAsset, "stale");
+    fs.writeFileSync(path.join(deployDir, "index.html"), "deployed");
+
+    await generator.generate();
+
+    expect(fs.existsSync(stalePage)).toBe(false);
+    expect(fs.existsSync(staleAsset)).toBe(false);
+    expect(fs.existsSync(path.join(deployDir, "index.html"))).toBe(true);
+    expect(fs.existsSync(path.join(tempDir, "projects", "fresh.html"))).toBe(true);
+  });
+
   it("copies screenshots to assets directory", async () => {
     const project = projectService.create({ name: "ShotProject", path: "/shot" });
     const session = sessionService.create({ projectId: project.id, trigger: "manual" });

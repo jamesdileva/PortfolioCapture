@@ -2793,3 +2793,22 @@
 **Verification:** 919 unit pass (52 files: delete-cascade 4 new, App delete-toast 2 new, collision regression); Playwright 7/7 default; `dist` repacked; packaged launch healthy (9 procs).
 
 **Files:** repositories (asset/session/project), services (session/project), main.ts, App.tsx, portfolio-generator, tests (delete-cascade/app-delete/portfolio updates).
+
+---
+
+### 2026-09-14 — Stale Preview: Regenerate Paths (human: preview shows deleted recordings + wrong video)
+
+**Agent:** agent-a
+**Status:** Complete, repacked + pushed
+
+**Root causes (proven on disk):** on-disk `data.json` was a 12:11 AM snapshot — nothing regenerates on delete (only session-complete triggers), and no UI invoked `portfolio:generate` (wired IPC, zero callers). The "wrong video" in that bundle was the pre-fix flat `assets/demo.mp4` collision fossil, not live data (Recordings tab reads live DB — correct).
+
+**Work:**
+- Auto-regenerate on delete: `sessions:delete`/`projects:delete` IPC take refresh callbacks (failed deletes do not trigger); main.ts wires a late-bound `requestPortfolioRefresh` (no registration reorder needed).
+- DeployPanel "Regenerate" button (counts in result line) + Preview rebuilds first ("Refreshing…" interim, error instead of stale page).
+- `generate()` clears known outputs (index/data/assets/projects) before writing — stale pages vanish; `deploy/` preserved; allowlist (not wipe-all) so a misconfigured outputDir can never nuke unknown files. (First version wiped everything-except-deploy and ate the unit fixtures — caught by tests, fixed.)
+- Tests: IPC refresh on success/skip on throw (vi.mock electron gate), cleaner keeps deploy/drops stale, Regenerate + preview-order button tests.
+
+**Verification:** 927 unit pass (53 files); 7/7 default E2E (project-flow delete exercises real trigger path); `dist` repacked; packaged launch healthy (9 procs, no orphans/errors).
+
+**Files:** ipc/sessions, ipc/projects, main.ts, portfolio-generator, DeployPanel, tests (ipc-delete-refresh/deploy-panel/portfolio).
