@@ -2812,3 +2812,24 @@
 **Verification:** 927 unit pass (53 files); 7/7 default E2E (project-flow delete exercises real trigger path); `dist` repacked; packaged launch healthy (9 procs, no orphans/errors).
 
 **Files:** ipc/sessions, ipc/projects, main.ts, portfolio-generator, DeployPanel, tests (ipc-delete-refresh/deploy-panel/portfolio).
+
+---
+
+### 2026-09-20 — Temp Fossil Triage + Depth Guard (human: 30+ nested deploy-test-* dirs in %TEMP%)
+
+**Agent:** agent-a
+**Status:** Complete (code) — human robocopy cleanup still rolling, #4 pending their verify
+
+**Forensics (all read-only):**
+- ~33 `deploy-test-*` fossils, ALL created 9/5 (a late mtime on one was the human robocopy pass touching it — creation times prove it). Nothing new generated since; disk has 476GB free, no live writers, no emergency.
+- Unit `deploy-service.test.ts` (+ portfolio/export suites) genuinely do stage `*-test-*` scratch dirs under %TEMP% every run — green runs self-clean, red/interrupted runs abandon fossils. That plus the pre-fix self-copy is the whole story.
+- 9/19 dir (odd `subdir/vc/zout` fixtures) matches nothing ever committed — uncommitted experimentation, bounded (~2k dirs), not the infinite pattern.
+
+**Work:**
+- Guaranteed cleanup: deploy suite temp root now removed in `afterEach` (export/portfolio already had it). Census after a full 928-test run: zero same-day fossils.
+- Depth guard (32) in `copyDirSync` + `listFilesRecursive`: runaway nesting is impossible by construction — loud error instead of an undeletable tree. Also scoped the top-level exclude to depth 0 (a legit nested `deploy/` docs folder used to be silently dropped).
+- Caught by its own test mid-build: first cleaner draft wiped unit fixtures (allowlist already fixed that); depth test asserts the abort, not absence of a bounded prefix.
+
+**Verification:** 928 unit pass; `dist` repacked; packaged launch healthy (9 procs). Default E2E untouched (no renderer changes).
+
+**Files:** `services/deploy-service.ts`, `tests/unit/deploy-service.test.ts`.

@@ -1,7 +1,7 @@
 # MEMORY.md — Agent Working Memory
 
 ## Current Goal
-Fresh preview shipped 2026-09-14: auto-regenerate on delete, manual Regenerate button, preview rebuilds first, clean-output hygiene (deploy/ preserved). 927 unit + 7 e2e green, repacked. Human deletes + previews to confirm.
+Temp-fossil hardening 2026-09-20: guaranteed test cleanup (census clean after 928 tests), depth-32 guard in copy helpers. Human robocopy still clearing 9/5-era fossils; verify zero dirs after.
 
 ## Completed
 - Sprint 0.1–7.6: All sprints complete

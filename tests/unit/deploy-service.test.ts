@@ -1,9 +1,15 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, afterEach } from "vitest";
 import * as fs from "fs";
 import * as path from "path";
 import { DeployServiceImpl } from "../../apps/desktop/electron/services/deploy-service.js";
 
 const TEMP = path.join(process.env.TEMP || process.env.TMP || "C:\\Temp", "deploy-test-" + Date.now());
+
+// Safety net: per-test cleanup lines below are skipped when an assertion
+// throws, so remove the whole shared root after every test regardless.
+afterEach(() => {
+  fs.rmSync(TEMP, { recursive: true, force: true });
+});
 
 function makeService() {
   return new DeployServiceImpl({
@@ -114,6 +120,22 @@ describe("DeployServiceImpl", () => {
 
   it("deploy throws on missing dir", async () => {
     await expect(makeService().deploy({ target: "netlify", portfolioDir: "/nope" })).rejects.toThrow("Portfolio directory does not exist");
+  });
+
+  it("refuses to copy deeper than 32 levels instead of building an undeletable tree", async () => {
+    const dir = path.join(TEMP, "deep-" + Date.now());
+    let current = dir;
+    for (let i = 0; i < 35; i++) {
+      current = path.join(current, "level");
+      fs.mkdirSync(current, { recursive: true });
+    }
+    fs.writeFileSync(path.join(current, "deep.txt"), "deep");
+    const out = path.join(TEMP, "deep-out-" + Date.now());
+    await expect(makeService().deploy({ target: "netlify", portfolioDir: dir, outputDir: out })).rejects.toThrow("deeper than 32 levels");
+    // The copy aborts at the ceiling: deep levels never materialize, so no
+    // undeletable tree is left behind (a shallow bounded prefix may remain).
+    const deepPath = path.join(out, ...Array.from({ length: 34 }, () => "level"));
+    expect(fs.existsSync(deepPath)).toBe(false);
   });
 
   it("deploy throws on unsupported target", async () => {

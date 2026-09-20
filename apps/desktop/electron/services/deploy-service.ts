@@ -273,7 +273,13 @@ function defaultCreateZip(sourceDir: string, outPath: string): Promise<number> {
   });
 }
 
-function listFilesRecursive(baseDir: string, currentDir: string): Array<{ absolute: string; relative: string }> {
+/** Hard ceiling: deeper trees are always a nesting bug, and past ~260 chars
+ *  Windows paths become undeletable by normal means. Fail loudly instead. */
+const MAX_COPY_DEPTH = 32;
+
+function listFilesRecursive(baseDir: string, currentDir: string, depth = 0): Array<{ absolute: string; relative: string }> {
+  if (depth > MAX_COPY_DEPTH) {    throw new Error(`Refusing to list deeper than ${MAX_COPY_DEPTH} levels under ${baseDir} (possible self-nesting)`);
+  }
   const results: Array<{ absolute: string; relative: string }> = [];
   const entries = readdirSync(currentDir, { withFileTypes: true });
 
@@ -282,7 +288,7 @@ function listFilesRecursive(baseDir: string, currentDir: string): Array<{ absolu
     const absolute = join(currentDir, entry.name);
     if (entry.isDirectory()) {
       if (entry.name === "deploy") continue;
-      results.push(...listFilesRecursive(baseDir, absolute));
+      results.push(...listFilesRecursive(baseDir, absolute, depth + 1));
     } else {
       const relative = absolute.substring(baseDir.length + 1).replace(/\\/g, "/");
       results.push({ absolute, relative });
@@ -292,17 +298,20 @@ function listFilesRecursive(baseDir: string, currentDir: string): Array<{ absolu
   return results;
 }
 
-function copyDirSync(src: string, dest: string, excludeTopLevel: string[] = []): void {
+function copyDirSync(src: string, dest: string, excludeTopLevel: string[] = [], depth = 0): void {
+  if (depth > MAX_COPY_DEPTH) {
+    throw new Error(`Refusing to copy deeper than ${MAX_COPY_DEPTH} levels under ${src} (possible self-nesting)`);
+  }
   mkdirSync(dest, { recursive: true });
 
   for (const entry of readdirSync(src, { withFileTypes: true })) {
     if (entry.isSymbolicLink()) continue; // never follow links
-    if (excludeTopLevel.includes(entry.name)) continue;
+    if (depth === 0 && excludeTopLevel.includes(entry.name)) continue;
     const srcPath = join(src, entry.name);
     const destPath = join(dest, entry.name);
 
     if (entry.isDirectory()) {
-      copyDirSync(srcPath, destPath);
+      copyDirSync(srcPath, destPath, [], depth + 1);
     } else if (entry.isFile()) {
       copyFileSync(srcPath, destPath);
     }
