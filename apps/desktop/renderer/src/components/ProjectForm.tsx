@@ -94,6 +94,8 @@ export function ProjectForm({ project, onSave, onCancel }: ProjectFormProps) {
       if (!techStack.trim() && result.techStack.length > 0) { setTechStack(result.techStack.join(", ")); filled++; }
       if (!githubUrl.trim() && result.githubUrl) { setGithubUrl(result.githubUrl); filled++; }
       if (!executablePath.trim() && result.executablePath) { setExecutablePath(result.executablePath); filled++; }
+      if (!features.trim() && result.features.length > 0) { setFeatures(result.features.join(", ")); filled++; }
+      if (!devServerPorts.trim() && result.devServerPorts.length > 0) { setDevServerPorts(result.devServerPorts.join(", ")); filled++; }
       setDetectStatus(filled > 0 ? `Auto-filled ${filled} field${filled > 1 ? "s" : ""}` : "No new fields to fill");
       setTimeout(() => setDetectStatus(null), 3000);
     } catch {

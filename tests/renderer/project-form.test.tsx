@@ -59,6 +59,29 @@ describe("ProjectForm capture section", () => {
     expect(onSave.mock.calls[0][0]).toMatchObject({ captureMode: "window", windowTitle: "My App" });
   });
 
+  it("auto-fills features and dev server ports without overwriting input", async () => {
+    mockAutofill.mockResolvedValueOnce({
+      name: "Detected",
+      description: null,
+      launchCommand: null,
+      techStack: [],
+      githubUrl: null,
+      executablePath: null,
+      features: ["capture", "trim"],
+      devServerPorts: [5173],
+    });
+    renderForm();
+    fireEvent.change(screen.getByLabelText("Project Path", { exact: false }), { target: { value: "C:\\app" } });
+    fireEvent.click(screen.getByText("Detect"));
+
+    await waitFor(() => {
+      expect(screen.getByText("Auto-filled 3 fields")).toBeInTheDocument();
+    });
+    expect(screen.getByLabelText("Name", { exact: false })).toHaveValue("Detected");
+    expect(screen.getByPlaceholderText("auth, dashboard, API")).toHaveValue("capture, trim");
+    expect(screen.getByPlaceholderText("3000, 5173, 8080")).toHaveValue("5173");
+  });
+
   it("shows an error when window listing fails", async () => {
     mockListWindows.mockRejectedValueOnce(new Error("nope"));
     renderForm();

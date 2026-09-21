@@ -341,4 +341,112 @@ describe("SmartTrimmerImpl", () => {
       expect(active).toEqual([{ startMs: 0, endMs: 60_000 }]);
     });
   });
+
+  describe("trimEdgesFocus", () => {
+    const focusOf = (title: string, exePath: string | null, startMs: number, endMs: number) => ({
+      title,
+      exePath,
+      startMs,
+      endMs,
+    });
+
+    it("cuts lead-in and tail around target-foreground bounds", async () => {
+      const execFn = vi.fn(() => freshProcess());
+      const trimmer = new SmartTrimmerImpl(createMockFfmpegService(60_000), {}, execFn);
+      const focus = [
+        focusOf("Portfolio Auto Recorder", "C:\\app\\rec.exe", 0, 4000),
+        focusOf("My App", "C:\\app\\myapp.exe", 4000, 50000),
+        focusOf("Portfolio Auto Recorder", "C:\\app\\rec.exe", 50000, 56000),
+      ];
+
+      const out = await trimmer.trimEdgesFocus(
+        "/rec/raw.mp4",
+        "/rec/edged.mp4",
+        focus,
+        { exePath: "C:\\app\\myapp.exe" },
+        { edgePaddingMs: 1000 },
+      );
+
+      expect(out).toBe("/rec/edged.mp4");
+      const args = (execFn.mock.calls[0][1] ?? execFn.mock.calls[0][0]) as string[];
+      const flat = Array.isArray(args) ? args.join(" ") : String(execFn.mock.calls[0]);
+      expect(flat).toContain("-ss");
+      expect(flat).toContain("3");
+      expect(flat).toContain("48");
+    });
+
+    it("matches by window title when no exe is configured", async () => {
+      const execFn = vi.fn(() => freshProcess());
+      const trimmer = new SmartTrimmerImpl(createMockFfmpegService(60_000), {}, execFn);
+      const focus = [
+        focusOf("Portfolio Auto Recorder", null, 0, 2000),
+        focusOf("My App — Dashboard", null, 2000, 58000),
+      ];
+
+      const out = await trimmer.trimEdgesFocus("/rec/raw.mp4", "/rec/edged.mp4", focus, {
+        windowTitle: "my app",
+      });
+
+      expect(out).toBe("/rec/edged.mp4");
+    });
+
+    it("returns null when the target never has focus", async () => {
+      const execFn = vi.fn(() => freshProcess());
+      const trimmer = new SmartTrimmerImpl(createMockFfmpegService(60_000), {}, execFn);
+      const focus = [focusOf("Other", null, 0, 60000)];
+
+      const out = await trimmer.trimEdgesFocus("/rec/raw.mp4", "/rec/edged.mp4", focus, {
+        exePath: "C:\\app\\myapp.exe",
+      });
+
+      expect(out).toBeNull();
+      expect(execFn).not.toHaveBeenCalled();
+    });
+
+    it("returns null when there is nothing worth cutting", async () => {
+      const execFn = vi.fn(() => freshProcess());
+      const trimmer = new SmartTrimmerImpl(createMockFfmpegService(60_000), {}, execFn);
+      const focus = [focusOf("My App", "C:\\app\\myapp.exe", 0, 60000)];
+
+      const out = await trimmer.trimEdgesFocus("/rec/raw.mp4", "/rec/edged.mp4", focus, {
+        exePath: "C:\\app\\myapp.exe",
+      });
+
+      expect(out).toBeNull();
+      expect(execFn).not.toHaveBeenCalled();
+    });
+
+    it("returns null when the result would be too short", async () => {
+      const execFn = vi.fn(() => freshProcess());
+      const trimmer = new SmartTrimmerImpl(createMockFfmpegService(10_000), {}, execFn);
+      const focus = [
+        focusOf("Other", null, 0, 9000),
+        focusOf("My App", null, 9000, 9500),
+      ];
+
+      const out = await trimmer.trimEdgesFocus(
+        "/rec/raw.mp4",
+        "/rec/edged.mp4",
+        focus,
+        { windowTitle: "My App" },
+        { edgePaddingMs: 100, minResultMs: 2000 },
+      );
+
+      expect(out).toBeNull();
+      expect(execFn).not.toHaveBeenCalled();
+    });
+
+    it("propagates ffmpeg failures", async () => {
+      const execFn = vi.fn(() => createFailingProcess("boom") as unknown as ReturnType<ExecFn>);
+      const trimmer = new SmartTrimmerImpl(createMockFfmpegService(60_000), {}, execFn);
+      const focus = [
+        focusOf("Other", null, 0, 5000),
+        focusOf("My App", null, 5000, 55000),
+      ];
+
+      await expect(
+        trimmer.trimEdgesFocus("/rec/raw.mp4", "/rec/edged.mp4", focus, { windowTitle: "My App" }),
+      ).rejects.toThrow("boom");
+    });
+  });
 });

@@ -880,4 +880,101 @@ describe("SessionManager", () => {
       expect(ffmpegStart.mock.calls[0][0]).toMatchObject({ captureMode: "desktop" });
     });
   });
+
+  describe("focus edge-trim", () => {
+    const FOCUS = [
+      { startMs: 0, endMs: 3000, title: "Portfolio Auto Recorder", exePath: "C:\\app\\rec.exe" },
+      { startMs: 3000, endMs: 50000, title: "My App", exePath: "C:\\app\\myapp.exe" },
+      { startMs: 50000, endMs: 56000, title: "Portfolio Auto Recorder", exePath: "C:\\app\\rec.exe" },
+    ];
+
+    async function focusSetup() {
+      const { AssetRepository } = await import("../../packages/database/repositories/asset-repository.js");
+      const { AssetService } = await import("../../apps/desktop/electron/services/asset-service.js");
+      const assetService = new AssetService(new AssetRepository(db));
+      const settingsSvc = new SettingsService(new SettingsRepository(db));
+      const trimEdgesFocus = vi.fn(async (_in: string, out: string) => out);
+      const generatedFrom: string[] = [];
+      const tracker = {
+        start: vi.fn(),
+        stop: vi.fn(),
+        getSegments: () => FOCUS,
+      };
+      const mgr = new SessionManager({
+        sessionService,
+        captureProvider,
+        projectService,
+        assetService,
+        settingsService: settingsSvc,
+        smartTrimmer: {
+          trim: vi.fn(async () => null),
+          trimEdgesFocus,
+          computeActiveSegments: () => [],
+        } as never,
+        demoGenerator: {
+          generate: async (input: string, outputDir: string) => {
+            generatedFrom.push(input);
+            return { outputPath: `${outputDir}/demo.mp4`, durationMs: 5000, segmentCount: 1, hasIntro: false, hasOutro: false };
+          },
+        },
+        foregroundTrackerFactory: () => tracker,
+        brightnessSampler: async () => null,
+        config: { outputRoot: "data/recordings" },
+      });
+      return { mgr, trimEdgesFocus, generatedFrom, tracker, settingsSvc };
+    }
+
+    function makeFocusProject(name: string, sub: string) {
+      return projectService.create({ name, path: `/${sub}`, executablePath: "C:\\app\\myapp.exe" });
+    }
+
+    it("trims recorder round-trip edges for manual recordings", async () => {
+      const { mgr, trimEdgesFocus, generatedFrom, tracker, settingsSvc } = await focusSetup();
+      const project = makeFocusProject("Win", "win");
+
+      await mgr.startSession(project.id, "manual");
+      expect(tracker.start).toHaveBeenCalledTimes(1);
+      const completed = await mgr.stopSession(project.id);
+
+      expect(trimEdgesFocus).toHaveBeenCalledTimes(1);
+      const [, outPath, , target] = trimEdgesFocus.mock.calls[0] as [string, string, unknown, { exePath: string | null }];
+      expect(outPath.endsWith("edged.mp4")).toBe(true);
+      expect(target.exePath).toBe("C:\\app\\myapp.exe");
+      expect(generatedFrom).toHaveLength(1);
+      expect(generatedFrom[0]).toContain("edged.mp4");
+      expect(settingsSvc.get(`focus:${completed!.id}`)).not.toBeNull();
+    });
+
+    it("skips edge-trim for auto recordings by default", async () => {
+      const { mgr, trimEdgesFocus } = await focusSetup();
+      const project = makeFocusProject("Auto", "auto");
+
+      await mgr.startSession(project.id, "process_launch");
+      await mgr.stopSession(project.id);
+
+      expect(trimEdgesFocus).not.toHaveBeenCalled();
+    });
+
+    it("profile flag overrides the trigger default both ways", async () => {
+      const auto = await focusSetup();
+      await mgrStart(auto, "Auto2", "auto2", "process_launch", { focusEdgeTrim: true });
+      expect(auto.trimEdgesFocus).toHaveBeenCalledTimes(1);
+
+      const manual = await focusSetup();
+      await mgrStart(manual, "Manual2", "manual2", "manual", { focusEdgeTrim: false });
+      expect(manual.trimEdgesFocus).not.toHaveBeenCalled();
+    });
+
+    async function mgrStart(
+      setup: Awaited<ReturnType<typeof focusSetup>>,
+      name: string,
+      sub: string,
+      trigger: "manual" | "process_launch",
+      profileSettings?: Record<string, unknown>,
+    ) {
+      const project = makeFocusProject(name, sub);
+      await setup.mgr.startSession(project.id, trigger, profileSettings as never);
+      await setup.mgr.stopSession(project.id);
+    }
+  });
 });

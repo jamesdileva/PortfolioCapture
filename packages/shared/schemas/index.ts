@@ -145,6 +145,7 @@ export const RecordingProfileSettingsSchema = z.object({
   screenshotsOnly: z.boolean(),
   captureMode: CaptureModeSchema.optional(),
   windowTitle: z.string().optional(),
+  focusEdgeTrim: z.boolean().optional(),
 });
 
 export const CreateProfileInputSchema = z.object({

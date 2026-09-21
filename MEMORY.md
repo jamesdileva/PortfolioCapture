@@ -1,7 +1,7 @@
 # MEMORY.md — Agent Working Memory
 
 ## Current Goal
-Temp-fossil hardening 2026-09-20: guaranteed test cleanup (census clean after 928 tests), depth-32 guard in copy helpers. Human robocopy still clearing 9/5-era fossils; verify zero dirs after.
+Autofill overhaul + focus edge-trim shipped 2026-09-21: recursive/Python/features/ports/md-strip autofill (proven live on 4 real projects); manual-only foreground edge-trim before post-processing chain. 959 unit + 7 e2e green, repacked + pushed. Human re-adds a project to feel the autofill + tries a manual recording.
 
 ## Completed
 - Sprint 0.1–7.6: All sprints complete

@@ -2833,3 +2833,30 @@
 **Verification:** 928 unit pass; `dist` repacked; packaged launch healthy (9 procs). Default E2E untouched (no renderer changes).
 
 **Files:** `services/deploy-service.ts`, `tests/unit/deploy-service.test.ts`.
+
+---
+
+### 2026-09-21 — Autofill Overhaul + Focus Edge-Trim (human: auto settings gaps; trim manual round-trip)
+
+**Agent:** agent-a
+**Status:** Complete — 959 unit pass, 7/7 default E2E, repacked, pushed
+
+**A. Autofill overhaul (`project-autofill.ts` rewritten):**
+- Recursive discovery (depth 3, skipping node_modules/.git/venvs): package.json, pyproject.toml, requirements*.txt, Cargo.toml, go.mod, *.sln/csproj; exes in top level + dist/release/out/build/win-unpacked/bin.
+- Manifest precedence (root, else shallowest with start/dev script for name+launch; tech unions across all manifests) + script-binary tech sniffing (electron/vite/tsx/...).
+- Python: pyproject fields/keywords/deps, requirements parsing, entry candidates (`entry_*.py`, main/app/run/serve) ? launch, uvicorn-port regex (incl. annotated `port: int = N`) + .env + vite config ? devServerPorts (worldsim ? 8600 proven live).
+- Features: README `## Features` bullets (cap 8) + manifest keywords. Descriptions markdown-stripped (fixes live `**bold**` leak) + generic-dirname fallback (`backend` ? parent).
+- Exe ranking: output-dir rank + installer-name penalty (sentinel picks `win-unpacked/Sentinel.exe` over the Setup installer).
+- Proven live against worldsim/sentinel/dinner/ALGO-TRADER via throwaway spec (deleted after): only miss was ALGO exe from stale `build/` (accepted).
+- Form now fills features + devServerPorts (non-destructive).
+
+**B. Focus edge-trim (manual default, per human):**
+- `ForegroundTrackerImpl` (Win32 GetForegroundWindow + title/exe via temp-.ps1/-File pattern, injectable, IdleDetector-style segments, persisted as `focus:{sessionId}`).
+- `SmartTrimmer.trimEdgesFocus()`: target match (exe exact, else title-contains), 1s padding, 2s min-result guard, no-op detection, libx264 re-encode (accurate cuts).
+- SessionManager: per-session tracker, edge pass on raw BEFORE screenshots/trim/demo chain (so stills are app-only too); gate `profileSettings.focusEdgeTrim ?? trigger === "manual"`; best-effort everywhere, backward compatible without tracker.
+- `focusEdgeTrim?: boolean` on RecordingProfileSettings + Zod schema.
+- main.ts wires the factory. E2E deliberately skipped (focus unreliable under Playwright).
+
+**Verification:** 959 unit (53 files: autofill 31, foreground 10, trimEdges 6, focus integration 3, form fill 1); tsc baseline unchanged (13 pre-existing); 7/7 default E2E; `dist` repacked; packaged launch healthy.
+
+**Files:** `services/project-autofill.ts`, `services/foreground-tracker.ts` (new), `services/smart-trimmer.ts`, `services/session-manager.ts`, `services/index.ts`, `main.ts`, shared types + schemas, `ProjectForm.tsx`, tests (autofill/foreground/smart-trimmer/session-manager/project-form).

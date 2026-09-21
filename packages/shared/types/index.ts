@@ -253,6 +253,23 @@ export interface IdleDetector {
   onActive(callback: () => void): void;
 }
 
+export interface ForegroundSegment {
+  startMs: number;
+  endMs: number;
+  title: string;
+  exePath: string | null;
+}
+
+export interface ForegroundTrackerConfig {
+  pollIntervalMs: number;
+}
+
+export interface ForegroundTracker {
+  start(): void;
+  stop(): void;
+  getSegments(): ForegroundSegment[];
+}
+
 export interface SmartTrimmerConfig {
   minIdleDurationMs: number;
   mergeGapMs: number;
@@ -270,6 +287,25 @@ export interface TrimResult {
 
 export interface SmartTrimmer {
   trim(inputVideo: string, outputDir: string, timeline: IdleSegment[], config?: Partial<SmartTrimmerConfig>): Promise<TrimResult>;
+  trimEdgesFocus(
+    inputVideo: string,
+    outputPath: string,
+    focusSegments: ForegroundSegment[],
+    target: FocusEdgeTarget,
+    options?: FocusEdgeOptions,
+  ): Promise<string | null>;
+}
+
+export interface FocusEdgeTarget {
+  exePath?: string | null;
+  windowTitle?: string | null;
+}
+
+export interface FocusEdgeOptions {
+  /** Padding kept around the focused range so cuts don't feel abrupt. */
+  edgePaddingMs?: number;
+  /** Skip when the result would be shorter than this. */
+  minResultMs?: number;
 }
 
 export interface DemoGeneratorConfig {
@@ -464,6 +500,7 @@ export interface RecordingProfileSettings {
   screenshotsOnly: boolean;
   captureMode?: CaptureMode;
   windowTitle?: string;
+  focusEdgeTrim?: boolean;
 }
 
 export interface RecordingProfile {
@@ -930,6 +967,8 @@ export interface ProjectAutoFillResult {
   techStack: string[];
   githubUrl: string | null;
   executablePath: string | null;
+  features: string[];
+  devServerPorts: number[];
 }
 
 export interface ProjectAutoFillService {

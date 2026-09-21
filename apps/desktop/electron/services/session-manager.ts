@@ -11,6 +11,7 @@ import type {
   AudioMode,
   ScreenshotExtractor,
   IdleSegment,
+  ForegroundSegment,
   SmartTrimmer,
   DemoGenerator,
   ScreenshotRanker,
@@ -24,6 +25,7 @@ import type {
   InteractionCollector,
   Project,
   WindowEnumerator,
+  ForegroundTracker,
 } from "../../../../packages/shared/types/index.js";
 import type { SessionService } from "./session-service.js";
 import type { ProjectService } from "./project-service.js";
@@ -59,6 +61,8 @@ interface ActiveSession {
   idleDetector?: IdleDetectorImpl;
   interactionCollector?: InteractionCollector;
   profileSettings?: Partial<RecordingProfileSettings>;
+  foregroundTracker?: ForegroundTracker;
+  focusTarget?: { exePath: string | null; windowTitle: string | null };
 }
 
 export interface SessionManagerOptions {
@@ -79,6 +83,7 @@ export interface SessionManagerOptions {
   featureEvidenceService?: FeatureEvidenceService;
   sceneDetector?: SceneDetector;
   interactionCollectorFactory?: () => InteractionCollector;
+  foregroundTrackerFactory?: () => ForegroundTracker;
   onSessionComplete?: (projectId: string, sessionId: string) => void;
   logger?: (message: string) => void;
   windowEnumerator?: WindowEnumerator;
@@ -106,6 +111,7 @@ export class SessionManager {
   private featureEvidenceService?: FeatureEvidenceService;
   private sceneDetector?: SceneDetector;
   private interactionCollectorFactory?: () => InteractionCollector;
+  private foregroundTrackerFactory?: () => ForegroundTracker;
   private onSessionComplete?: (projectId: string, sessionId: string) => void;
   private logger: (message: string) => void;
   private windowEnumerator?: WindowEnumerator;
@@ -130,6 +136,7 @@ export class SessionManager {
     this.featureEvidenceService = options.featureEvidenceService;
     this.sceneDetector = options.sceneDetector;
     this.interactionCollectorFactory = options.interactionCollectorFactory;
+    this.foregroundTrackerFactory = options.foregroundTrackerFactory;
     this.onSessionComplete = options.onSessionComplete;
     this.logger = options.logger ?? (() => {});
     this.windowEnumerator = options.windowEnumerator;
@@ -287,6 +294,16 @@ export class SessionManager {
         active.interactionCollector = collector;
       }
 
+      active.focusTarget = {
+        exePath: project.executablePath ?? null,
+        windowTitle: windowTitle ?? null,
+      };
+      if (this.foregroundTrackerFactory) {
+        const tracker = this.foregroundTrackerFactory();
+        tracker.start();
+        active.foregroundTracker = tracker;
+      }
+
       this.sessionService.updateStatus(session.id, "recording");
       return this.sessionService.getById(session.id)!;
     } catch (err) {
@@ -314,6 +331,12 @@ export class SessionManager {
     if (active.interactionCollector) {
       active.interactionCollector.stop();
       interactionTimestamps = active.interactionCollector.getTimestamps();
+    }
+
+    let focusSegments: ForegroundSegment[] = [];
+    if (active.foregroundTracker) {
+      active.foregroundTracker.stop();
+      focusSegments = active.foregroundTracker.getSegments();
     }
 
     try {
@@ -356,31 +379,67 @@ export class SessionManager {
       if (timeline.length > 0) {
         this.settingsService?.set(`timeline:${active.session.id}`, JSON.stringify(timeline));
       }
+      if (focusSegments.length > 0) {
+        try {
+          this.settingsService?.set(`focus:${active.session.id}`, JSON.stringify(focusSegments));
+        } catch {
+          // best-effort marker only
+        }
+      }
+
+      // Focus edge-trim (manual recordings by default): cut the lead-in/tail
+      // spent switching to/from the recorder so the video starts in the app.
+      let effectiveVideoPath = result.outputPath;
+      const focusTrimEnabled =
+        active.profileSettings?.focusEdgeTrim ?? active.session.trigger === "manual";
+      if (
+        focusTrimEnabled &&
+        this.smartTrimmer &&
+        focusSegments.length > 0 &&
+        active.focusTarget &&
+        (active.focusTarget.exePath || active.focusTarget.windowTitle)
+      ) {
+        try {
+          const edgedPath = join(this.config.outputRoot, active.projectId, active.session.id, "edged.mp4");
+          const edged = await this.smartTrimmer.trimEdgesFocus(
+            result.outputPath,
+            edgedPath,
+            focusSegments,
+            active.focusTarget,
+          );
+          if (edged) {
+            effectiveVideoPath = edged;
+            this.logger(`postprocess session=${active.session.id} trimmed recorder round-trip edges via foreground focus`);
+          }
+        } catch (err) {
+          this.logPostProcessError("trimEdgesFocus", active.session.id, err);
+        }
+      }
 
       const screenshotsOnly = active.profileSettings?.screenshotsOnly ?? false;
 
       const segmentDurations = timeline.map((s) => s.endMs - s.startMs);
 
       if (!screenshotsOnly) {
-        await this.extractScreenshots(active.session.id, active.projectId, result.outputPath, active.profileSettings, interactionTimestamps, segmentDurations);
+        await this.extractScreenshots(active.session.id, active.projectId, effectiveVideoPath, active.profileSettings, interactionTimestamps, segmentDurations);
 
-        const trimmedVideoPath = await this.trimVideo(active.session.id, active.projectId, result.outputPath, timeline);
+        const trimmedVideoPath = await this.trimVideo(active.session.id, active.projectId, effectiveVideoPath, timeline);
 
         // No idle to trim is normal for an active demo — cut the demo from
         // the raw capture instead of producing no video at all.
-        const demoSource = trimmedVideoPath ?? result.outputPath;
+        const demoSource = trimmedVideoPath ?? effectiveVideoPath;
         if (!trimmedVideoPath) {
           this.logger(`postprocess session=${active.session.id} step=trimVideo skipped (no idle) — demo from raw`);
         }
         await this.generateDemo(active.session.id, active.projectId, demoSource, active.profileSettings);
 
-        const scenes = await this.assembleTimeline(active.session.id, active.projectId, result.outputPath, timeline);
+        const scenes = await this.assembleTimeline(active.session.id, active.projectId, effectiveVideoPath, timeline);
 
-        await this.generateChapters(active.session.id, active.projectId, result.outputPath, scenes);
+        await this.generateChapters(active.session.id, active.projectId, effectiveVideoPath, scenes);
 
         this.scoreDemoQuality(active.session.id, active.projectId, timeline);
       } else {
-        await this.extractScreenshots(active.session.id, active.projectId, result.outputPath, active.profileSettings, interactionTimestamps, segmentDurations);
+        await this.extractScreenshots(active.session.id, active.projectId, effectiveVideoPath, active.profileSettings, interactionTimestamps, segmentDurations);
       }
 
       this.sessionService.updateStatus(active.session.id, "complete");

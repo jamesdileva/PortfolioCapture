@@ -7,6 +7,9 @@ import type {
   SmartTrimmerConfig,
   TrimResult,
   FFmpegService,
+  ForegroundSegment,
+  FocusEdgeTarget,
+  FocusEdgeOptions,
 } from "../../../../packages/shared/types/index.js";
 
 export type ExecFn = (command: string, args: string[]) => ChildProcess;
@@ -134,6 +137,65 @@ export class SmartTrimmerImpl {
     }
 
     return active;
+  }
+
+  /**
+   * Cuts the lead-in/tail where the target app was not in the foreground
+   * (e.g. switching away from the recorder to start, back to stop). Only
+   * edges are touched — gaps in the middle are left alone. Returns null
+   * when there is nothing worth cutting so callers can keep the original.
+   */
+  async trimEdgesFocus(
+    inputVideo: string,
+    outputPath: string,
+    focusSegments: ForegroundSegment[],
+    target: FocusEdgeTarget,
+    options?: FocusEdgeOptions,
+  ): Promise<string | null> {
+    const paddingMs = options?.edgePaddingMs ?? 1000;
+    const minResultMs = options?.minResultMs ?? 2000;
+
+    const matches = focusSegments.filter((seg) => this.isTargetForeground(seg, target));
+    if (matches.length === 0) return null;
+
+    const mediaInfo = await this.ffmpegService.probe(inputVideo);
+    const durationMs = mediaInfo.durationMs;
+    if (!durationMs || durationMs <= 0) return null;
+
+    const sorted = [...matches].sort((a, b) => a.startMs - b.startMs);
+    const startMs = Math.max(0, sorted[0].startMs - paddingMs);
+    const endMs = Math.min(durationMs, sorted[sorted.length - 1].endMs + paddingMs);
+
+    if (endMs - startMs < minResultMs) return null;
+    if (startMs <= paddingMs / 2 && endMs >= durationMs - 500) return null;
+
+    await execPromise(this.execFn, "ffmpeg", [
+      "-y",
+      "-ss",
+      String(startMs / 1000),
+      "-i",
+      inputVideo,
+      "-to",
+      String((endMs - startMs) / 1000),
+      "-c:v",
+      "libx264",
+      "-preset",
+      "ultrafast",
+      "-pix_fmt",
+      "yuv420p",
+      outputPath,
+    ]);
+    return outputPath;
+  }
+
+  isTargetForeground(seg: ForegroundSegment, target: FocusEdgeTarget): boolean {
+    if (target.exePath && seg.exePath && seg.exePath.toLowerCase() === target.exePath.toLowerCase()) {
+      return true;
+    }
+    if (target.windowTitle && seg.title.toLowerCase().includes(target.windowTitle.toLowerCase())) {
+      return true;
+    }
+    return false;
   }
 
   private mergeSegments(segments: IdleSegment[], mergeGapMs: number): IdleSegment[] {

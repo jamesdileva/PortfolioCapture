@@ -27,6 +27,7 @@ export { PortfolioUpdateTriggerImpl } from "./portfolio-update-trigger.js";
 export { DeployServiceImpl } from "./deploy-service.js";
 export { DevServerDetectorImpl } from "./dev-server-detector.js";
 export { WindowEnumeratorImpl } from "./window-enumerator.js";
+export { ForegroundTrackerImpl, buildForegroundScript, parseForegroundSnapshot } from "./foreground-tracker.js";
 export { ElectronWindowCaptureProvider } from "./electron-capture-provider.js";
 export { WindowCaptureTester, sampleVideoBrightness, defaultBrightnessSampler, BLANK_BRIGHTNESS_THRESHOLD } from "./window-capture-tester.js";
 export { FeatureChapterGeneratorImpl } from "./feature-chapter-generator.js";
